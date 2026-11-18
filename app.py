@@ -14850,11 +14850,12 @@ def tools_pptx_generate():
         t_render0 = time.perf_counter()
         custom_design = _pptx_dimp.get_design_by_id(theme_color) if _pptx_dimp else None
         groq_client = _pptx_ai.client if (_pptx_ai and _pptx_ai.groq_available) else None
+        template_images = [str(x) for x in (data.get('template_images') or data.get('images') or []) if isinstance(x, str) and x.strip()]
         out = _pptx_gen.create_presentation(
             slides_data=slides,
             theme_color=theme_color,
             cover_data=cover_data,
-            extracted_images=[],
+            extracted_images=template_images,
             font_name=font_name if font_name != 'auto' else (custom_design.get('font_name', 'Dubai') if custom_design else 'Dubai'),
             body_font_size=body_font_size,
             ai_images=False,
@@ -15274,6 +15275,7 @@ def api_pptx_canva_apply_template():
         ai_ms = round((time.perf_counter() - t_ai0) * 1000)
 
         t_render0 = time.perf_counter()
+        template_images = [str(x) for x in (data.get('template_images') or data.get('images') or []) if isinstance(x, str) and x.strip()]
         out_path, applied_design = _pptx_dap.apply_design_to_presentation(
             slides_data=slides,
             design_id=template_id,
@@ -15281,6 +15283,7 @@ def api_pptx_canva_apply_template():
             font_name=font_name,
             body_font_size=body_font_size,
             filename_prefix=title or applied_name_safe(template_id),
+            extracted_images=template_images,
         )
         render_ms = round((time.perf_counter() - t_render0) * 1000)
         filename = os.path.basename(out_path)
@@ -15411,12 +15414,14 @@ def api_pptx_redesign_pptx():
         rewrite_ms = round((time.perf_counter() - t0) * 1000)
 
         t_render0 = time.perf_counter()
+        template_images = [str(x) for x in (data.get('template_images') or data.get('images') or []) if isinstance(x, str) and x.strip()]
         out_path, applied_design = _pptx_dap.apply_design_to_presentation(
             slides_data=rebuilt_slides,
             design_id=template_id,
             font_name=font_name,
             body_font_size=body_font_size,
             filename_prefix=title_override or 'عرض_محدث_كانفا',
+            extracted_images=template_images,
         )
         render_ms = round((time.perf_counter() - t_render0) * 1000)
         filename = os.path.basename(out_path)

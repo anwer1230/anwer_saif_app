@@ -5533,6 +5533,30 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- شريط صور القالب المقصوصة + المعاينة الحية السريعة -->
+                <div class="card border-info border-opacity-25 bg-light mb-3">
+                  <div class="card-body py-2 px-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                      <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small fw-bold text-dark"><i class="fas fa-crop-alt text-info me-1"></i>صور العرض والشعار (مع القص التفاعلي):</span>
+                        <span id="pptxTextImgCountBadge" class="badge bg-secondary">0 صورة مرفقة</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-sm btn-outline-info fw-bold" onclick="pptxTriggerTemplateImageUpload('slide')">
+                          <i class="fas fa-crop me-1"></i>رفع وقص صورة للشرائح
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="pptxTriggerTemplateImageUpload('cover')">
+                          <i class="fas fa-id-badge me-1"></i>رفع وقص شعار الغلاف
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-dark fw-bold" onclick="openPresentationStudio('canva')">
+                          <i class="fas fa-eye me-1 text-warning"></i>معاينة حية للقالب
+                        </button>
+                      </div>
+                    </div>
+                    <div id="pptxTextImgMiniStrip" class="d-flex flex-wrap gap-2 mt-2" style="display:none !important;"></div>
+                  </div>
+                </div>
               </div>
 
               <!-- ===== التاب 2: رفع ملف .pptx حالي وتحليله وإعادة تصميمه ===== -->
@@ -5602,7 +5626,7 @@
                       <div class="row g-2 align-items-center">
                         <div class="col-md-4">
                           <label class="form-label fw-bold small mb-1">اختر قالب كانفا للتحديث:</label>
-                          <select id="pptxRedesignTemplateSelect" class="form-select form-select-sm"></select>
+                          <select id="pptxRedesignTemplateSelect" class="form-select form-select-sm" onchange="pptxUpdateRedesignMiniPreview()"></select>
                         </div>
                         <div class="col-md-4">
                           <label class="form-label fw-bold small mb-1">عنوان جديد للعرض (اختياري):</label>
@@ -5618,6 +5642,7 @@
                           </button>
                         </div>
                       </div>
+                      <div id="pptxRedesignLiveMiniPreview" class="mt-2 pt-2 border-top d-flex flex-wrap align-items-center justify-content-between gap-2 small"></div>
                     </div>
                   </div>
 
@@ -5736,8 +5761,98 @@
                   <input type="text" id="pptxCanvaSearchInput" class="form-control form-control-sm" style="max-width:210px;" placeholder="ابحث عن قالب..." oninput="pptxRenderCanvaGallery()">
                 </div>
 
-                <!-- معرض قوالب كانفا (اضغط أي قالب للتطبيق وبناء الملف تلقائياً) -->
-                <div id="pptxCanvaGallery" class="row g-2" style="max-height:360px;overflow-y:auto;"></div>
+                <!-- لوحة إدارة القوالب: المعرض + المعاينة البصرية الحية قبل التطبيق + أداة رفع وقص الصور -->
+                <div class="row g-3 align-items-start">
+                  <!-- العمود الأيمن: معرض قوالب كانفا + أداة رفع وقص صور القالب -->
+                  <div class="col-lg-6">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="small fw-bold text-secondary"><i class="fas fa-th-large text-primary me-1"></i>انقر على أي قالب للمعاينة الحية قبل التطبيق:</span>
+                      <span id="pptxCanvaCountBadge" class="badge bg-light text-dark border small">0 قالب</span>
+                    </div>
+                    <div id="pptxCanvaGallery" class="row g-2" style="max-height:360px;overflow-y:auto;"></div>
+
+                    <!-- مكون رفع الصور مع القص التفاعلي قبل معالجتها في مدير القوالب -->
+                    <div id="pptxTemplateImageUploader" class="card border-primary border-opacity-25 mt-3 shadow-sm">
+                      <div class="card-header bg-light py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="small fw-bold text-primary">
+                          <i class="fas fa-crop-alt me-1"></i>رفع وقص صور القالب والعرض (قبل المعالجة)
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                          <input type="radio" class="btn-check" name="pptxTplImgRole" id="pptxImgRoleSlide" value="slide" checked>
+                          <label class="btn btn-outline-primary py-0 px-2" style="font-size:0.72rem;" for="pptxImgRoleSlide">صورة شرائح</label>
+                          <input type="radio" class="btn-check" name="pptxTplImgRole" id="pptxImgRoleCover" value="cover">
+                          <label class="btn btn-outline-primary py-0 px-2" style="font-size:0.72rem;" for="pptxImgRoleCover">شعار / غلاف</label>
+                        </div>
+                      </div>
+                      <div class="card-body p-2">
+                        <div id="pptxTplImgDropZone" class="border border-2 border-dashed border-primary border-opacity-50 rounded-3 p-2 text-center bg-light"
+                             style="cursor:pointer;transition:all 0.2s;"
+                             onclick="document.getElementById('pptxTplImgInput').click()">
+                          <div class="small fw-bold text-dark">
+                            <i class="fas fa-cloud-upload-alt text-primary me-1"></i>اسحب الصورة هنا أو انقر لاختيارها وقص الجزء المطلوب فوراً
+                          </div>
+                          <div class="text-muted" style="font-size:0.72rem;">تُفتح أداة القص التفاعلي (✂️) قبل اعتماد الصورة وإدراجها في المعاينة الحية وملف PPTX</div>
+                          <input type="file" id="pptxTplImgInput" class="d-none" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+                        </div>
+                        <div id="pptxTplImgPreviewGrid" class="d-flex flex-wrap gap-2 mt-2"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- العمود الأيسر: منصة المعاينة البصرية الحية الفورية لقوالب كانفا -->
+                  <div class="col-lg-6">
+                    <div id="pptxCanvaLivePreviewStage" class="card border-0 shadow-sm sticky-lg-top" style="border-radius:14px;overflow:hidden;border:1.5px solid #cbd5e1 !important;">
+                      <div class="card-header bg-dark text-white py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                          <span class="badge bg-info text-dark"><i class="fas fa-eye me-1"></i>معاينة حية</span>
+                          <span id="pptxStageTemplateName" class="fw-bold small text-truncate">اختر قالباً للمعاينة</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1" id="pptxStageSwatches"></div>
+                      </div>
+
+                      <div class="card-body p-2 p-md-3 bg-light">
+                        <!-- شريط التبديل بين الشرائح أثناء المعاينة -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                          <div class="btn-group btn-group-sm" role="group" id="pptxStageSlideTabs">
+                            <button type="button" class="btn btn-primary active fw-bold" data-slide-mode="cover" onclick="pptxSetPreviewSlideMode('cover', this)">🖼️ الغلاف</button>
+                            <button type="button" class="btn btn-outline-primary fw-bold" data-slide-mode="content" onclick="pptxSetPreviewSlideMode('content', this)">📑 المحتوى</button>
+                            <button type="button" class="btn btn-outline-primary fw-bold" data-slide-mode="chart" onclick="pptxSetPreviewSlideMode('chart', this)">📊 البيانات/الختام</button>
+                            <button type="button" class="btn btn-outline-secondary fw-bold d-none" id="pptxStageCanvaThumbBtn" data-slide-mode="canva_thumb" onclick="pptxSetPreviewSlideMode('canva_thumb', this)">🌐 صورة كانفا</button>
+                          </div>
+                          <span id="pptxStageLayoutMeta" class="badge bg-white text-dark border" style="font-size:0.7rem;">layout: modern_card</span>
+                        </div>
+
+                        <!-- شاشة العرض البصري 16:9 المطابقة لتصميم القالب -->
+                        <div id="pptxCanvaVisualCanvas" class="rounded-3 shadow-sm overflow-hidden border position-relative"
+                             style="aspect-ratio:16/9;width:100%;background:#0f2942;transition:all 0.22s ease;"></div>
+
+                        <!-- محرر سريع للمعاينة الحية الفورية متزامن مع حقول العرض -->
+                        <div class="row g-2 mt-2">
+                          <div class="col-12">
+                            <input type="text" id="pptxLiveStageTitle" class="form-control form-control-sm" dir="rtl"
+                                   placeholder="جرّب كتابة عنوان العرض هنا لرؤية النتيجة الحية داخل القالب فوراً..."
+                                   oninput="pptxSyncStageInputs('title')">
+                          </div>
+                          <div class="col-12">
+                            <textarea id="pptxLiveStageBullets" class="form-control form-control-sm" rows="2" dir="rtl"
+                                      placeholder="اكتب نقاط أو سطور الشريحة هنا لتحديث المعاينة الحية لحظياً..."
+                                      oninput="pptxSyncStageInputs('bullets')"></textarea>
+                          </div>
+                        </div>
+
+                        <!-- أزرار القرار بعد رؤية المعاينة البصرية -->
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                          <button type="button" class="btn btn-outline-primary btn-sm fw-bold flex-grow-1" onclick="pptxAdoptCanvaPreviewTheme()">
+                            <i class="fas fa-check-circle me-1"></i>اعتماد القالب والتعديل الكامل
+                          </button>
+                          <button type="button" id="pptxStageApplyBtn" class="btn btn-success btn-sm fw-bold flex-grow-1" onclick="pptxApplyCanvaTemplate()">
+                            <i class="fas fa-bolt me-1"></i>تطبيق القالب وبناء .pptx الآن
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- ===== التاب 2: محوّل PDF و HTML الموحد (Word / Excel / PPTX + Gemini AI + Chart.js) ===== -->
@@ -6241,9 +6356,109 @@
       </div>
     </div>
 
+    <!-- ===== مودال أداة قص الصور التفاعلية (لمدير القوالب + الصور المرفوعة) ===== -->
+    <div id="studioImageCropModal" class="studio-crop-overlay" dir="rtl" aria-hidden="true">
+      <div class="studio-crop-card shadow-lg">
+        <div class="studio-crop-head">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold"><i class="fas fa-crop-alt text-warning me-2"></i>قص وتحديد الجزء المطلوب من الصورة</span>
+            <span id="studioCropQueueBadge" class="badge bg-info text-dark">صورة واحدة</span>
+          </div>
+          <button type="button" class="btn-close btn-close-white" onclick="studioCancelCropAll()" aria-label="إغلاق"></button>
+        </div>
+        <div class="studio-crop-toolbar">
+          <button type="button" class="btn btn-sm btn-outline-light active" data-studio-crop-ratio="free" onclick="studioSetCropAspect('free', this)">حر</button>
+          <button type="button" class="btn btn-sm btn-outline-light" data-studio-crop-ratio="1.7777" onclick="studioSetCropAspect('1.7777', this)">16:9 شريحة</button>
+          <button type="button" class="btn btn-sm btn-outline-light" data-studio-crop-ratio="1.3333" onclick="studioSetCropAspect('1.3333', this)">4:3 عرض</button>
+          <button type="button" class="btn btn-sm btn-outline-light" data-studio-crop-ratio="1" onclick="studioSetCropAspect('1', this)">1:1 مربع/شعار</button>
+          <button type="button" class="btn btn-sm btn-outline-light" data-studio-crop-ratio="0.75" onclick="studioSetCropAspect('0.75', this)">3:4 طولي</button>
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="studioRotateCropImage()"><i class="fas fa-redo me-1"></i>تدوير 90°</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary text-white" onclick="studioResetCropSelection()"><i class="fas fa-expand me-1"></i>إعادة التحديد</button>
+          <span id="studioCropSizeReadout" class="ms-auto badge bg-dark border border-secondary">0 × 0 px</span>
+        </div>
+        <div class="studio-crop-stage-wrap">
+          <div id="studioCropStage" class="studio-crop-stage">
+            <img id="studioCropSourceImg" alt="صورة للقص" draggable="false">
+            <div id="studioCropRect" class="studio-crop-rect">
+              <div class="studio-crop-handle h-nw" data-handle="nw"></div>
+              <div class="studio-crop-handle h-n" data-handle="n"></div>
+              <div class="studio-crop-handle h-ne" data-handle="ne"></div>
+              <div class="studio-crop-handle h-e" data-handle="e"></div>
+              <div class="studio-crop-handle h-se" data-handle="se"></div>
+              <div class="studio-crop-handle h-s" data-handle="s"></div>
+              <div class="studio-crop-handle h-sw" data-handle="sw"></div>
+              <div class="studio-crop-handle h-w" data-handle="w"></div>
+            </div>
+          </div>
+        </div>
+        <div class="studio-crop-foot">
+          <span class="small text-muted">اسحب الإطار أو زواياه لتحديد الجزء المطلوب قبل معالجته في مدير القوالب.</span>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="studioSkipCurrentCrop()">تخطي</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="studioUseFullImageWithoutCrop()">استخدام كاملة</button>
+            <button type="button" class="btn btn-sm btn-success fw-bold px-3" onclick="studioConfirmCropImage()">
+              <i class="fas fa-cut me-1"></i>اعتماد القص والمتابعة
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <style>
       .academic-btn { transition: all 0.2s ease; }
       .academic-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+      .studio-crop-overlay {
+        display: none; position: fixed; inset: 0; z-index: 2050;
+        background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
+        align-items: center; justify-content: center; padding: 14px;
+      }
+      .studio-crop-overlay.show { display: flex; }
+      .studio-crop-card {
+        background: #ffffff; border-radius: 14px; width: 100%; max-width: 760px;
+        overflow: hidden; display: flex; flex-direction: column; max-height: 92vh;
+      }
+      .studio-crop-head {
+        background: linear-gradient(135deg, #0f2942, #1d4e89); color: #fff;
+        padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+      }
+      .studio-crop-toolbar {
+        background: #1e293b; padding: 8px 12px; display: flex; flex-wrap: wrap;
+        gap: 6px; align-items: center;
+      }
+      .studio-crop-toolbar .btn.active { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+      .studio-crop-stage-wrap {
+        background: #0b1120; padding: 14px; display: flex; align-items: center; justify-content: center;
+        overflow: auto; flex: 1; min-height: 260px; max-height: 58vh;
+      }
+      .studio-crop-stage {
+        position: relative; display: inline-block; user-select: none; touch-action: none; line-height: 0;
+      }
+      .studio-crop-stage img {
+        max-width: 100%; max-height: 52vh; display: block; pointer-events: none;
+      }
+      .studio-crop-rect {
+        position: absolute; border: 2px solid #38bdf8;
+        box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.62);
+        cursor: move; touch-action: none;
+      }
+      .studio-crop-handle {
+        position: absolute; width: 12px; height: 12px; background: #fff;
+        border: 2px solid #0284c7; border-radius: 50%;
+      }
+      .studio-crop-handle.h-nw { top: -6px; left: -6px; cursor: nwse-resize; }
+      .studio-crop-handle.h-n  { top: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+      .studio-crop-handle.h-ne { top: -6px; right: -6px; cursor: nesw-resize; }
+      .studio-crop-handle.h-e  { top: 50%; right: -6px; transform: translateY(-50%); cursor: ew-resize; }
+      .studio-crop-handle.h-se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+      .studio-crop-handle.h-s  { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+      .studio-crop-handle.h-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
+      .studio-crop-handle.h-w  { top: 50%; left: -6px; transform: translateY(-50%); cursor: ew-resize; }
+      .studio-crop-foot {
+        padding: 10px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+        display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+      }
+      .canva-gallery-card { transition: transform 0.16s ease, box-shadow 0.16s ease; }
+      .canva-gallery-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 41, 66, 0.14) !important; }
     </style>
 
     <script src="/static/js/recharts_pipeline.js"></script>
@@ -6310,6 +6525,9 @@
       let _pptxLastDownloadUrl = '';
       let _pptxCanvaTemplates = [];
       let _pptxCanvaCategory = 'all';
+      let _pptxPreviewCanvaId = '';
+      let _pptxPreviewSlideMode = 'cover';
+      let _pptxTemplateImages = [];
       let _pptxGoogleAccounts = [];
       let _pptxActiveGoogleEmail = '';
       let _pptxFirebaseConfig = null;
@@ -6512,6 +6730,81 @@
           if (/iPhone|iPad|iPod/i.test(ua)) {
             mobileLink.href = 'https://www.canva.com/presentations/';
           }
+        }
+
+        // ربط التحديث الفوري لمعاينة كانفا الحية عند تعديل أي نص أو إعداد
+        ['pptxTitle', 'pptxText', 'pptxFontName', 'pptxFontSize', 'pptxCoverOrg', 'pptxCoverPresenter', 'pptxCoverSubtitle', 'pptxCoverDate', 'pptxCoverLogo'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener('input', pptxRefreshCanvaLivePreview);
+            el.addEventListener('change', pptxRefreshCanvaLivePreview);
+          }
+        });
+
+        // ربط أداة رفع وقص الصور داخل مدير القوالب
+        const tplDrop = document.getElementById('pptxTplImgDropZone');
+        const tplInput = document.getElementById('pptxTplImgInput');
+        if (tplInput) {
+          tplInput.addEventListener('change', function(ev) {
+            const files = Array.from(ev.target.files || []);
+            if (files.length) studioOpenCropperForFiles(files, 'template');
+            ev.target.value = '';
+          });
+        }
+        if (tplDrop) {
+          tplDrop.addEventListener('dragover', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            tplDrop.classList.add('bg-white', 'border-info');
+          });
+          tplDrop.addEventListener('dragleave', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            tplDrop.classList.remove('bg-white', 'border-info');
+          });
+          tplDrop.addEventListener('drop', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            tplDrop.classList.remove('bg-white', 'border-info');
+            const files = Array.from((ev.dataTransfer && ev.dataTransfer.files) || []).filter(f => f.type && f.type.startsWith('image/'));
+            if (files.length) studioOpenCropperForFiles(files, 'template');
+          });
+        }
+
+        // ربط مكون رفع الصور الرئيسي (#dropZone / #imageUpload) مع القص التفاعلي قبل الحفظ
+        const mainDrop = document.getElementById('dropZone');
+        const mainImgIn = document.getElementById('imageUpload');
+        const clearMainBtn = document.getElementById('clearImages');
+        if (mainDrop && mainImgIn) {
+          mainDrop.addEventListener('click', function() { mainImgIn.click(); });
+          mainDrop.addEventListener('dragover', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            mainDrop.classList.add('border-primary', 'bg-light');
+          });
+          mainDrop.addEventListener('dragleave', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            mainDrop.classList.remove('border-primary', 'bg-light');
+          });
+          mainDrop.addEventListener('drop', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            mainDrop.classList.remove('border-primary', 'bg-light');
+            const files = Array.from((ev.dataTransfer && ev.dataTransfer.files) || []).filter(f => f.type && f.type.startsWith('image/'));
+            if (files.length) studioOpenCropperForFiles(files, 'telegram');
+          });
+          mainImgIn.addEventListener('change', function(ev) {
+            const files = Array.from(ev.target.files || []);
+            if (files.length) studioOpenCropperForFiles(files, 'telegram');
+            ev.target.value = '';
+          });
+        }
+        if (clearMainBtn) {
+          clearMainBtn.addEventListener('click', function() {
+            window.selectedImages = [];
+            renderMainDashboardImages();
+          });
         }
       });
 
@@ -6811,13 +7104,17 @@
         const date = (document.getElementById('pptxCoverDate').value || '').trim();
         const logo = (document.getElementById('pptxCoverLogo').value || '').trim();
 
-        const coverData = (org || presenter || subtitle || date || logo || title) ? {
+        const coverImg = (_pptxTemplateImages.find(x => x.role === 'cover') || {}).dataUrl || '';
+        const slideImgs = _pptxTemplateImages.filter(x => x.role !== 'cover').map(x => x.dataUrl);
+
+        const coverData = (org || presenter || subtitle || date || logo || title || coverImg) ? {
           title: title || (text || 'عرض تقديمي احترافي').split('\n')[0].substring(0, 60),
           subtitle,
           organization: org,
           presenter,
           date: date || new Date().toLocaleDateString('ar-SA'),
-          logo: logo || '📊'
+          logo: logo || '📊',
+          logo_image: coverImg || undefined
         } : null;
 
         try {
@@ -6831,6 +7128,7 @@
             body_font_size: parseInt(document.getElementById('pptxFontSize').value, 10) || 22,
             fetch_links: true,
             cover_data: coverData,
+            template_images: slideImgs,
           } : {
             text,
             title,
@@ -6844,6 +7142,7 @@
             body_font_size: parseInt(document.getElementById('pptxFontSize').value, 10) || 22,
             cover_data: coverData,
             extracted_tables: _pptxExtractedTables,
+            template_images: slideImgs,
           };
 
           const res = await fetch(endpoint, {
@@ -7635,8 +7934,13 @@
           if (Array.isArray(d.templates)) {
             _pptxCanvaTemplates = d.templates;
             _pptxCanvaLoadedOnce = true;
+            if (!_pptxPreviewCanvaId && _pptxCanvaTemplates.length) {
+              _pptxPreviewCanvaId = _pptxCanvaTemplates[0].id;
+            }
             pptxRenderCanvaGallery();
+            pptxRefreshCanvaLivePreview();
             pptxPopulateRedesignSelect();
+            pptxUpdateRedesignMiniPreview();
           }
           if (d.accounts) {
             _pptxGoogleAccounts = d.accounts.accounts || [];
@@ -7661,6 +7965,35 @@
         if (currentVal && _pptxCanvaTemplates.some(t => t.id === currentVal)) {
           sel.value = currentVal;
         }
+        pptxUpdateRedesignMiniPreview();
+      }
+
+      function pptxUpdateRedesignMiniPreview() {
+        const box = document.getElementById('pptxRedesignLiveMiniPreview');
+        const sel = document.getElementById('pptxRedesignTemplateSelect');
+        if (!box || !sel || !_pptxCanvaTemplates.length) return;
+        const t = _pptxCanvaTemplates.find(x => x.id === sel.value) || _pptxCanvaTemplates[0];
+        if (!t) return;
+        const c = t.colors || {};
+        const p = c.primary || '#0F2942';
+        const s = c.secondary || '#1D4E89';
+        const a = c.accent || '#F59E0B';
+        const bg = c.bg || '#F8FAFC';
+        box.innerHTML = `
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-info text-dark">معاينة القالب المختار</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;background:${bg};border:1px solid ${p};">
+              <span style="width:12px;height:12px;border-radius:50%;background:${p};"></span>
+              <span style="width:12px;height:12px;border-radius:50%;background:${s};"></span>
+              <span style="width:12px;height:12px;border-radius:50%;background:${a};"></span>
+              <strong class="text-dark ms-1">${_pptxEsc(t.name)}</strong>
+            </span>
+            <span class="text-muted">${_pptxEsc(t.layout || 'modern_card')} · ${_pptxEsc(t.font_name || 'Dubai')}</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold"
+                  onclick="pptxPreviewCanvaTemplate('${_pptxEsc(t.id)}'); openPresentationStudio('canva');">
+            <i class="fas fa-eye me-1"></i>فتح المعاينة الحية الكاملة
+          </button>`;
       }
 
       function pptxRenderGoogleAccounts() {
@@ -7840,9 +8173,16 @@
           return true;
         });
 
+        const countBadge = document.getElementById('pptxCanvaCountBadge');
+        if (countBadge) countBadge.textContent = `${filtered.length} قالب`;
+
         if (!filtered.length) {
           wrap.innerHTML = '<div class="col-12 text-center text-muted py-4 small">لا توجد قوالب مطابقة لهذا البحث.</div>';
           return;
+        }
+
+        if (!_pptxPreviewCanvaId || !filtered.some(x => x.id === _pptxPreviewCanvaId)) {
+          _pptxPreviewCanvaId = filtered[0].id;
         }
 
         wrap.innerHTML = filtered.map(t => {
@@ -7851,34 +8191,39 @@
           const s = c.secondary || '#0f2942';
           const a = c.accent || '#00c4cc';
           const bg = c.bg || '#f8fafc';
-          const isSelected = _pptxSelectedTheme === t.id;
-          return `<div class="col-md-4 col-sm-6">
-            <div class="card h-100 shadow-sm ${isSelected ? 'border-warning border-2' : 'border-0'}" style="cursor:pointer;border-radius:12px;overflow:hidden;" onclick="pptxApplyCanvaTemplate('${_pptxEsc(t.id)}')">
-              <div style="height:105px;background:${bg};position:relative;overflow:hidden;border-bottom:1px solid #e2e8f0;" class="p-2 d-flex flex-column justify-content-between">
-                <div style="height:26px;background:linear-gradient(135deg,${p},${s});border-radius:6px;" class="px-2 d-flex align-items-center justify-content-between">
-                  <span style="width:45%;height:6px;background:#fff;border-radius:4px;opacity:0.9;"></span>
-                  <span style="width:14px;height:14px;background:${a};border-radius:50%;"></span>
+          const isApplied = _pptxSelectedTheme === t.id;
+          const isPreviewed = _pptxPreviewCanvaId === t.id;
+          const cardBorder = isPreviewed ? 'border-primary border-2' : (isApplied ? 'border-warning border-2' : 'border');
+          return `<div class="col-sm-6">
+            <div class="card h-100 shadow-sm canva-gallery-card ${cardBorder}" style="cursor:pointer;border-radius:12px;overflow:hidden;" onclick="pptxPreviewCanvaTemplate('${_pptxEsc(t.id)}')">
+              <div style="height:88px;background:${bg};position:relative;overflow:hidden;border-bottom:1px solid #e2e8f0;" class="p-2 d-flex flex-column justify-content-between">
+                <div style="height:22px;background:linear-gradient(135deg,${p},${s});border-radius:6px;" class="px-2 d-flex align-items-center justify-content-between">
+                  <span style="width:45%;height:5px;background:#fff;border-radius:4px;opacity:0.9;"></span>
+                  <span style="width:12px;height:12px;background:${a};border-radius:50%;"></span>
                 </div>
                 <div class="d-flex gap-2 align-items-center my-1">
-                  <div style="width:8px;height:38px;background:${a};border-radius:4px;"></div>
+                  <div style="width:7px;height:32px;background:${a};border-radius:4px;"></div>
                   <div class="flex-grow-1">
-                    <div style="width:85%;height:6px;background:${p};opacity:0.45;border-radius:3px;margin-bottom:5px;"></div>
-                    <div style="width:70%;height:5px;background:${s};opacity:0.25;border-radius:3px;margin-bottom:5px;"></div>
-                    <div style="width:55%;height:5px;background:${s};opacity:0.2;border-radius:3px;"></div>
+                    <div style="width:85%;height:5px;background:${p};opacity:0.45;border-radius:3px;margin-bottom:4px;"></div>
+                    <div style="width:65%;height:4px;background:${s};opacity:0.25;border-radius:3px;"></div>
                   </div>
                 </div>
-                <span class="badge position-absolute bottom-0 start-0 m-1" style="background:${p};font-size:0.65rem;">${_pptxEsc(t.category || 'Canva')}</span>
+                <span class="badge position-absolute bottom-0 start-0 m-1" style="background:${p};font-size:0.62rem;">${_pptxEsc(t.category || 'Canva')}</span>
+                ${isPreviewed ? '<span class="badge bg-primary position-absolute top-0 end-0 m-1" style="font-size:0.6rem;">قيد المعاينة</span>' : ''}
               </div>
               <div class="card-body p-2 d-flex flex-column justify-content-between">
                 <div>
-                  <div class="fw-bold small text-dark text-truncate">${_pptxEsc(t.name)}</div>
-                  <div class="text-muted" style="font-size:0.72rem;min-height:30px;">${_pptxEsc(t.description || '')}</div>
+                  <div class="fw-bold small text-dark text-truncate" title="${_pptxEsc(t.name)}">${_pptxEsc(t.name)}</div>
+                  <div class="text-muted text-truncate" style="font-size:0.7rem;">${_pptxEsc(t.description || '')}</div>
                 </div>
                 <div class="d-flex gap-1 mt-2">
-                  <button type="button" class="btn btn-sm ${isSelected ? 'btn-warning text-dark' : 'btn-primary'} fw-bold flex-grow-1" style="font-size:0.75rem;" onclick="event.stopPropagation(); pptxApplyCanvaTemplate('${_pptxEsc(t.id)}')">
-                    <i class="fas fa-bolt me-1"></i>${isSelected ? 'مُطبّق — إعادة البناء' : 'تطبيق وتجهيز تلقائي'}
+                  <button type="button" class="btn btn-sm ${isPreviewed ? 'btn-primary' : 'btn-outline-primary'} fw-bold" style="font-size:0.72rem;" onclick="event.stopPropagation(); pptxPreviewCanvaTemplate('${_pptxEsc(t.id)}')" title="معاينة حية قبل التطبيق">
+                    <i class="fas fa-eye"></i> معاينة
                   </button>
-                  ${t.canva_url ? `<a href="${_pptxEsc(t.canva_url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-secondary" title="عرض في كانفا"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                  <button type="button" class="btn btn-sm ${isApplied ? 'btn-warning text-dark' : 'btn-success'} fw-bold flex-grow-1" style="font-size:0.72rem;" onclick="event.stopPropagation(); pptxApplyCanvaTemplate('${_pptxEsc(t.id)}')">
+                    <i class="fas fa-bolt me-1"></i>${isApplied ? 'إعادة البناء' : 'تطبيق'}
+                  </button>
+                  ${t.canva_url ? `<a href="${_pptxEsc(t.canva_url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-secondary px-2" title="عرض في كانفا"><i class="fas fa-external-link-alt"></i></a>` : ''}
                 </div>
               </div>
             </div>
@@ -7886,13 +8231,230 @@
         }).join('');
       }
 
-      async function pptxApplyCanvaTemplate(templateId) {
-        pptxClearMessages();
-        const tpl = _pptxCanvaTemplates.find(x => x.id === templateId);
-        const tplName = tpl ? tpl.name : templateId;
-        const swatch = (tpl && tpl.colors && tpl.colors.primary) ? tpl.colors.primary : '#008b94';
-        pptxSelectTheme(templateId, tplName, swatch);
+      function pptxPreviewCanvaTemplate(templateId) {
+        if (!templateId) return;
+        _pptxPreviewCanvaId = templateId;
         pptxRenderCanvaGallery();
+        pptxRefreshCanvaLivePreview();
+      }
+
+      function pptxSetPreviewSlideMode(mode, btnEl) {
+        _pptxPreviewSlideMode = mode || 'cover';
+        document.querySelectorAll('#pptxStageSlideTabs button').forEach(b => {
+          const active = b === btnEl || b.dataset.slideMode === _pptxPreviewSlideMode;
+          b.classList.toggle('active', active);
+          if (b.id === 'pptxStageCanvaThumbBtn') {
+            b.classList.toggle('btn-secondary', active);
+            b.classList.toggle('btn-outline-secondary', !active);
+          } else {
+            b.classList.toggle('btn-primary', active);
+            b.classList.toggle('btn-outline-primary', !active);
+          }
+        });
+        pptxRefreshCanvaLivePreview();
+      }
+
+      function pptxSyncStageInputs(field) {
+        if (field === 'title') {
+          const st = document.getElementById('pptxLiveStageTitle');
+          const mainTitle = document.getElementById('pptxTitle');
+          if (st && mainTitle) mainTitle.value = st.value;
+        } else if (field === 'bullets') {
+          const sb = document.getElementById('pptxLiveStageBullets');
+          const mainText = document.getElementById('pptxText');
+          if (sb && mainText) mainText.value = sb.value;
+        }
+        pptxRefreshCanvaLivePreview();
+      }
+
+      function pptxAdoptCanvaPreviewTheme() {
+        const tpl = _pptxCanvaTemplates.find(x => x.id === _pptxPreviewCanvaId);
+        if (!tpl) return;
+        const p = (tpl.colors && tpl.colors.primary) || '#008b94';
+        pptxSelectTheme(tpl.id, tpl.name, p);
+        pptxRenderCanvaGallery();
+        pptxShowToast(`🎨 تم اعتماد قالب "${tpl.name}" — عدّل النص أو الشرائح ثم اضغط بدء الإنشاء.`, false);
+        openPresentationStudio('text');
+      }
+
+      function pptxRefreshCanvaLivePreview() {
+        const canvas = document.getElementById('pptxCanvaVisualCanvas');
+        if (!canvas) return;
+        const tpl = _pptxCanvaTemplates.find(x => x.id === _pptxPreviewCanvaId) || _pptxCanvaTemplates[0];
+        if (!tpl) {
+          canvas.innerHTML = '<div class="h-100 d-flex align-items-center justify-content-center text-white small">جاري تحميل قوالب كانفا...</div>';
+          return;
+        }
+        _pptxPreviewCanvaId = tpl.id;
+        const c = tpl.colors || {};
+        const primary = c.primary || '#0F2942';
+        const secondary = c.secondary || '#1D4E89';
+        const accent = c.accent || '#F59E0B';
+        const bg = c.bg || '#F8FAFC';
+        const cardBg = c.card_bg || '#FFFFFF';
+        const textDark = c.text_dark || '#0F172A';
+        const textLight = c.text_light || '#FFFFFF';
+        const layout = tpl.layout || 'modern_card';
+
+        const nameEl = document.getElementById('pptxStageTemplateName');
+        const metaEl = document.getElementById('pptxStageLayoutMeta');
+        const swEl = document.getElementById('pptxStageSwatches');
+        const thumbBtn = document.getElementById('pptxStageCanvaThumbBtn');
+        if (nameEl) nameEl.textContent = tpl.name || tpl.id;
+        if (metaEl) metaEl.textContent = `${tpl.category || 'Canva'} · ${layout} · ${tpl.font_name || 'Dubai'}`;
+        if (swEl) {
+          swEl.innerHTML = [primary, secondary, accent, bg].map(col =>
+            `<span title="${_pptxEsc(col)}" style="width:13px;height:13px;border-radius:50%;background:${_pptxEsc(col)};border:1.5px solid rgba(255,255,255,0.75);display:inline-block;"></span>`
+          ).join('');
+        }
+        if (thumbBtn) {
+          thumbBtn.classList.toggle('d-none', !tpl.preview_image);
+          if (!tpl.preview_image && _pptxPreviewSlideMode === 'canva_thumb') {
+            _pptxPreviewSlideMode = 'cover';
+          }
+        }
+
+        // استخلاص المحتوى الفعلي للمعاينة الحية
+        const rawTitle = (document.getElementById('pptxTitle')?.value || '').trim();
+        const rawText = (document.getElementById('pptxText')?.value || '').trim();
+        const stTitle = document.getElementById('pptxLiveStageTitle');
+        const stBullets = document.getElementById('pptxLiveStageBullets');
+        if (stTitle && document.activeElement !== stTitle) stTitle.value = rawTitle;
+        if (stBullets && document.activeElement !== stBullets) stBullets.value = rawText;
+
+        const fontChoice = (document.getElementById('pptxFontName')?.value || '').trim() || tpl.font_name || 'Cairo, Dubai, sans-serif';
+        const titleTxt = rawTitle || (_pptxCurrentSlides[0] && _pptxCurrentSlides[0].title) || tpl.name || 'عنوان العرض التقديمي الاحترافي';
+        const orgTxt = (document.getElementById('pptxCoverOrg')?.value || '').trim() || 'مركز سرعة إنجاز الأكاديمي';
+        const presTxt = (document.getElementById('pptxCoverPresenter')?.value || '').trim() || 'إعداد العرض الذكي';
+        const subTxt = (document.getElementById('pptxCoverSubtitle')?.value || '').trim() || (tpl.description || 'معاينة بصرية حية قبل تطبيق القالب وبناء الشرائح');
+        const dateTxt = (document.getElementById('pptxCoverDate')?.value || '').trim() || new Date().toLocaleDateString('ar-SA');
+        const logoEmoji = (document.getElementById('pptxCoverLogo')?.value || '').trim() || '📊';
+
+        const coverImgObj = _pptxTemplateImages.find(x => x.role === 'cover');
+        const slideImgObj = _pptxTemplateImages.find(x => x.role !== 'cover') || coverImgObj;
+        const parsedLines = rawText
+          ? rawText.split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 4)
+          : (_pptxCurrentSlides.length > 1 && Array.isArray(_pptxCurrentSlides[1].bullets) && _pptxCurrentSlides[1].bullets.length
+              ? _pptxCurrentSlides[1].bullets.slice(0, 4)
+              : [
+                  'عرض الأهداف الرئيسية والمحاور التنفيذية بوضوح تام',
+                  'تناسق تلقائي للألوان والخطوط العربية من اليمين لليسار',
+                  'دمج الصور المقصوصة والبيانات الإحصائية داخل الشرائح'
+                ]);
+        const slide2Title = (_pptxCurrentSlides.length > 1 && _pptxCurrentSlides[1].title)
+          ? _pptxCurrentSlides[1].title
+          : (rawTitle ? `${rawTitle} — المحاور الأساسية` : 'المحاور الأساسية والمحتوى التنفيذي');
+
+        if (_pptxPreviewSlideMode === 'canva_thumb' && tpl.preview_image) {
+          canvas.style.background = bg;
+          canvas.innerHTML = `
+            <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center p-2" style="background:${bg};">
+              <img src="${_pptxEsc(tpl.preview_image)}" alt="معاينة كانفا" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">
+            </div>`;
+          return;
+        }
+
+        if (_pptxPreviewSlideMode === 'cover') {
+          const logoHtml = coverImgObj
+            ? `<div style="width:58px;height:52px;border-radius:8px;background:${cardBg};border:2px solid ${accent};padding:2px;overflow:hidden;flex-shrink:0;">
+                 <img src="${coverImgObj.dataUrl}" alt="شعار الغلاف" style="width:100%;height:100%;object-fit:cover;border-radius:5px;">
+               </div>`
+            : `<div style="font-size:1.65rem;line-height:1;">${_pptxEsc(logoEmoji)}</div>`;
+          canvas.style.background = primary;
+          canvas.innerHTML = `
+            <div dir="rtl" style="width:100%;height:100%;background:${primary};color:${textLight};font-family:${_pptxEsc(fontChoice)},Cairo,sans-serif;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;">
+              <div style="background:${secondary};border-bottom:3px solid ${accent};padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div class="fw-bold text-truncate" style="font-size:0.78rem;opacity:0.95;">${_pptxEsc(orgTxt)}</div>
+                ${logoHtml}
+              </div>
+              <div class="px-4 text-center my-auto">
+                <div class="fw-bold mb-1" style="font-size:clamp(0.95rem,2.1vw,1.35rem);line-height:1.35;">${_pptxEsc(titleTxt)}</div>
+                <div class="mx-auto mb-2" style="width:42%;height:3px;background:${accent};border-radius:4px;"></div>
+                <div style="font-size:0.74rem;opacity:0.88;max-width:90%;margin:0 auto;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${_pptxEsc(subTxt)}</div>
+              </div>
+              <div style="padding:7px 16px;background:rgba(0,0,0,0.16);display:flex;justify-content:center;gap:14px;font-size:0.68rem;opacity:0.9;">
+                <span><i class="fas fa-user-edit me-1"></i>${_pptxEsc(presTxt)}</span>
+                <span>•</span>
+                <span><i class="far fa-calendar-alt me-1"></i>${_pptxEsc(dateTxt)}</span>
+              </div>
+            </div>`;
+          return;
+        }
+
+        if (_pptxPreviewSlideMode === 'chart') {
+          canvas.style.background = bg;
+          canvas.innerHTML = `
+            <div dir="rtl" style="width:100%;height:100%;background:${bg};color:${textDark};font-family:${_pptxEsc(fontChoice)},Cairo,sans-serif;display:flex;flex-direction:column;justify-content:space-between;">
+              <div style="background:${primary};color:${textLight};border-bottom:3px solid ${accent};padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">
+                <span class="fw-bold" style="font-size:0.82rem;">مؤشرات الأداء والخاتمة</span>
+                <span class="badge" style="background:${accent};color:#0f172a;font-size:0.62rem;">ملخص بصري</span>
+              </div>
+              <div class="p-3 d-flex align-items-stretch gap-3 flex-grow-1">
+                <div class="flex-grow-1 rounded-3 p-2 d-flex flex-column justify-content-center gap-2" style="background:${cardBg};border:1.5px solid ${accent};">
+                  <div class="fw-bold" style="font-size:0.72rem;color:${primary};">التقدم المحقق حسب المحاور</div>
+                  ${[86, 74, 94].map((pct, idx) => `
+                    <div>
+                      <div class="d-flex justify-content-between" style="font-size:0.62rem;">
+                        <span>المحور ${idx + 1}</span><span>${pct}%</span>
+                      </div>
+                      <div style="height:7px;background:rgba(148,163,184,0.25);border-radius:4px;overflow:hidden;">
+                        <div style="width:${pct}%;height:100%;background:${idx % 2 === 0 ? primary : accent};border-radius:4px;"></div>
+                      </div>
+                    </div>`).join('')}
+                </div>
+                <div class="rounded-3 p-2 d-flex flex-column justify-content-center text-center" style="width:38%;background:${secondary};color:${textLight};">
+                  <div class="fw-bold mb-1" style="font-size:0.78rem;color:${accent};">الخلاصة</div>
+                  <div style="font-size:0.66rem;line-height:1.5;opacity:0.92;">جاهز للتصدير بنفس الألوان والتنسيق في PowerPoint (.pptx)</div>
+                </div>
+              </div>
+            </div>`;
+          return;
+        }
+
+        // Content slide matching exact Python layout geometry
+        const headerBg = (layout === 'modern_card' || layout === 'dark_pitch') ? secondary : primary;
+        const isCardLayout = (layout === 'modern_card' || layout === 'dark_pitch');
+        const isSplit = (layout === 'split_accent');
+        const bulletsHtml = parsedLines.map(b =>
+          `<div class="d-flex align-items-start gap-2 mb-1" style="font-size:0.72rem;line-height:1.42;color:${textDark};">
+             <span style="color:${accent};font-weight:bold;">◆</span>
+             <span style="display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">${_pptxEsc(b)}</span>
+           </div>`
+        ).join('');
+        const slidePicHtml = slideImgObj
+          ? `<div style="width:34%;height:100%;border-radius:8px;background:${accent};padding:3px;flex-shrink:0;overflow:hidden;">
+               <img src="${slideImgObj.dataUrl}" alt="صورة الشريحة" style="width:100%;height:100%;object-fit:cover;border-radius:6px;background:${cardBg};">
+             </div>`
+          : '';
+
+        canvas.style.background = bg;
+        canvas.innerHTML = `
+          <div dir="rtl" style="width:100%;height:100%;background:${bg};font-family:${_pptxEsc(fontChoice)},Cairo,sans-serif;display:flex;flex-direction:column;position:relative;overflow:hidden;">
+            <div style="background:${headerBg};color:${textLight};padding:8px 16px;border-bottom:3px solid ${accent};display:flex;align-items:center;justify-content:space-between;">
+              <div class="fw-bold text-truncate" style="font-size:0.84rem;">${_pptxEsc(slide2Title)}</div>
+              <span style="font-size:0.64rem;opacity:0.8;">2</span>
+            </div>
+            ${isSplit ? `<div style="position:absolute;top:38px;right:0;bottom:0;width:8px;background:${accent};"></div>` : ''}
+            <div class="p-3 flex-grow-1 d-flex align-items-stretch gap-2" style="min-height:0;">
+              <div class="flex-grow-1 d-flex align-items-center justify-content-between gap-2 ${isCardLayout ? 'rounded-3 p-2' : 'p-1'}"
+                   style="${isCardLayout ? `background:${cardBg};border:1.5px solid ${accent};` : ''}min-width:0;width:100%;">
+                <div class="flex-grow-1 d-flex flex-column justify-content-center" style="min-width:0;">${bulletsHtml}</div>
+                ${slidePicHtml}
+              </div>
+            </div>
+          </div>`;
+      }
+
+      async function pptxApplyCanvaTemplate(templateId) {
+        const targetId = templateId || _pptxPreviewCanvaId || (_pptxCanvaTemplates[0] && _pptxCanvaTemplates[0].id) || 'canva_exec_navy';
+        _pptxPreviewCanvaId = targetId;
+        pptxClearMessages();
+        const tpl = _pptxCanvaTemplates.find(x => x.id === targetId);
+        const tplName = tpl ? tpl.name : targetId;
+        const swatch = (tpl && tpl.colors && tpl.colors.primary) ? tpl.colors.primary : '#008b94';
+        pptxSelectTheme(targetId, tplName, swatch);
+        pptxRenderCanvaGallery();
+        pptxRefreshCanvaLivePreview();
 
         const prog = document.getElementById('pptxProgress');
         const progTxt = document.getElementById('pptxProgressText');
@@ -7903,8 +8465,25 @@
         try {
           const textVal = (document.getElementById('pptxText') ? document.getElementById('pptxText').value : '').trim();
           const titleVal = (document.getElementById('pptxTitle') ? document.getElementById('pptxTitle').value : '').trim();
+          const org = (document.getElementById('pptxCoverOrg')?.value || '').trim();
+          const presenter = (document.getElementById('pptxCoverPresenter')?.value || '').trim();
+          const subtitle = (document.getElementById('pptxCoverSubtitle')?.value || '').trim();
+          const date = (document.getElementById('pptxCoverDate')?.value || '').trim();
+          const logo = (document.getElementById('pptxCoverLogo')?.value || '').trim();
+          const coverImg = (_pptxTemplateImages.find(x => x.role === 'cover') || {}).dataUrl || '';
+          const slideImgs = _pptxTemplateImages.filter(x => x.role !== 'cover').map(x => x.dataUrl);
+          const coverData = (org || presenter || subtitle || date || logo || titleVal || coverImg) ? {
+            title: titleVal || (tplName + ' - عرض احترافي'),
+            subtitle,
+            organization: org,
+            presenter,
+            date: date || new Date().toLocaleDateString('ar-SA'),
+            logo: logo || '📊',
+            logo_image: coverImg || undefined
+          } : null;
+
           const payload = {
-            template_id: templateId,
+            template_id: targetId,
             slides: _pptxCurrentSlides.length ? _pptxCurrentSlides : undefined,
             text: textVal || undefined,
             title: titleVal || (tplName + ' - عرض احترافي'),
@@ -7912,6 +8491,8 @@
             ptype: document.getElementById('pptxPtype') ? document.getElementById('pptxPtype').value : 'general',
             font_name: document.getElementById('pptxFontName') ? document.getElementById('pptxFontName').value : '',
             body_font_size: parseInt(document.getElementById('pptxFontSize') ? document.getElementById('pptxFontSize').value : '22', 10) || 22,
+            cover_data: coverData,
+            template_images: slideImgs,
           };
 
           const res = await fetch('/api/pptx/canva/apply_template', {
@@ -7947,13 +8528,409 @@
           if (!res.ok || d.error) throw new Error(d.error || 'فشل استيراد الرابط');
           document.getElementById('pptxCanvaUrlInput').value = '';
           document.getElementById('pptxCanvaCustomName').value = '';
-          await pptxLoadCanvaData();
           if (d.template && d.template.id) {
-            await pptxApplyCanvaTemplate(d.template.id);
+            _pptxPreviewCanvaId = d.template.id;
           }
+          await pptxLoadCanvaData();
+          pptxShowGoogleStatus('✅ تم استيراد القالب من كانفا — يمكنك استعراضه الآن في المعاينة الحية قبل التطبيق.', 'success');
         } catch(e) {
           pptxShowGoogleStatus(e.message, 'danger');
         }
+      }
+
+      /* ───── أداة قص الصور التفاعلية الموحدة (مدير القوالب + لوحة الصور الرئيسية) ───── */
+      let _studioCropTarget = 'template';
+      let _studioCropRole = 'slide';
+      let _studioCropQueue = [];
+      let _studioCropEditIndex = -1;
+      let _studioCropCurrentUrl = '';
+      let _studioCropAspect = null;
+      let _studioCropRect = { x: 0, y: 0, w: 100, h: 100 };
+      let _studioCropDragMode = null;
+      let _studioCropDragStart = null;
+
+      function pptxTriggerTemplateImageUpload(role) {
+        _studioCropRole = role || 'slide';
+        const rEl = document.getElementById(role === 'cover' ? 'pptxImgRoleCover' : 'pptxImgRoleSlide');
+        if (rEl) rEl.checked = true;
+        const inp = document.getElementById('pptxTplImgInput');
+        if (inp) inp.click();
+      }
+
+      function studioOpenCropperForFiles(files, target) {
+        if (!files || !files.length) return;
+        _studioCropTarget = target || 'template';
+        if (_studioCropTarget === 'template') {
+          const roleRadio = document.querySelector('input[name="pptxTplImgRole"]:checked');
+          _studioCropRole = roleRadio ? roleRadio.value : (_studioCropRole || 'slide');
+        }
+        Promise.all(files.map(file => new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = ev => resolve(ev.target.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        }))).then(urls => {
+          const valid = urls.filter(Boolean);
+          if (!valid.length) return;
+          _studioCropQueue.push(...valid);
+          if (!document.getElementById('studioImageCropModal').classList.contains('show')) {
+            _studioCropEditIndex = -1;
+            studioOpenNextCropInQueue();
+          }
+        });
+      }
+
+      function studioOpenCropperForExisting(target, idx) {
+        _studioCropTarget = target || 'template';
+        if (_studioCropTarget === 'template') {
+          const item = _pptxTemplateImages[idx];
+          if (!item) return;
+          _studioCropRole = item.role || 'slide';
+          _studioCropEditIndex = idx;
+          _studioCropQueue = [item.dataUrl];
+        } else {
+          const arr = window.selectedImages || [];
+          if (!arr[idx]) return;
+          _studioCropEditIndex = idx;
+          _studioCropQueue = [arr[idx]];
+        }
+        studioOpenNextCropInQueue();
+      }
+
+      function studioOpenNextCropInQueue() {
+        const modalEl = document.getElementById('studioImageCropModal');
+        if (!modalEl) return;
+        if (!_studioCropQueue.length) {
+          modalEl.classList.remove('show');
+          _studioCropEditIndex = -1;
+          return;
+        }
+        _studioCropCurrentUrl = _studioCropQueue[0];
+        const badge = document.getElementById('studioCropQueueBadge');
+        if (badge) {
+          badge.textContent = _studioCropEditIndex >= 0
+            ? 'تعديل قص الصورة'
+            : (_studioCropQueue.length > 1 ? `متبقي ${_studioCropQueue.length} صور` : 'صورة واحدة');
+        }
+        const imgEl = document.getElementById('studioCropSourceImg');
+        imgEl.onload = function() {
+          modalEl.classList.add('show');
+          setTimeout(studioResetCropSelection, 20);
+        };
+        imgEl.src = _studioCropCurrentUrl;
+      }
+
+      function studioSetCropAspect(ratio, btnEl) {
+        _studioCropAspect = ratio === 'free' ? null : Number(ratio);
+        document.querySelectorAll('[data-studio-crop-ratio]').forEach(b => b.classList.toggle('active', b === btnEl));
+        const imgEl = document.getElementById('studioCropSourceImg');
+        if (!imgEl || !imgEl.clientWidth) return;
+        if (_studioCropAspect) {
+          const sw = imgEl.clientWidth;
+          const sh = imgEl.clientHeight;
+          let nw = Math.min(sw * 0.85, sh * 0.85 * _studioCropAspect);
+          let nh = nw / _studioCropAspect;
+          if (nh > sh * 0.9) { nh = sh * 0.9; nw = nh * _studioCropAspect; }
+          _studioCropRect = { x: (sw - nw) / 2, y: (sh - nh) / 2, w: nw, h: nh };
+          studioRenderCropRectUI();
+        }
+      }
+
+      function studioResetCropSelection() {
+        const imgEl = document.getElementById('studioCropSourceImg');
+        if (!imgEl) return;
+        const sw = imgEl.clientWidth || 200;
+        const sh = imgEl.clientHeight || 150;
+        const padX = Math.max(8, Math.round(sw * 0.06));
+        const padY = Math.max(8, Math.round(sh * 0.06));
+        let w = Math.max(40, sw - padX * 2);
+        let h = Math.max(40, sh - padY * 2);
+        if (_studioCropAspect) {
+          if (w / h > _studioCropAspect) w = h * _studioCropAspect;
+          else h = w / _studioCropAspect;
+        }
+        _studioCropRect = { x: (sw - w) / 2, y: (sh - h) / 2, w, h };
+        studioRenderCropRectUI();
+      }
+
+      function studioRenderCropRectUI() {
+        const rectEl = document.getElementById('studioCropRect');
+        const imgEl = document.getElementById('studioCropSourceImg');
+        if (!rectEl || !imgEl) return;
+        rectEl.style.left = _studioCropRect.x + 'px';
+        rectEl.style.top = _studioCropRect.y + 'px';
+        rectEl.style.width = _studioCropRect.w + 'px';
+        rectEl.style.height = _studioCropRect.h + 'px';
+        const scaleX = imgEl.naturalWidth / Math.max(1, imgEl.clientWidth);
+        const scaleY = imgEl.naturalHeight / Math.max(1, imgEl.clientHeight);
+        const outW = Math.max(1, Math.round(_studioCropRect.w * scaleX));
+        const outH = Math.max(1, Math.round(_studioCropRect.h * scaleY));
+        const rd = document.getElementById('studioCropSizeReadout');
+        if (rd) rd.textContent = `${outW} × ${outH} px`;
+      }
+
+      (function initStudioCropPointerEvents() {
+        document.addEventListener('DOMContentLoaded', function() {
+          const stage = document.getElementById('studioCropStage');
+          const rectEl = document.getElementById('studioCropRect');
+          if (!stage || !rectEl) return;
+
+          stage.addEventListener('pointerdown', function(e) {
+            const imgEl = document.getElementById('studioCropSourceImg');
+            if (!imgEl || !imgEl.clientWidth) return;
+            const handleEl = e.target.closest('.studio-crop-handle');
+            if (handleEl) {
+              _studioCropDragMode = handleEl.dataset.handle;
+            } else if (e.target === rectEl) {
+              _studioCropDragMode = 'move';
+            } else {
+              const box = stage.getBoundingClientRect();
+              const lx = Math.max(0, Math.min(imgEl.clientWidth, e.clientX - box.left));
+              const ly = Math.max(0, Math.min(imgEl.clientHeight, e.clientY - box.top));
+              _studioCropDragMode = 'draw';
+              _studioCropDragStart = { px: e.clientX, py: e.clientY, originX: lx, originY: ly, rect: { ..._studioCropRect } };
+              _studioCropRect = { x: lx, y: ly, w: 12, h: 12 };
+              studioRenderCropRectUI();
+              e.preventDefault();
+              return;
+            }
+            _studioCropDragStart = { px: e.clientX, py: e.clientY, rect: { ..._studioCropRect } };
+            e.preventDefault();
+          });
+
+          window.addEventListener('pointermove', function(e) {
+            if (!_studioCropDragMode || !_studioCropDragStart) return;
+            const imgEl = document.getElementById('studioCropSourceImg');
+            if (!imgEl) return;
+            const maxW = imgEl.clientWidth || 100;
+            const maxH = imgEl.clientHeight || 100;
+            const dx = e.clientX - _studioCropDragStart.px;
+            const dy = e.clientY - _studioCropDragStart.py;
+            const r = _studioCropDragStart.rect;
+            const minSize = 24;
+
+            if (_studioCropDragMode === 'move') {
+              const nx = Math.max(0, Math.min(maxW - r.w, r.x + dx));
+              const ny = Math.max(0, Math.min(maxH - r.h, r.y + dy));
+              _studioCropRect = { x: nx, y: ny, w: r.w, h: r.h };
+            } else if (_studioCropDragMode === 'draw') {
+              const x1 = _studioCropDragStart.originX;
+              const y1 = _studioCropDragStart.originY;
+              const x2 = Math.max(0, Math.min(maxW, x1 + dx));
+              const y2 = Math.max(0, Math.min(maxH, y1 + dy));
+              const nx = Math.min(x1, x2);
+              const ny = Math.min(y1, y2);
+              let nw = Math.max(minSize, Math.abs(x2 - x1));
+              let nh = Math.max(minSize, Math.abs(y2 - y1));
+              if (_studioCropAspect) nh = nw / _studioCropAspect;
+              if (nx + nw > maxW) nw = maxW - nx;
+              if (ny + nh > maxH) nh = maxH - ny;
+              _studioCropRect = { x: nx, y: ny, w: nw, h: nh };
+            } else {
+              let nx = r.x, ny = r.y, nw = r.w, nh = r.h;
+              if (_studioCropDragMode.includes('e')) nw = Math.max(minSize, Math.min(maxW - r.x, r.w + dx));
+              if (_studioCropDragMode.includes('s')) nh = Math.max(minSize, Math.min(maxH - r.y, r.h + dy));
+              if (_studioCropDragMode.includes('w')) {
+                const movedX = Math.max(0, Math.min(r.x + r.w - minSize, r.x + dx));
+                nw = (r.x + r.w) - movedX;
+                nx = movedX;
+              }
+              if (_studioCropDragMode.includes('n')) {
+                const movedY = Math.max(0, Math.min(r.y + r.h - minSize, r.y + dy));
+                nh = (r.y + r.h) - movedY;
+                ny = movedY;
+              }
+              if (_studioCropAspect) {
+                nh = Math.max(minSize, nw / _studioCropAspect);
+                if (ny + nh > maxH) {
+                  nh = maxH - ny;
+                  nw = nh * _studioCropAspect;
+                }
+              }
+              _studioCropRect = { x: nx, y: ny, w: nw, h: nh };
+            }
+            studioRenderCropRectUI();
+          });
+
+          window.addEventListener('pointerup', function() {
+            _studioCropDragMode = null;
+            _studioCropDragStart = null;
+          });
+        });
+      })();
+
+      function studioRotateCropImage() {
+        const imgEl = document.getElementById('studioCropSourceImg');
+        if (!imgEl || !imgEl.naturalWidth) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = imgEl.naturalHeight;
+        canvas.height = imgEl.naturalWidth;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(imgEl, -imgEl.naturalWidth / 2, -imgEl.naturalHeight / 2);
+        _studioCropCurrentUrl = canvas.toDataURL('image/jpeg', 0.92);
+        imgEl.onload = function() { setTimeout(studioResetCropSelection, 20); };
+        imgEl.src = _studioCropCurrentUrl;
+      }
+
+      function _studioCommitCroppedDataUrl(dataUrl) {
+        if (_studioCropTarget === 'template') {
+          if (_studioCropEditIndex >= 0 && _studioCropEditIndex < _pptxTemplateImages.length) {
+            _pptxTemplateImages[_studioCropEditIndex].dataUrl = dataUrl;
+          } else {
+            if (_studioCropRole === 'cover') {
+              _pptxTemplateImages.forEach(x => { if (x.role === 'cover') x.role = 'slide'; });
+            }
+            _pptxTemplateImages.push({ dataUrl, role: _studioCropRole || 'slide' });
+          }
+          pptxRenderTemplateImages();
+          pptxRefreshCanvaLivePreview();
+        } else {
+          window.selectedImages = Array.isArray(window.selectedImages) ? window.selectedImages : [];
+          if (_studioCropEditIndex >= 0 && _studioCropEditIndex < window.selectedImages.length) {
+            window.selectedImages[_studioCropEditIndex] = dataUrl;
+          } else {
+            window.selectedImages.push(dataUrl);
+          }
+          renderMainDashboardImages();
+        }
+      }
+
+      function studioConfirmCropImage() {
+        const imgEl = document.getElementById('studioCropSourceImg');
+        if (!imgEl || !imgEl.naturalWidth) return;
+        const scaleX = imgEl.naturalWidth / Math.max(1, imgEl.clientWidth);
+        const scaleY = imgEl.naturalHeight / Math.max(1, imgEl.clientHeight);
+        const sx = Math.max(0, Math.round(_studioCropRect.x * scaleX));
+        const sy = Math.max(0, Math.round(_studioCropRect.y * scaleY));
+        const sw = Math.max(10, Math.min(imgEl.naturalWidth - sx, Math.round(_studioCropRect.w * scaleX)));
+        const sh = Math.max(10, Math.min(imgEl.naturalHeight - sy, Math.round(_studioCropRect.h * scaleY)));
+
+        const maxDim = 1400;
+        let outW = sw, outH = sh;
+        if (outW > maxDim || outH > maxDim) {
+          const ratio = Math.min(maxDim / outW, maxDim / outH);
+          outW = Math.round(outW * ratio);
+          outH = Math.round(outH * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = outW;
+        canvas.height = outH;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, outW, outH);
+        ctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, outW, outH);
+        const croppedUrl = canvas.toDataURL('image/jpeg', 0.9);
+        _studioCommitCroppedDataUrl(croppedUrl);
+        _studioCropQueue.shift();
+        _studioCropEditIndex = -1;
+        studioOpenNextCropInQueue();
+      }
+
+      function studioUseFullImageWithoutCrop() {
+        if (_studioCropCurrentUrl) {
+          _studioCommitCroppedDataUrl(_studioCropCurrentUrl);
+        }
+        _studioCropQueue.shift();
+        _studioCropEditIndex = -1;
+        studioOpenNextCropInQueue();
+      }
+
+      function studioSkipCurrentCrop() {
+        _studioCropQueue.shift();
+        _studioCropEditIndex = -1;
+        studioOpenNextCropInQueue();
+      }
+
+      function studioCancelCropAll() {
+        _studioCropQueue = [];
+        _studioCropEditIndex = -1;
+        const modalEl = document.getElementById('studioImageCropModal');
+        if (modalEl) modalEl.classList.remove('show');
+      }
+
+      function pptxRenderTemplateImages() {
+        const grid = document.getElementById('pptxTplImgPreviewGrid');
+        const mini = document.getElementById('pptxTextImgMiniStrip');
+        const badge = document.getElementById('pptxTextImgCountBadge');
+        if (badge) badge.textContent = `${_pptxTemplateImages.length} صورة مرفقة`;
+        if (grid) {
+          if (!_pptxTemplateImages.length) {
+            grid.innerHTML = '<span class="text-muted small">لم يتم رفع صور للقالب بعد — عند الرفع ستفتح أداة القص تلقائياً.</span>';
+          } else {
+            grid.innerHTML = _pptxTemplateImages.map((item, idx) => `
+              <div class="border rounded-3 bg-white p-1 d-flex flex-column align-items-center shadow-sm" style="width:94px;">
+                <div class="position-relative w-100" style="height:58px;overflow:hidden;border-radius:6px;background:#f1f5f9;">
+                  <img src="${item.dataUrl}" alt="صورة القالب" style="width:100%;height:100%;object-fit:cover;">
+                  <span class="badge ${item.role === 'cover' ? 'bg-warning text-dark' : 'bg-primary'} position-absolute top-0 start-0 m-1" style="font-size:0.58rem;">
+                    ${item.role === 'cover' ? 'غلاف' : 'شريحة'}
+                  </span>
+                </div>
+                <div class="d-flex gap-1 mt-1 w-100 justify-content-between">
+                  <button type="button" class="btn btn-outline-info btn-sm py-0 px-1" style="font-size:0.65rem;" title="قص" onclick="studioOpenCropperForExisting('template', ${idx})">✂️</button>
+                  <button type="button" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size:0.65rem;" title="تعيين كغلاف/شريحة" onclick="pptxToggleTemplateImageRole(${idx})">🏷️</button>
+                  <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:0.65rem;" title="حذف" onclick="pptxRemoveTemplateImage(${idx})">✕</button>
+                </div>
+              </div>`).join('');
+          }
+        }
+        if (mini) {
+          if (!_pptxTemplateImages.length) {
+            mini.style.setProperty('display', 'none', 'important');
+            mini.innerHTML = '';
+          } else {
+            mini.style.setProperty('display', 'flex', 'important');
+            mini.innerHTML = _pptxTemplateImages.map((item, idx) => `
+              <div class="d-inline-flex align-items-center gap-1 border rounded-2 bg-white px-2 py-1 shadow-sm">
+                <img src="${item.dataUrl}" alt="" style="width:32px;height:24px;object-fit:cover;border-radius:4px;">
+                <span class="badge ${item.role === 'cover' ? 'bg-warning text-dark' : 'bg-primary'}" style="font-size:0.62rem;">${item.role === 'cover' ? 'غلاف' : 'شريحة'}</span>
+                <button type="button" class="btn btn-link p-0 text-info" title="قص" onclick="studioOpenCropperForExisting('template', ${idx})">✂️</button>
+                <button type="button" class="btn-close" style="font-size:0.55rem;" onclick="pptxRemoveTemplateImage(${idx})"></button>
+              </div>`).join('');
+          }
+        }
+      }
+
+      function pptxToggleTemplateImageRole(idx) {
+        if (!_pptxTemplateImages[idx]) return;
+        const nextRole = _pptxTemplateImages[idx].role === 'cover' ? 'slide' : 'cover';
+        if (nextRole === 'cover') {
+          _pptxTemplateImages.forEach(x => { if (x.role === 'cover') x.role = 'slide'; });
+        }
+        _pptxTemplateImages[idx].role = nextRole;
+        pptxRenderTemplateImages();
+        pptxRefreshCanvaLivePreview();
+      }
+
+      function pptxRemoveTemplateImage(idx) {
+        _pptxTemplateImages.splice(idx, 1);
+        pptxRenderTemplateImages();
+        pptxRefreshCanvaLivePreview();
+      }
+
+      function renderMainDashboardImages() {
+        const imgs = Array.isArray(window.selectedImages) ? window.selectedImages : [];
+        const wrap = document.getElementById('imagePreview');
+        const cnt = document.getElementById('imageCount');
+        const box = document.getElementById('imagePreviewContainer');
+        if (cnt) cnt.textContent = String(imgs.length);
+        if (wrap) wrap.style.display = imgs.length ? 'block' : 'none';
+        if (!box) return;
+        box.innerHTML = imgs.map((src, idx) => `
+          <div class="col-6 col-md-4 col-lg-3">
+            <div class="border rounded-3 p-1 bg-white shadow-sm position-relative">
+              <img src="${src}" alt="صورة ${idx + 1}" class="w-100 rounded" style="height:95px;object-fit:cover;">
+              <div class="d-flex gap-1 mt-1">
+                <button type="button" class="btn btn-outline-primary btn-sm py-0 flex-grow-1" style="font-size:0.7rem;" onclick="studioOpenCropperForExisting('telegram', ${idx})">
+                  <i class="fas fa-crop-alt me-1"></i>قص
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size:0.7rem;" onclick="window.selectedImages.splice(${idx}, 1); renderMainDashboardImages();">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>`).join('');
       }
 
       async function pptxConnectCanvaToken() {
@@ -8104,6 +9081,7 @@
         studioPipelineStart(`إعادة تصميم العرض بقالب ${tplName}...`, 2);
 
         try {
+          const slideImgs = _pptxTemplateImages.filter(x => x.role !== 'cover').map(x => x.dataUrl);
           const payload = {
             slides: _pptxAnalyzedPayload.slides,
             slide_suggestions: (_pptxAnalyzedPayload.analysis && _pptxAnalyzedPayload.analysis.slide_suggestions) || [],
@@ -8112,6 +9090,7 @@
             title: (document.getElementById('pptxRedesignTitleInput').value || '').trim(),
             font_name: document.getElementById('pptxFontName') ? document.getElementById('pptxFontName').value : '',
             body_font_size: parseInt(document.getElementById('pptxFontSize') ? document.getElementById('pptxFontSize').value : '22', 10) || 22,
+            template_images: slideImgs,
           };
           const res = await fetch('/api/pptx/redesign_pptx', {
             method: 'POST',

@@ -165,8 +165,14 @@ class PresentationGenerator:
                 if slide_data.get("images"):
                     img_path = self._save_temp_image(slide_data["images"][0])
                     tmp_created = bool(img_path)
-                if not img_path and extracted_images and i < len(extracted_images):
-                    img_path = extracted_images[i]
+                if not img_path and extracted_images:
+                    raw_ref = extracted_images[i % len(extracted_images)] if len(extracted_images) > 0 else None
+                    if raw_ref:
+                        if str(raw_ref).startswith(("data:image", "http://", "https://")):
+                            img_path = self._save_temp_image(str(raw_ref))
+                            tmp_created = bool(img_path)
+                        elif Path(str(raw_ref)).exists():
+                            img_path = str(raw_ref)
                 if not img_path and ai_images:
                     try:
                         from pptx_app.modules.image_fetcher import get_slide_image
@@ -208,12 +214,31 @@ class PresentationGenerator:
         accent_bar.fill.fore_color.rgb = _rgb(theme["accent"])
         accent_bar.line.fill.background()
 
-        logo_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.35), Inches(2), Inches(1.5))
-        lp = logo_box.text_frame.paragraphs[0]
-        lp.alignment = PP_ALIGN.CENTER
-        lr = lp.add_run()
-        lr.text = cover_data.get("logo", "📊") or "📊"
-        lr.font.size = Pt(52)
+        cover_img_src = cover_data.get("logo_image") or cover_data.get("cover_image") or ""
+        cover_img_path = self._save_temp_image(cover_img_src) if cover_img_src else None
+        if cover_img_path and Path(cover_img_path).exists():
+            try:
+                frame = slide.shapes.add_shape(5, Inches(0.45), Inches(0.28), Inches(1.85), Inches(1.65))
+                frame.fill.solid()
+                frame.fill.fore_color.rgb = _rgb(theme["card_bg"])
+                frame.line.color.rgb = _rgb(theme["accent"])
+                frame.line.width = Pt(2)
+                slide.shapes.add_picture(cover_img_path, Inches(0.52), Inches(0.35), Inches(1.71), Inches(1.51))
+            except Exception:
+                cover_img_path = None
+            finally:
+                if cover_img_path:
+                    try:
+                        os.unlink(cover_img_path)
+                    except Exception:
+                        pass
+        else:
+            logo_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.35), Inches(2), Inches(1.5))
+            lp = logo_box.text_frame.paragraphs[0]
+            lp.alignment = PP_ALIGN.CENTER
+            lr = lp.add_run()
+            lr.text = cover_data.get("logo", "📊") or "📊"
+            lr.font.size = Pt(52)
 
         org = cover_data.get("organization", "")
         if org:

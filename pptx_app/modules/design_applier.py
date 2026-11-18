@@ -20,6 +20,7 @@ class DesignApplier:
         font_name: str = "",
         body_font_size: int = 22,
         filename_prefix: str = "عرض_كانفا",
+        extracted_images: Optional[List[str]] = None,
     ) -> tuple[str, Dict[str, Any]]:
         design = self.importer.get_design_by_id(design_id)
         if design:
@@ -28,6 +29,7 @@ class DesignApplier:
                 slides_data=slides_data,
                 theme_color=design.get("theme_color", "blue"),
                 cover_data=cover_data,
+                extracted_images=extracted_images,
                 font_name=chosen_font,
                 body_font_size=body_font_size,
                 custom_theme=design,
@@ -39,6 +41,7 @@ class DesignApplier:
             slides_data=slides_data,
             theme_color=design_id or "blue",
             cover_data=cover_data,
+            extracted_images=extracted_images,
             font_name=font_name or "Traditional Arabic",
             body_font_size=body_font_size,
             filename_prefix=filename_prefix,

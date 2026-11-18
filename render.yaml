@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: anwer-saif-app
+    runtime: python
+    region: frankfurt
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python main.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: RENDER
+        value: "true"
+      - key: PORT
+        value: "10000"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: GITHUB_REPO_OWNER
+        value: "anwer1230"
+      - key: GITHUB_REPO_NAME
+        value: "anwer_saif_app"
+      - key: GITHUB_REPO
+        value: "anwer1230/anwer_saif_app"
+      - key: GITHUB_BRANCH
+        value: "main"

@@ -2083,6 +2083,48 @@ def _cache_protection(cache_key, result, reason, bots=None):
             'bots': bots or [], 'ts': time.time()
         }
 
+DEFAULT_ALERT_TONES = {
+    'reply': 'chime',
+    'ban': 'siren_soft',
+    'mute': 'mute_drop',
+    'warning': 'warning_pulse',
+    'captcha': 'warning_pulse',
+    'kick': 'siren_soft',
+    'promotion': 'crystal'
+}
+ALLOWED_ALERT_TONES = (
+    'chime', 'telegram', 'bell', 'crystal', 'two_tone', 'marimba',
+    'siren_soft', 'alert_double', 'mute_drop', 'warning_pulse', 'silent'
+)
+
+def normalize_alert_tones(settings):
+    tones = dict(DEFAULT_ALERT_TONES)
+    if isinstance(settings, dict):
+        legacy_reply = str(settings.get('my_alerts_reply_sound_tone') or '').strip().lower()
+        if legacy_reply in ALLOWED_ALERT_TONES:
+            tones['reply'] = legacy_reply
+        raw_tones = settings.get('my_alerts_tones')
+        if isinstance(raw_tones, dict):
+            for k in ('reply', 'ban', 'mute', 'warning', 'captcha', 'kick', 'promotion'):
+                v = str(raw_tones.get(k) or '').strip().lower()
+                if v in ALLOWED_ALERT_TONES:
+                    tones[k] = v
+        # اربط الأنواع المتقاربة عند عدم التخصيص المنفصل
+        if not isinstance(raw_tones, dict) or 'kick' not in raw_tones:
+            tones['kick'] = tones['ban']
+        if not isinstance(raw_tones, dict) or 'captcha' not in raw_tones:
+            tones['captcha'] = tones['warning']
+    return tones
+
+def get_alert_tone_for_type(settings, alert_type):
+    tones = normalize_alert_tones(settings)
+    key = str(alert_type or 'reply').strip().lower()
+    if key == 'kick':
+        return tones.get('kick') or tones.get('ban', 'siren_soft')
+    if key == 'captcha':
+        return tones.get('captcha') or tones.get('warning', 'warning_pulse')
+    return tones.get(key) or tones.get('reply', 'chime')
+
 def save_settings(user_id, settings, force=False):
     db_saved = True
     try:
@@ -2094,6 +2136,7 @@ def save_settings(user_id, settings, force=False):
             settings.setdefault('my_alerts_actions', True)
             settings.setdefault('my_alerts_reply_sound_enabled', True)
             settings.setdefault('my_alerts_reply_sound_tone', 'chime')
+            settings['my_alerts_tones'] = normalize_alert_tones(settings)
             settings.setdefault('keyword_auto_reply_enabled', True)
             settings.setdefault('keyword_auto_reply_text', 'ابشر')
             settings.setdefault('keyword_auto_reply_forward', True)
@@ -2138,6 +2181,7 @@ def load_settings(user_id):
                 database_settings.setdefault('my_alerts_actions', True)
                 database_settings.setdefault('my_alerts_reply_sound_enabled', True)
                 database_settings.setdefault('my_alerts_reply_sound_tone', 'chime')
+                database_settings['my_alerts_tones'] = normalize_alert_tones(database_settings)
                 database_settings.setdefault('keyword_auto_reply_enabled', True)
                 database_settings.setdefault('keyword_auto_reply_text', 'ابشر')
                 database_settings.setdefault('keyword_auto_reply_forward', True)
@@ -2166,6 +2210,7 @@ def load_settings(user_id):
             data.setdefault('my_alerts_actions', True)
             data.setdefault('my_alerts_reply_sound_enabled', True)
             data.setdefault('my_alerts_reply_sound_tone', 'chime')
+            data['my_alerts_tones'] = normalize_alert_tones(data)
             data.setdefault('keyword_auto_reply_enabled', True)
             data.setdefault('keyword_auto_reply_text', 'ابشر')
             data.setdefault('keyword_auto_reply_forward', True)
@@ -2192,6 +2237,7 @@ def load_settings(user_id):
             data.setdefault('my_alerts_actions', True)
             data.setdefault('my_alerts_reply_sound_enabled', True)
             data.setdefault('my_alerts_reply_sound_tone', 'chime')
+            data['my_alerts_tones'] = normalize_alert_tones(data)
             data.setdefault('keyword_auto_reply_enabled', True)
             data.setdefault('keyword_auto_reply_text', 'ابشر')
             data.setdefault('keyword_auto_reply_forward', True)
@@ -2214,6 +2260,7 @@ def load_settings(user_id):
             'my_alerts_actions': True,
             'my_alerts_reply_sound_enabled': True,
             'my_alerts_reply_sound_tone': 'chime',
+            'my_alerts_tones': dict(DEFAULT_ALERT_TONES),
             'keyword_auto_reply_enabled': True,
             'keyword_auto_reply_text': 'ابشر',
             'keyword_auto_reply_forward': True,
@@ -2236,6 +2283,7 @@ def load_settings(user_id):
             'my_alerts_actions': True,
             'my_alerts_reply_sound_enabled': True,
             'my_alerts_reply_sound_tone': 'chime',
+            'my_alerts_tones': dict(DEFAULT_ALERT_TONES),
             'keyword_auto_reply_enabled': True,
             'keyword_auto_reply_text': 'ابشر',
             'keyword_auto_reply_forward': True,
@@ -2630,6 +2678,7 @@ class TelegramClientManager:
                 "message": f"{icon} [تنبيهاتي] {title} في: {chat_title}"
             }, to=self.user_id)
 
+            resolved_tone = get_alert_tone_for_type(settings, action_type)
             socketio.emit('my_alert_event', {
                 "type": action_type,
                 "group": chat_title,
@@ -2638,8 +2687,9 @@ class TelegramClientManager:
                 "time": current_time,
                 "link": direct_link or "#",
                 "text": details_text,
-                "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)),
-                "sound_tone": str(settings.get('my_alerts_reply_sound_tone', 'chime'))
+                "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and resolved_tone != 'silent',
+                "sound_tone": resolved_tone,
+                "alert_tones": normalize_alert_tones(settings)
             }, to=self.user_id)
 
             # تسجيل التنبيه في سجل المستخدم وقاعدة البيانات
@@ -3233,7 +3283,10 @@ class TelegramClientManager:
                     "sender": sender_name,
                     "time": current_time,
                     "link": direct_msg_link,
-                    "text": msg_text[:250] or 'مطلوب إكمال التحقق البشري لتجنب الحظر'
+                    "text": msg_text[:250] or 'مطلوب إكمال التحقق البشري لتجنب الحظر',
+                    "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and get_alert_tone_for_type(settings, 'captcha') != 'silent',
+                    "sound_tone": get_alert_tone_for_type(settings, 'captcha'),
+                    "alert_tones": normalize_alert_tones(settings)
                 }, to=self.user_id)
                 alert_queue.add_alert(self.user_id, {
                     "keyword": "تنبيهاتي: تحقق وكابتشا عاجل",
@@ -3271,7 +3324,10 @@ class TelegramClientManager:
                     "sender": sender_name,
                     "time": current_time,
                     "link": direct_msg_link,
-                    "text": msg_text[:250]
+                    "text": msg_text[:250],
+                    "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and get_alert_tone_for_type(settings, 'warning') != 'silent',
+                    "sound_tone": get_alert_tone_for_type(settings, 'warning'),
+                    "alert_tones": normalize_alert_tones(settings)
                 }, to=self.user_id)
                 alert_queue.add_alert(self.user_id, {
                     "keyword": f"تنبيهاتي: {warn_type}",
@@ -3308,6 +3364,7 @@ class TelegramClientManager:
                 socketio.emit('log_update', {
                     "message": f"💬 [تنبيهاتي] رد جديد من {sender_name} في {chat_title}"
                 }, to=self.user_id)
+                reply_tone = get_alert_tone_for_type(settings, 'reply')
                 socketio.emit('my_alert_event', {
                     "type": "reply",
                     "group": chat_title,
@@ -3315,8 +3372,9 @@ class TelegramClientManager:
                     "time": current_time,
                     "link": direct_msg_link,
                     "text": reply_preview,
-                    "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)),
-                    "sound_tone": str(settings.get('my_alerts_reply_sound_tone', 'chime'))
+                    "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and reply_tone != 'silent',
+                    "sound_tone": reply_tone,
+                    "alert_tones": normalize_alert_tones(settings)
                 }, to=self.user_id)
                 alert_queue.add_alert(self.user_id, {
                     "keyword": "تنبيهاتي: رد جديد على رسالتك",
@@ -3413,7 +3471,10 @@ class TelegramClientManager:
                 await self.send_to_saved_messages(alert_text, parse_mode='md')
                 socketio.emit('log_update', {"message": f"👑 [تنبيهاتي] تمت ترقيتك لمشرف في: {chat_title}"}, to=self.user_id)
                 socketio.emit('my_alert_event', {
-                    "type": "promotion", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link
+                    "type": "promotion", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link,
+                    "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and get_alert_tone_for_type(settings, 'promotion') != 'silent',
+                    "sound_tone": get_alert_tone_for_type(settings, 'promotion'),
+                    "alert_tones": normalize_alert_tones(settings)
                 }, to=self.user_id)
                 alert_queue.add_alert(self.user_id, {
                     "keyword": "تنبيهاتي: ترقية إلى مشرف", "group": chat_title, "sender": actor_name,
@@ -3437,7 +3498,10 @@ class TelegramClientManager:
                     await self.send_to_saved_messages(alert_text, parse_mode='md')
                     socketio.emit('log_update', {"message": f"🚨 [تنبيهاتي] تم حظرك من: {chat_title}"}, to=self.user_id)
                     socketio.emit('my_alert_event', {
-                        "type": "ban", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link
+                        "type": "ban", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link,
+                        "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and get_alert_tone_for_type(settings, 'ban') != 'silent',
+                        "sound_tone": get_alert_tone_for_type(settings, 'ban'),
+                        "alert_tones": normalize_alert_tones(settings)
                     }, to=self.user_id)
                     alert_queue.add_alert(self.user_id, {
                         "keyword": "تنبيهاتي: تم حظرك من المجموعة", "group": chat_title, "sender": actor_name,
@@ -3456,7 +3520,10 @@ class TelegramClientManager:
                     await self.send_to_saved_messages(alert_text, parse_mode='md')
                     socketio.emit('log_update', {"message": f"🔇 [تنبيهاتي] تم تقييدك من الكتابة في: {chat_title}"}, to=self.user_id)
                     socketio.emit('my_alert_event', {
-                        "type": "mute", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link
+                        "type": "mute", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link,
+                        "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and get_alert_tone_for_type(settings, 'mute') != 'silent',
+                        "sound_tone": get_alert_tone_for_type(settings, 'mute'),
+                        "alert_tones": normalize_alert_tones(settings)
                     }, to=self.user_id)
                     alert_queue.add_alert(self.user_id, {
                         "keyword": "تنبيهاتي: تم تقييدك من الكتابة", "group": chat_title, "sender": actor_name,
@@ -3478,7 +3545,10 @@ class TelegramClientManager:
                     await self.send_to_saved_messages(alert_text, parse_mode='md')
                     socketio.emit('log_update', {"message": f"🚨 [تنبيهاتي] تم طردك من: {chat_title}"}, to=self.user_id)
                     socketio.emit('my_alert_event', {
-                        "type": "kick", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link
+                        "type": "kick", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link,
+                        "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and get_alert_tone_for_type(settings, 'kick') != 'silent',
+                        "sound_tone": get_alert_tone_for_type(settings, 'kick'),
+                        "alert_tones": normalize_alert_tones(settings)
                     }, to=self.user_id)
                     alert_queue.add_alert(self.user_id, {
                         "keyword": "تنبيهاتي: تم طردك من المجموعة", "group": chat_title, "sender": actor_name,
@@ -3548,7 +3618,10 @@ class TelegramClientManager:
                 await self.send_to_saved_messages(alert_text, parse_mode='md')
                 socketio.emit('log_update', {"message": f"🚨 [تنبيهاتي] تم طردك/حظرك من: {chat_title}"}, to=self.user_id)
                 socketio.emit('my_alert_event', {
-                    "type": "ban", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link
+                    "type": "ban", "group": chat_title, "actor": actor_name, "time": current_time, "link": chat_link,
+                    "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and get_alert_tone_for_type(settings, 'ban') != 'silent',
+                    "sound_tone": get_alert_tone_for_type(settings, 'ban'),
+                    "alert_tones": normalize_alert_tones(settings)
                 }, to=self.user_id)
                 alert_queue.add_alert(self.user_id, {
                     "keyword": "تنبيهاتي: تم طردك/حظرك من المجموعة", "group": chat_title, "sender": actor_name,
@@ -8416,9 +8489,9 @@ def api_save_settings():
 # ══════════════════════════════════════════════════════════
 @app.route("/api/my_alerts/settings", methods=["GET", "POST"])
 def api_my_alerts_settings():
+    user_id = session.get('user_id') or request.cookies.get('app_user_id') or 'user_1'
     if 'user_id' not in session:
-        return jsonify({"success": False, "message": "❌ الجلسة غير صالحة"}), 401
-    user_id = session['user_id']
+        session['user_id'] = user_id
     settings = load_settings(user_id)
     if request.method == "POST":
         data = request.json or {}
@@ -8430,24 +8503,40 @@ def api_my_alerts_settings():
             settings['my_alerts_actions'] = bool(data['my_alerts_actions'])
         if 'my_alerts_reply_sound_enabled' in data:
             settings['my_alerts_reply_sound_enabled'] = bool(data['my_alerts_reply_sound_enabled'])
+        tones = normalize_alert_tones(settings)
         if 'my_alerts_reply_sound_tone' in data:
             tone = str(data['my_alerts_reply_sound_tone']).strip().lower()
-            allowed_tones = ['chime', 'telegram', 'bell', 'crystal', 'two_tone', 'marimba']
-            if tone in allowed_tones:
+            if tone in ALLOWED_ALERT_TONES:
                 settings['my_alerts_reply_sound_tone'] = tone
+                tones['reply'] = tone
+        if isinstance(data.get('my_alerts_tones'), dict):
+            incoming = data['my_alerts_tones']
+            for k in ('reply', 'ban', 'mute', 'warning', 'captcha', 'kick', 'promotion'):
+                if k in incoming:
+                    v = str(incoming[k] or '').strip().lower()
+                    if v in ALLOWED_ALERT_TONES:
+                        tones[k] = v
+            if 'ban' in incoming and 'kick' not in incoming:
+                tones['kick'] = tones['ban']
+            if 'warning' in incoming and 'captcha' not in incoming:
+                tones['captcha'] = tones['warning']
+            settings['my_alerts_reply_sound_tone'] = tones.get('reply', 'chime')
+        settings['my_alerts_tones'] = tones
         save_settings(user_id, settings, force=True)
         socketio.emit('log_update', {"message": "🔔 تم تحديث إعدادات «تنبيهاتي» بنجاح"}, to=user_id)
         return jsonify({
             "success": True,
-            "message": "✅ تم حفظ إعدادات تنبيهاتي",
+            "message": "✅ تم حفظ إعدادات تنبيهاتي ونغمات التنبيه بنجاح",
             "settings": {
                 "my_alerts_enabled": settings.get('my_alerts_enabled', True),
                 "my_alerts_replies": settings.get('my_alerts_replies', True),
                 "my_alerts_actions": settings.get('my_alerts_actions', True),
                 "my_alerts_reply_sound_enabled": settings.get('my_alerts_reply_sound_enabled', True),
-                "my_alerts_reply_sound_tone": settings.get('my_alerts_reply_sound_tone', 'chime')
+                "my_alerts_reply_sound_tone": tones.get('reply', 'chime'),
+                "my_alerts_tones": tones
             }
         })
+    tones = normalize_alert_tones(settings)
     return jsonify({
         "success": True,
         "settings": {
@@ -8455,7 +8544,8 @@ def api_my_alerts_settings():
             "my_alerts_replies": settings.get('my_alerts_replies', True),
             "my_alerts_actions": settings.get('my_alerts_actions', True),
             "my_alerts_reply_sound_enabled": settings.get('my_alerts_reply_sound_enabled', True),
-            "my_alerts_reply_sound_tone": settings.get('my_alerts_reply_sound_tone', 'chime')
+            "my_alerts_reply_sound_tone": tones.get('reply', 'chime'),
+            "my_alerts_tones": tones
         }
     })
 
@@ -8466,6 +8556,13 @@ def api_my_alerts_test():
         user_id = request.cookies.get('app_user_id') or 'user_1'
     settings = load_settings(user_id)
     cm = telegram_manager.get_client_manager(user_id)
+    req_data = request.get_json(silent=True) or {}
+    test_type = str(req_data.get('type') or 'reply').strip().lower()
+    if test_type not in ('reply', 'ban', 'mute', 'warning', 'captcha', 'kick', 'promotion'):
+        test_type = 'reply'
+    test_tone = str(req_data.get('tone') or get_alert_tone_for_type(settings, test_type)).strip().lower()
+    if test_tone not in ALLOWED_ALERT_TONES:
+        test_tone = get_alert_tone_for_type(settings, test_type)
 
     test_msg = (
         "🔔 **تنبيهاتي | تجربة نظام الإشعارات**\n"
@@ -8488,14 +8585,15 @@ def api_my_alerts_test():
     
     # إرسال حدث اختباري للواجهة لتشغيل الصوت المختار والتوست فوراً
     socketio.emit('my_alert_event', {
-        "type": "reply",
+        "type": test_type,
         "group": "مجموعة تجريبية (اختبار)",
         "sender": "تجربة التنبيه الصوتي",
         "time": time.strftime('%I:%M:%S %p'),
         "link": "#",
-        "text": "هذا رد تجريبي لاختبار الصوت ونغمة التنبيه في المتصفح 🔔",
-        "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)),
-        "sound_tone": str(settings.get('my_alerts_reply_sound_tone', 'chime')),
+        "text": "هذا إشعار تجريبي لاختبار الصوت ونغمة التنبيه المخصصة في المتصفح 🔔",
+        "sound_enabled": bool(settings.get('my_alerts_reply_sound_enabled', True)) and test_tone != 'silent',
+        "sound_tone": test_tone,
+        "alert_tones": normalize_alert_tones(settings),
         "is_test": True
     }, to=user_id)
 

@@ -7823,7 +7823,6 @@ def manifest():
         ],
         "screenshots": [],
         "shortcuts": [
-            {"name": "التحليل الأكاديمي", "short_name": "أكاديمي", "description": "فتح منصة التحليل", "url": "/academic"},
             {"name": "لوحة التحكم",       "short_name": "تحكم",    "description": "لوحة التحكم الرئيسية", "url": "/"}
         ]
     }
@@ -12820,136 +12819,6 @@ def api_join_global_search_results():
         return jsonify({"success": False, "message": str(e)})
 
 
-@app.route("/tools/analyze_stats", methods=["POST"])
-def api_academic_analyze_stats():
-    try:
-        data = request.get_json(force=True, silent=True) or {}
-        raw = data.get('data', '')
-        nums = [float(x) for x in re.findall(r'[-+]?\d*\.?\d+', str(raw)) if x]
-        if len(nums) < 2:
-            return jsonify({"error": "أدخل على الأقل رقمين للتحليل"}), 400
-
-        arr = np.array(nums)
-        mode_val = float(stats.mode(arr, keepdims=True).mode[0])
-        stats_result = {
-            "count":    int(len(arr)),
-            "sum":      round(float(np.sum(arr)), 4),
-            "mean":     round(float(np.mean(arr)), 4),
-            "median":   round(float(np.median(arr)), 4),
-            "mode":     round(mode_val, 4),
-            "std":      round(float(np.std(arr)), 4),
-            "variance": round(float(np.var(arr)), 4),
-            "min":      round(float(np.min(arr)), 4),
-            "max":      round(float(np.max(arr)), 4),
-            "range":    round(float(np.max(arr) - np.min(arr)), 4),
-            "q1":       round(float(np.percentile(arr, 25)), 4),
-            "q3":       round(float(np.percentile(arr, 75)), 4),
-            "iqr":      round(float(np.percentile(arr, 75) - np.percentile(arr, 25)), 4),
-            "skewness": round(float(stats.skew(arr)), 4),
-            "kurtosis": round(float(stats.kurtosis(arr)), 4),
-        }
-
-        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-        axes[0].hist(arr, bins='auto', color='#4e73df', edgecolor='white', alpha=0.85)
-        axes[0].axvline(stats_result['mean'],   color='red',   linestyle='--', label=f"المتوسط: {stats_result['mean']}")
-        axes[0].axvline(stats_result['median'], color='green', linestyle='--', label=f"الوسيط: {stats_result['median']}")
-        axes[0].set_title('توزيع البيانات'); axes[0].legend()
-        axes[0].set_xlabel('القيمة'); axes[0].set_ylabel('التكرار')
-        axes[1].boxplot(arr, vert=True, patch_artist=True,
-                        boxprops=dict(facecolor='#4e73df', alpha=0.7))
-        axes[1].set_title('المربع الجذري (Boxplot)'); axes[1].set_ylabel('القيمة')
-        plt.tight_layout()
-        buf = BytesIO()
-        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-        plt.close()
-        buf.seek(0)
-        chart_b64 = base64.b64encode(buf.read()).decode('utf-8')
-
-        return jsonify({"success": True, "stats": stats_result, "chart": chart_b64})
-    except Exception as e:
-        logger.error(f"Analyze stats error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/tools/format_file", methods=["POST"])
-def api_academic_format_file():
-    try:
-        if 'file' not in request.files:
-            return jsonify({"error": "لم يتم رفع ملف"}), 400
-        f = request.files['file']
-        filename = f.filename.lower()
-        content_parts = []
-
-        file_bytes = f.read()
-        if filename.endswith('.pdf'):
-            if pdfplumber is None:
-                return jsonify({"error": "مكتبة PDF غير متاحة، شغّل: pip install pdfplumber"}), 500
-            import io as _io2
-            with pdfplumber.open(_io2.BytesIO(file_bytes)) as pdf:
-                for i, page in enumerate(pdf.pages[:50], 1):
-                    text = page.extract_text() or ''
-                    if text.strip():
-                        content_parts.append(f"--- صفحة {i} ---\n{text.strip()}")
-                    for tbl in page.extract_tables():
-                        if tbl:
-                            rows_txt = '\n'.join('\t'.join(str(c or '') for c in row) for row in tbl)
-                            content_parts.append(f"[جدول]\n{rows_txt}")
-        elif filename.endswith('.docx'):
-            if docx is None:
-                return jsonify({"error": "مكتبة Word غير متاحة، شغّل: pip install python-docx"}), 500
-            import io as _io2
-            doc_obj = docx.Document(_io2.BytesIO(file_bytes))
-            for para in doc_obj.paragraphs:
-                if para.text.strip():
-                    style = para.style.name if para.style else ''
-                    prefix = '# ' if 'Heading 1' in style else '## ' if 'Heading' in style else ''
-                    content_parts.append(prefix + para.text)
-            for tbl in doc_obj.tables:
-                rows_txt = '\n'.join('\t'.join(c.text for c in row.cells) for row in tbl.rows)
-                content_parts.append(f"[جدول]\n{rows_txt}")
-        elif filename.endswith('.txt'):
-            content_parts.append(file_bytes.decode('utf-8', errors='replace'))
-        else:
-            return jsonify({"error": "صيغة غير مدعومة. استخدم PDF أو DOCX أو TXT"}), 400
-
-        full_text = '\n\n'.join(content_parts)
-
-        # ── تحسين النص بالذكاء الاصطناعي (اختياري) ──
-        ai_summary = None
-        use_ai = request.form.get('use_ai', 'false').lower() == 'true'
-        if use_ai and full_text.strip():
-            try:
-                from groq import Groq as _Groq
-                _gc = _Groq(api_key=GROQ_API_KEY)
-                ai_resp = _gc.chat.completions.create(
-                    model='llama-3.3-70b-versatile',
-                    messages=[
-                        {"role": "system", "content":
-                         "أنت مساعد أكاديمي. لخّص الوثيقة التالية بشكل منظّم: العنوان، الأقسام الرئيسية، الأهداف، النتائج، التوصيات."},
-                        {"role": "user", "content": f"لخّص هذا النص:\n\n{full_text[:6000]}"}
-                    ],
-                    max_tokens=800,
-                    temperature=0.3,
-                )
-                ai_summary = ai_resp.choices[0].message.content
-            except Exception as _ae:
-                ai_summary = f"[تعذّر التلخيص: {_ae}]"
-
-        words = len(full_text.split())
-        return jsonify({
-            "success":    True,
-            "text":       full_text[:15000],
-            "words":      words,
-            "chars":      len(full_text),
-            "sections":   len(content_parts),
-            "filename":   f.filename,
-            "ai_summary": ai_summary
-        })
-    except Exception as e:
-        logger.error(f"Format file error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
 # ════════════════════════════════════════════════════════════
 #  تحويل HTML إلى Word — محسّن كلياً
 #  يدعم: فواصل الصفحات | جداول كاملة | صور base64 | ألوان | RTL
@@ -14664,7 +14533,7 @@ def api_ai_assistant():
         # ── قائمة الملفات والملخص ──────────────────────────────
         files_list   = _ai_list_files()
         file_summaries = []
-        for mf in ['app.py', 'templates/index.html', 'templates/academic.html',
+        for mf in ['app.py', 'templates/index.html',
                    'static/js/app.js', 'requirements.txt', 'render.yaml']:
             c, _ = _ai_read_file(mf)
             if c:
@@ -14712,7 +14581,7 @@ def api_ai_github_push():
         commit_msg = data.get('message', '🤖 تحديث بواسطة المساعد الذكي')
         if not file_paths:
             # رفع جميع الملفات الرئيسية
-            file_paths = ['app.py', 'templates/index.html', 'templates/academic.html',
+            file_paths = ['app.py', 'templates/index.html',
                           'static/js/app.js', 'requirements.txt', 'render.yaml']
         files_to_push = {}
         for fp in file_paths:
@@ -15548,15 +15417,6 @@ def api_pptx_redesign_pptx():
     except Exception as e:
         logger.error(f"Redesign PPTX error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
-
-
-
-@app.route("/academic")
-def academic_analysis():
-    _groq_key = os.environ.get('GROQ_API_KEY', '').strip()
-    resp = make_response(render_template('academic.html', groq_key=_groq_key))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    return resp
 
 
 alert_queue.start()
@@ -19742,7 +19602,6 @@ FEATURE_LABELS = {
     "auto_join":            "الانضمام المتقدم",
     "auto_replies":         "الردود التلقائية",
     "saved_links":          "الروابط المحفوظة",
-    "academic":             "التحليل الأكاديمي الذكي",
     "formatter_pdf2word":   "تحويل PDF إلى Word",
     "formatter_html2word":  "تحويل HTML إلى Word",
     "formatter_html2excel": "تحويل HTML إلى Excel",
@@ -19760,7 +19619,6 @@ RESTRICTED_FEATURES_LIST = [
     {"id": "auto_join",           "name": "🤖 الانضمام المتقدم"},
     {"id": "auto_replies",        "name": "💬 الردود التلقائية"},
     {"id": "saved_links",         "name": "🔗 الروابط المحفوظة"},
-    {"id": "academic",            "name": "📚 التحليل الأكاديمي الذكي"},
     {"id": "formatter_pdf2word",  "name": "📄 تحويل PDF إلى Word"},
     {"id": "formatter_html2word", "name": "📝 تحويل HTML إلى Word"},
     {"id": "formatter_html2excel","name": "📊 تحويل HTML إلى Excel"},

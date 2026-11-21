@@ -1594,73 +1594,6 @@
         </div>
 
 
-        <!-- ===== الأدوات الأكاديمية والتحليلية ===== -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header text-white py-3 d-flex align-items-center justify-content-between"
-                         style="background: linear-gradient(135deg,#667eea 0%,#764ba2 100%)">
-                        <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>الأدوات الأكاديمية والتحليلية</h5>
-                    </div>
-                    <div class="card-body py-3">
-                        <div class="dropdown">
-                            <button class="btn text-white w-100 py-3 fw-bold d-flex align-items-center justify-content-between rounded-3"
-                                    style="background:linear-gradient(135deg,#667eea,#764ba2);border:none;font-size:1.05rem;"
-                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span><i class="fas fa-tools me-2"></i>اختر الأداة</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <ul class="dropdown-menu w-100 shadow-lg border-0 mt-1" style="border-radius:12px;overflow:hidden;">
-                                <!-- 0. رادار الروابط والإنضمام الذكي -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="#" data-bs-toggle="modal" data-bs-target="#linkRadarModal" onclick="openLinkRadarModal()" style="border-bottom:1px solid #f0f0f0;">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#10b981,#059669);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-satellite-dish text-white"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">رادار الروابط والإنضمام الذكي</strong>
-                                            <small class="text-muted">مراقبة كامل الحساب · كشف روابط واتساب وتيليجرام · انضمام آلي</small>
-                                        </span>
-                                        <span class="badge bg-success ms-auto">🟢 شغال دائماً</span>
-                                    </a>
-                                </li>
-                                <!-- 1. التحليل الأكاديمي -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="#" style="border-bottom:1px solid #f0f0f0;"
-                                       data-bs-toggle="modal" data-bs-target="#academicModal"
-                                       onclick="document.getElementById('academicFrame').src='/academic'">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-chart-bar text-white"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">التحليل الأكاديمي الذكي</strong>
-                                            <small class="text-muted">ليكرت · ارتباط · انحدار · ذكاء اصطناعي · PDF</small>
-                                        </span>
-                                    </a>
-                                </li>
-                                <!-- 7. المستكشف والمحلل الذكي للمستندات والصور (AI Q&A) -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="#" data-bs-toggle="modal" data-bs-target="#aiDocAnalyzerModal" onclick="document.getElementById('aiDocAnalyzerFrame').src='/ai_doc_analyzer'">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#06b6d4,#3b82f6);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-brain text-white"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">المحلل والمستكشف الذكي للمستندات والصور (AI Q&A)</strong>
-                                            <small class="text-muted">رفع فائق السرعة لملفات ضخمة · قراءة وتحليل عميق · 5 مفاتيح ذكاء متتالية دون توقف</small>
-                                        </span>
-                                        <span class="badge bg-primary ms-auto">⚡ 5 مفاتيح AI</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- سجل العمليات ووحدة التحكم (مخفية من الواجهة بناءً على طلب المستخدم) -->
         <div class="row" style="display: none !important;">
             <div class="col-lg-6 mb-4">
@@ -5249,35 +5182,6 @@
       })();
     </script>
 
-    <!-- ===== مودال التحليل الإحصائي ===== -->
-    <div class="modal fade" id="statsModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header text-white" style="background:linear-gradient(135deg,#4e73df,#224abe)">
-            <h5 class="modal-title"><i class="fas fa-chart-bar me-2"></i>التحليل الإحصائي</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label fw-bold">أدخل الأرقام (افصل بمسافة أو فاصلة أو سطر جديد):</label>
-              <textarea id="statsInput" class="form-control font-monospace" rows="4"
-                        placeholder="مثال: 85 90 78 92 88 76 95 83 70 91"></textarea>
-            </div>
-            <button class="btn btn-primary px-4" onclick="runStatsAnalysis()">
-              <i class="fas fa-calculator me-2"></i>تحليل الآن
-            </button>
-            <div id="statsResult" class="mt-4" style="display:none">
-              <div class="row g-3 mb-4" id="statsCards"></div>
-              <div class="text-center">
-                <img id="statsChart" src="" class="img-fluid rounded shadow" style="max-height:320px">
-              </div>
-            </div>
-            <div id="statsError" class="alert alert-danger mt-3" style="display:none"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== مودال المستكشف والمحلل الذكي للمستندات والصور (AI Document & Image Q&A) ===== -->
     <div class="modal fade" id="aiDocAnalyzerModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
@@ -5303,28 +5207,6 @@
             <iframe id="aiDocAnalyzerFrame" src="/ai_doc_analyzer"
               style="width:100%;height:100%;border:none;display:block;"
               title="المستكشف والمحلل الذكي للملفات والمستندات"></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== مودال التحليل الأكاديمي الذكي ===== -->
-    <div class="modal fade" id="academicModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-fullscreen">
-        <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0" style="background:linear-gradient(135deg,#667eea,#764ba2)">
-            <h5 class="modal-title"><i class="fas fa-chart-bar me-2"></i>التحليل الأكاديمي الذكي</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center">
-              <a href="/academic" target="_blank" class="btn btn-sm btn-light opacity-75" title="فتح في تبويب جديد">
-                <i class="fas fa-external-link-alt"></i>
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-          </div>
-          <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
-            <iframe id="academicFrame" src="about:blank"
-              style="width:100%;height:100%;border:none;display:block;"
-              title="التحليل الأكاديمي الذكي"></iframe>
           </div>
         </div>
       </div>
@@ -6708,8 +6590,6 @@
     </div>
 
     <style>
-      .academic-btn { transition: all 0.2s ease; }
-      .academic-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
       .studio-crop-overlay {
         display: none; position: fixed; inset: 0; z-index: 2050;
         background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
@@ -6766,58 +6646,6 @@
 
     <script src="/static/js/recharts_pipeline.js"></script>
     <script>
-      /* ===== التحليل الإحصائي ===== */
-      async function runStatsAnalysis() {
-        const input = document.getElementById('statsInput').value.trim();
-        if (!input) return;
-        var _se=document.getElementById('statsError');if(_se)_se.style.display='none';
-        var _sr=document.getElementById('statsResult');if(_sr)_sr.style.display='none';
-        const btn = event.target;
-        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحليل...';
-        try {
-          const res = await fetch('/tools/analyze_stats', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({data: input})
-          });
-          const d = await res.json();
-          if (!res.ok || d.error) throw new Error(d.error || 'خطأ غير معروف');
-          const s = d.stats;
-          const labels = {
-            count:'العدد', sum:'المجموع', mean:'المتوسط', median:'الوسيط',
-            mode:'المنوال', std:'الانحراف المعياري', variance:'التباين',
-            min:'الأدنى', max:'الأعلى', range:'المدى',
-            q1:'الربيعي Q1', q3:'الربيعي Q3', iqr:'المدى الربيعي IQR',
-            skewness:'الالتواء', kurtosis:'التفرطح'
-          };
-          const colors = {
-            count:'primary', sum:'secondary', mean:'danger', median:'success',
-            mode:'warning', std:'info', variance:'dark', min:'primary',
-            max:'danger', range:'secondary', q1:'info', q3:'info',
-            iqr:'warning', skewness:'dark', kurtosis:'dark'
-          };
-          let cards = '';
-          for (const [k, v] of Object.entries(s)) {
-            cards += `<div class="col-6 col-md-3 col-lg-2">
-              <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body p-2">
-                  <div class="fs-5 fw-bold text-${colors[k]||'primary'}">${v}</div>
-                  <div class="small text-muted">${labels[k]||k}</div>
-                </div>
-              </div>
-            </div>`;
-          }
-          document.getElementById('statsCards').innerHTML = cards;
-          document.getElementById('statsChart').src = 'data:image/png;base64,' + d.chart;
-          var _sr2=document.getElementById('statsResult');if(_sr2)_sr2.style.display='block';
-        } catch(e) {
-          document.getElementById('statsError').textContent = e.message;
-          var _se2=document.getElementById('statsError');if(_se2)_se2.style.display='block';
-        } finally {
-          btn.disabled = false; btn.innerHTML = '<i class="fas fa-calculator me-2"></i>تحليل الآن';
-        }
-      }
-
       /* ===== منشئ ومنسق العروض التقديمية (PowerPoint + Canva + AI Analyzer) ===== */
       let _pptxSelectedTheme = 'blue';
       let _pptxSelectedThemeLabel = 'أزرق احترافي';
@@ -10734,26 +10562,6 @@
 
         
         console.log('✅ Auto join system initialized');
-
-        // ══════════════════════════════════════════════════════
-        //  تحميل الـ iframes عند فتح الـ modals
-        // ══════════════════════════════════════════════════════
-        document.addEventListener('DOMContentLoaded', function() {
-            var academicModal = document.getElementById('academicModal');
-            if (academicModal) {
-                academicModal.addEventListener('show.bs.modal', function() {
-                    var fr = document.getElementById('academicFrame');
-                    if (fr && (fr.src === '' || fr.src === 'about:blank' || !fr.src)) {
-                        fr.src = '/academic';
-                    }
-                });
-                academicModal.addEventListener('hidden.bs.modal', function() {
-                    var fr = document.getElementById('academicFrame');
-                    if (fr) fr.src = 'about:blank';
-                });
-            }
-
-        });
 
     // ══════════════════════════════════════════════════════════════
     //  تبديل التابات في المودال الموحّد (بحث عام + رسائلي + استخراج)

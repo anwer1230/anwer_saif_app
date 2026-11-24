@@ -72,6 +72,7 @@
             background-color: white !important; padding: 0 !important; margin: 0 !important;
             -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
         }
+        * { animation: none !important; transition: none !important; backdrop-filter: none !important; }
         .pages-wrap { margin: 0 !important; padding: 0 !important; width: 210mm !important; }
         .page {
             box-shadow: none !important; margin: 0 !important;
@@ -188,8 +189,10 @@
     body.pdf-exporting .witness-modal,
     body.pdf-exporting .witness-below-hint,
     body.pdf-exporting .witness-thumb .remove-thumb,
-    body.pdf-exporting .witness-info .link-count,
+    body.pdf-exporting .witness-info,
+    body.pdf-exporting .witness-qr .qr-url,
     body.pdf-exporting .preview-page-badge { display: none !important; }
+    body.pdf-exporting * { animation: none !important; transition: none !important; backdrop-filter: none !important; }
     body.pdf-exporting .witness-thumbnails { display: flex !important; }
     body.pdf-exporting .witness-qr { display: block !important; }
     body.pdf-exporting .editable-area,
@@ -757,15 +760,14 @@
         border-radius: 10px; font-size: 11px; font-weight: 900;
     }
     .witness-qr {
-        display: none; margin-top: 5px;
+        display: block; margin-top: 5px;
     }
     .witness-qr canvas, .witness-qr img {
-        width: 60px !important; height: 60px !important;
+        width: 68px !important; height: 68px !important;
         border: 1px solid #ddd; border-radius: 4px;
     }
     .witness-qr .qr-url {
-        font-size: 7px; color: #666; word-break: break-all;
-        max-width: 90px; margin-top: 2px; text-align: center; line-height: 1.2;
+        display: none !important;
     }
 
     /* ===== نافذة الشواهد المنبثقة ===== */
@@ -2552,6 +2554,10 @@ function removeLink(idx) {
 
 function saveWitness() {
     if (!currentWitnessCell) return;
+    const pendingUrl = document.getElementById('linkInput')?.value.trim();
+    if (pendingUrl) {
+        addLink();
+    }
     const data = normalizeWitnessData({
         images: currentImages,
         links: currentLinks,
@@ -2715,11 +2721,9 @@ function renderWitnessCell(cell) {
     }
 
     if (hasLinks) {
-        html += `<div class="witness-info"><span class="link-count">🔗 ${data.links.length} رابط</span></div>`;
         html += '<div class="witness-qr">';
         data.links.forEach((link) => {
             html += `<div class="qr-container" data-url="${link.url}" style="margin:3px auto;"></div>`;
-            html += `<div class="qr-url">${link.url.substring(0, 30)}...</div>`;
         });
         html += '</div>';
     }
@@ -2738,8 +2742,8 @@ function renderWitnessCell(cell) {
             if (typeof QRCode !== 'undefined') {
                 new QRCode(el, {
                     text: url,
-                    width: 60,
-                    height: 60,
+                    width: 68,
+                    height: 68,
                     colorDark: '#000000',
                     colorLight: '#ffffff',
                     correctLevel: QRCode.CorrectLevel.L
@@ -2748,6 +2752,7 @@ function renderWitnessCell(cell) {
         });
     }
 
+    cell.dataset.renderedWitness = cell.dataset.witness || '';
     updatePageOverflowFlag(cell);
 }
 
@@ -2840,9 +2845,13 @@ function resetAll() {
 }
 
 /* ============ تجهيز باركود QR قبل المعاينة أو الطباعة ============ */
-function renderAllWitnesses() {
+function renderAllWitnesses(force = false) {
     document.querySelectorAll('.col-evidence').forEach(cell => {
-        if (cell.dataset.witness) renderWitnessCell(cell);
+        if (!cell.dataset.witness) return;
+        if (!force && cell.dataset.renderedWitness === cell.dataset.witness && cell.querySelector('.witness-display')) {
+            return;
+        }
+        renderWitnessCell(cell);
     });
 }
 
@@ -2947,9 +2956,9 @@ function printDocument() {
         } catch (e) {}
         setTimeout(() => {
             if (isPrintPreview) applyPreviewZoom();
-        }, 400);
+        }, 250);
         setStatus('💡 إذا لم تظهر نافذة الطباعة استخدم زر "📄 تصدير PDF"');
-    }, 250);
+    }, 40);
 }
 
 /* ============ التصدير PDF المباشر ============ */
@@ -3004,7 +3013,7 @@ function appendCanvasProportionalToPdf(pdf, canvas, isFirstPage) {
         }
         const offsetX = Math.max(0, (pageWmm - renderW) / 2);
         const offsetY = Math.max(0, (pageHmm - renderH) / 2);
-        const imgData = canvas.toDataURL('image/jpeg', 0.93);
+        const imgData = canvas.toDataURL('image/jpeg', 0.86);
         pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderW, renderH, undefined, 'FAST');
         return;
     }
@@ -3025,7 +3034,7 @@ function appendCanvasProportionalToPdf(pdf, canvas, isFirstPage) {
         if (!isFirstPage || !firstSlice) {
             pdf.addPage('a4', 'p');
         }
-        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.93);
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.86);
         pdf.addImage(imgData, 'JPEG', 0, 0, pageWmm, pageHmm, undefined, 'FAST');
         yPx += sliceH;
         firstSlice = false;
@@ -3068,9 +3077,19 @@ async function exportPDF() {
     document.documentElement.classList.add('pdf-exporting');
     document.body.classList.add('pdf-exporting');
 
+    const pruneWitnessClone = (clonedDoc) => {
+        const target = clonedDoc.querySelector('[data-h2c-target="1"]');
+        if (target) {
+            clonedDoc.querySelectorAll('#pagesWrap > *').forEach(node => {
+                if (node !== target && !node.contains(target) && !target.contains(node)) node.remove();
+            });
+        }
+        clonedDoc.querySelectorAll('.toolbar, .preview-bar, .fmt-bar, .witness-modal, .canva-hub-modal, .cropper-modal, .pdf-overlay, .pdf-ready-banner, .img-lightbox, .preview-page-badge').forEach(n => n.remove());
+    };
+
     try {
         await ensureExportFontsLoaded();
-        await new Promise(r => setTimeout(r, 220));
+        await new Promise(r => requestAnimationFrame(r));
 
         const pages = Array.from(document.querySelectorAll('#pagesWrap > .page'));
         if (!pages.length) throw new Error('لا توجد صفحات للتصدير');
@@ -3087,7 +3106,7 @@ async function exportPDF() {
             if (pctEl) pctEl.textContent = `${pct}%`;
             setStatus(`⏳ جاري تصدير PDF (${i + 1}/${pages.length})...`);
 
-            await new Promise(r => setTimeout(r, 20));
+            await new Promise(r => requestAnimationFrame(r));
 
             const prevHeight = pageEl.style.height;
             const prevOverflow = pageEl.style.overflow;
@@ -3099,27 +3118,15 @@ async function exportPDF() {
             const captureW = 794;
             const captureH = hasContentOverflow ? Math.max(1123, pageEl.scrollHeight) : 1123;
 
+            pageEl.setAttribute('data-h2c-target', '1');
             let canvas;
             try {
                 canvas = await html2canvas(pageEl, {
-                    scale: 2,
+                    scale: 1.5,
                     useCORS: true,
                     allowTaint: false,
                     backgroundColor: '#ffffff',
-                    width: captureW,
-                    height: captureH,
-                    windowWidth: captureW,
-                    windowHeight: captureH,
-                    scrollX: 0,
-                    scrollY: 0,
-                    logging: false
-                });
-            } catch (pageErr) {
-                canvas = await html2canvas(pageEl, {
-                    scale: 2,
-                    useCORS: false,
-                    allowTaint: false,
-                    backgroundColor: '#ffffff',
+                    imageTimeout: 2500,
                     width: captureW,
                     height: captureH,
                     windowWidth: captureW,
@@ -3127,9 +3134,27 @@ async function exportPDF() {
                     scrollX: 0,
                     scrollY: 0,
                     logging: false,
+                    onclone: pruneWitnessClone
+                });
+            } catch (pageErr) {
+                canvas = await html2canvas(pageEl, {
+                    scale: 1.5,
+                    useCORS: false,
+                    allowTaint: false,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 2000,
+                    width: captureW,
+                    height: captureH,
+                    windowWidth: captureW,
+                    windowHeight: captureH,
+                    scrollX: 0,
+                    scrollY: 0,
+                    logging: false,
+                    onclone: pruneWitnessClone,
                     ignoreElements: (el) => el.tagName === 'IMG' && el.src && !el.src.startsWith('data:') && !el.src.startsWith(location.origin)
                 });
             } finally {
+                pageEl.removeAttribute('data-h2c-target');
                 pageEl.style.height = prevHeight;
                 pageEl.style.overflow = prevOverflow;
             }

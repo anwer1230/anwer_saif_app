@@ -385,28 +385,24 @@
     .evidence-box.fit-cover > img.witness-photo { border-radius: 8px; }
     .evidence-box.auto-height > img.witness-photo { height: auto; max-height: 640px; }
     .evidence-box .qr-container {
-        padding: 8px; background: #ffffff; border-radius: 8px;
-        border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+        padding: 6px; background: #ffffff; border-radius: 8px;
+        border: none; display: flex; align-items: center; justify-content: center;
+    }
+    .evidence-box.qr-only-box {
+        background: #ffffff; border: 1.5px solid #cbd5e1; padding: 10px; min-height: 0;
     }
     .evidence-box .qr-container img,
     .evidence-box .qr-container canvas {
-        width: 112px !important; height: 112px !important; position: static !important; display: block !important;
+        width: 132px !important; height: 132px !important; position: static !important; display: block !important;
     }
     .evidence-box .qr-container img[src^="data:"] + canvas,
     .evidence-box .qr-container canvas + img[src=""] {
         display: none !important;
     }
-    .evidence-box .qr-drive-badge {
-        display: inline-block; font-size: 10px; font-weight: 800; color: #0f766e;
-        background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 999px; padding: 2px 8px;
-    }
-    .evidence-box .qr-title {
-        font-size: 11px; color: #1e3a8a; font-weight: 700; text-align: center;
-        word-break: break-word; line-height: 1.4; max-width: 100%; padding: 0 4px;
-    }
+    .evidence-box .qr-drive-badge,
+    .evidence-box .qr-title,
     .evidence-box .qr-url-link {
-        font-size: 10px; color: #2563eb; text-decoration: none; word-break: break-all;
+        display: none !important;
     }
     .evidence-box.evidence-placeholder {
         cursor: pointer;
@@ -644,7 +640,7 @@
     body.pdf-exporting .evidence-grid.evidence-grid-empty,
     body.pdf-exporting .evidence-grid:empty,
     body.pdf-exporting .sub-heading.witness-heading-empty { display: none !important; }
-    body.pdf-exporting * { letter-spacing: 0 !important; }
+    body.pdf-exporting * { letter-spacing: 0 !important; animation: none !important; transition: none !important; backdrop-filter: none !important; }
     body.pdf-exporting .cover { height: 1120px !important; min-height: 1120px !important; max-height: 1120px !important; width: 794px !important; overflow: hidden !important; padding: 48px 36px !important; }
     body.pdf-exporting .cover::before { display: none !important; }
     body.pdf-exporting .single-page-report { min-height: 1120px !important; padding: 34px !important; border-bottom: none !important; }
@@ -663,7 +659,7 @@
             letter-spacing: 0 !important;
             -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
         }
-        * { letter-spacing: 0 !important; }
+        * { letter-spacing: 0 !important; animation: none !important; transition: none !important; backdrop-filter: none !important; }
         .container { box-shadow: none !important; width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
         .toolbar, .preview-bar, .fmt-bar, .modal-overlay, .witness-actions, .witness-box-tools, .page-ctrl-bar, .witness-del-btn, .print-btn-container, .no-print, .edit-only, .pdf-overlay, .pdf-ready-banner, .img-lightbox, .evidence-box.evidence-placeholder, .evidence-box.no-actual-image, .evidence-grid.evidence-grid-empty, .evidence-grid:empty, .sub-heading.witness-heading-empty { display: none !important; }
         .cover { width: 100% !important; height: 296mm !important; min-height: 296mm !important; max-height: 296mm !important; overflow: hidden !important; margin: 0; border-radius: 0; page-break-after: always; }
@@ -3842,8 +3838,22 @@ function deleteSingleWitness(grid, type, idx) {
     setStatus('🗑️ تم حذف الشاهد');
 }
 
-function renderWitnesses(container) {
+function renderWitnesses(container, forceRender = false) {
     if (!container) return;
+    const witnessSig = JSON.stringify({
+        i: container.dataset.images || '',
+        l: container.dataset.links || '',
+        c: container.dataset.cols || '',
+        h: container.dataset.imgHeight || '',
+        f: container.dataset.imgFit || '',
+        k: container.dataset.keepPlaceholders || ''
+    });
+    if (!forceRender && container.dataset.renderedSig === witnessSig && container.children.length > 0) {
+        refreshWitnessInlineBars(container);
+        syncEmptyEvidenceGridState(container);
+        return;
+    }
+    container.dataset.renderedSig = witnessSig;
     let rawImages = [];
     let rawLinks = [];
     try { rawImages = JSON.parse(container.dataset.images || '[]'); } catch (e) { rawImages = []; }
@@ -3974,22 +3984,11 @@ function renderWitnesses(container) {
 
     links.forEach((link, idx) => {
         const box = document.createElement('div');
-        box.className = 'evidence-box';
+        box.className = 'evidence-box qr-only-box';
 
         const qrDiv = document.createElement('div');
         qrDiv.className = 'qr-container';
         qrDiv.dataset.url = link.url;
-
-        const titleEl = document.createElement('div');
-        titleEl.className = 'qr-title';
-        titleEl.textContent = link.title || link.url;
-
-        const urlAnchor = document.createElement('a');
-        urlAnchor.className = 'qr-url-link edit-only';
-        urlAnchor.href = link.url;
-        urlAnchor.target = '_blank';
-        urlAnchor.rel = 'noopener noreferrer';
-        urlAnchor.textContent = '🔗 فتح الرابط';
 
         const tools = document.createElement('div');
         tools.className = 'witness-box-tools edit-only';
@@ -4030,19 +4029,12 @@ function renderWitnesses(container) {
             deleteSingleWitness(container, 'link', idx);
         };
 
-        const badge = document.createElement('span');
-        badge.className = 'qr-drive-badge';
-        badge.textContent = '📱 باركود Google Drive';
-
         box.appendChild(qrDiv);
-        box.appendChild(badge);
-        box.appendChild(titleEl);
-        box.appendChild(urlAnchor);
         box.appendChild(tools);
         box.appendChild(delBtn);
         container.appendChild(box);
 
-        renderSingleQRCode(qrDiv, link.url, 112);
+        renderSingleQRCode(qrDiv, link.url, 132);
     });
 
     syncEmptyEvidenceGridState(container);
@@ -4276,9 +4268,9 @@ function printDocument() {
         } catch (e) {}
         setTimeout(() => {
             if (isPrintPreview) applyPreviewZoom();
-        }, 400);
+        }, 250);
         setStatus('💡 إذا حجب المتصفح نافذة الطباعة استخدم زر "📄 تصدير PDF"');
-    }, 220);
+    }, 40);
 }
 
 /* ============ التصدير إلى PDF متعدد الصفحات A4 ============ */
@@ -4320,10 +4312,12 @@ async function ensureExportFontsLoaded() {
     } catch (e) {}
 }
 
+const PDF_EXPORT_SCALE = 1.5;
+
 function getExportPageCssHeight() {
-    const canvasW = 794 * 2;
+    const canvasW = 794 * PDF_EXPORT_SCALE;
     const sliceMaxPxH = Math.floor(297 * (canvasW / 210));
-    return sliceMaxPxH / 2; // 1122.5 CSS px exact match for A4 slice
+    return sliceMaxPxH / PDF_EXPORT_SCALE; // exact match for A4 slice
 }
 
 function paginateExportUnitForA4(blk, initialOffsetCss = 0) {
@@ -4539,26 +4533,23 @@ function isCanvasSliceBlank(sliceCanvas, drawnHeight) {
 async function captureElementSafe(el) {
     const captureW = 794;
     const captureH = Math.max(1, el.offsetHeight || 0, el.scrollHeight || 0);
+    el.setAttribute('data-h2c-target', '1');
+    const pruneClonedDom = (clonedDoc) => {
+        const target = clonedDoc.querySelector('[data-h2c-target="1"]');
+        if (target) {
+            clonedDoc.querySelectorAll('#mainContainer > *').forEach(node => {
+                if (node !== target && !node.contains(target) && !target.contains(node)) node.remove();
+            });
+        }
+        clonedDoc.querySelectorAll('.toolbar, .preview-bar, .fmt-bar, .modal-overlay, #pdfProgressOverlay, #pdfReadyBanner, #imgLightboxModal, .canva-hub-modal, .cropper-modal').forEach(n => n.remove());
+    };
     try {
         return await html2canvas(el, {
-            scale: 2,
+            scale: PDF_EXPORT_SCALE,
             useCORS: true,
             allowTaint: false,
             backgroundColor: '#ffffff',
-            width: captureW,
-            height: captureH,
-            windowWidth: captureW,
-            windowHeight: captureH,
-            scrollX: 0,
-            scrollY: 0,
-            logging: false
-        });
-    } catch (e) {
-        return await html2canvas(el, {
-            scale: 2,
-            useCORS: false,
-            allowTaint: false,
-            backgroundColor: '#ffffff',
+            imageTimeout: 2500,
             width: captureW,
             height: captureH,
             windowWidth: captureW,
@@ -4566,8 +4557,27 @@ async function captureElementSafe(el) {
             scrollX: 0,
             scrollY: 0,
             logging: false,
+            onclone: pruneClonedDom
+        });
+    } catch (e) {
+        return await html2canvas(el, {
+            scale: PDF_EXPORT_SCALE,
+            useCORS: false,
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            imageTimeout: 2000,
+            width: captureW,
+            height: captureH,
+            windowWidth: captureW,
+            windowHeight: captureH,
+            scrollX: 0,
+            scrollY: 0,
+            logging: false,
+            onclone: pruneClonedDom,
             ignoreElements: (node) => node.tagName === 'IMG' && node.src && !node.src.startsWith('data:') && !node.src.startsWith(location.origin)
         });
+    } finally {
+        el.removeAttribute('data-h2c-target');
     }
 }
 
@@ -4600,7 +4610,7 @@ function appendCanvasSlicedToPdf(pdf, canvas, isFirstPdfPage) {
         if (!isFirstPdfPage || !firstSlice) {
             pdf.addPage('a4', 'p');
         }
-        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.86);
         pdf.addImage(imgData, 'JPEG', 0, 0, pageWmm, pageHmm, undefined, 'FAST');
 
         yPx += sliceH;
@@ -4648,7 +4658,7 @@ async function exportPDF() {
 
     try {
         await ensureExportFontsLoaded();
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => requestAnimationFrame(r));
 
         // تجميع الكتل المنطقية (دمج عنوان القسم مع التقرير الذي يليه مباشرة حتى لا يظهر عنوان قسم منفرداً)
         const blocks = getManagedBlocks();
@@ -4676,7 +4686,7 @@ async function exportPDF() {
             if (fillEl) fillEl.style.width = `${pct}%`;
             if (pctEl) pctEl.textContent = `${pct}%`;
             setStatus(`⏳ جاري تصدير PDF (${u + 1}/${units.length})...`);
-            await new Promise(r => setTimeout(r, 20));
+            await new Promise(r => requestAnimationFrame(r));
 
             let targetCanvas;
             let restorePag = null;
@@ -4690,7 +4700,7 @@ async function exportPDF() {
                 } else {
                     // دمج عنوان القسم + التقرير التالي عمودياً دون تعديل DOM الأصلي مع مراعاة إزاحة عنوان القسم أثناء تقسيم الصفحات
                     const c1 = await captureElementSafe(group[0]);
-                    const headerCssH = c1.height / 2;
+                    const headerCssH = c1.height / PDF_EXPORT_SCALE;
                     restorePag = paginateExportUnitForA4(group[1], headerCssH);
                     const c2 = await captureElementSafe(group[1]);
                     targetCanvas = document.createElement('canvas');

@@ -64,6 +64,7 @@
             background-color: white !important; padding: 0 !important; margin: 0 !important;
             -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
         }
+        * { animation: none !important; transition: none !important; backdrop-filter: none !important; }
         .pages-wrap { margin: 0 !important; padding: 0 !important; width: 210mm !important; }
         .page {
             box-shadow: none !important; margin: 0 !important;
@@ -160,6 +161,7 @@
     body.pdf-exporting .fmt-bar,
     body.pdf-exporting .preview-page-badge,
     body.pdf-exporting .canva-hub-modal { display: none !important; }
+    body.pdf-exporting * { animation: none !important; transition: none !important; backdrop-filter: none !important; }
     body.pdf-exporting .editable-area,
     body.pdf-exporting .cell-content { background: transparent !important; box-shadow: none !important; outline: none !important; }
 
@@ -1751,9 +1753,9 @@ function printDocument() {
         } catch (e) {}
         setTimeout(() => {
             if (isPrintPreview) applyPreviewZoom();
-        }, 400);
+        }, 250);
         setStatus('💡 إذا لم تظهر نافذة الطباعة استخدم زر "📄 تصدير PDF"');
-    }, 150);
+    }, 40);
 }
 
 /* ============ التصدير PDF المباشر ============ */
@@ -1806,7 +1808,7 @@ function appendCanvasProportionalToPdf(pdf, canvas, isFirstPage) {
         }
         const offsetX = Math.max(0, (pageWmm - renderW) / 2);
         const offsetY = Math.max(0, (pageHmm - renderH) / 2);
-        const imgData = canvas.toDataURL('image/jpeg', 0.93);
+        const imgData = canvas.toDataURL('image/jpeg', 0.86);
         pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderW, renderH, undefined, 'FAST');
         return;
     }
@@ -1827,7 +1829,7 @@ function appendCanvasProportionalToPdf(pdf, canvas, isFirstPage) {
         if (!isFirstPage || !firstSlice) {
             pdf.addPage('a4', 'p');
         }
-        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.93);
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.86);
         pdf.addImage(imgData, 'JPEG', 0, 0, pageWmm, pageHmm, undefined, 'FAST');
         yPx += sliceH;
         firstSlice = false;
@@ -1870,9 +1872,19 @@ async function exportPDF() {
     document.documentElement.classList.add('pdf-exporting');
     document.body.classList.add('pdf-exporting');
 
+    const prunePortfolioClone = (clonedDoc) => {
+        const target = clonedDoc.querySelector('[data-h2c-target="1"]');
+        if (target) {
+            clonedDoc.querySelectorAll('#pagesWrap > *').forEach(node => {
+                if (node !== target && !node.contains(target) && !target.contains(node)) node.remove();
+            });
+        }
+        clonedDoc.querySelectorAll('.toolbar, .preview-bar, .fmt-bar, .canva-hub-modal, .pdf-overlay, .pdf-ready-banner, .preview-page-badge').forEach(n => n.remove());
+    };
+
     try {
         await ensureExportFontsLoaded();
-        await new Promise(r => setTimeout(r, 180));
+        await new Promise(r => requestAnimationFrame(r));
 
         const pages = Array.from(document.querySelectorAll('#pagesWrap > .page'));
         if (!pages.length) throw new Error('لا توجد صفحات للتصدير');
@@ -1889,7 +1901,7 @@ async function exportPDF() {
             if (pctEl) pctEl.textContent = `${pct}%`;
             setStatus(`⏳ جاري تصدير PDF (${i + 1}/${pages.length})...`);
 
-            await new Promise(r => setTimeout(r, 20));
+            await new Promise(r => requestAnimationFrame(r));
 
             const prevHeight = pageEl.style.height;
             const prevOverflow = pageEl.style.overflow;
@@ -1901,27 +1913,15 @@ async function exportPDF() {
             const captureW = 794;
             const captureH = hasContentOverflow ? Math.max(1123, pageEl.scrollHeight) : 1123;
 
+            pageEl.setAttribute('data-h2c-target', '1');
             let canvas;
             try {
                 canvas = await html2canvas(pageEl, {
-                    scale: 2,
+                    scale: 1.5,
                     useCORS: true,
                     allowTaint: false,
                     backgroundColor: '#ffffff',
-                    width: captureW,
-                    height: captureH,
-                    windowWidth: captureW,
-                    windowHeight: captureH,
-                    scrollX: 0,
-                    scrollY: 0,
-                    logging: false
-                });
-            } catch (pageErr) {
-                canvas = await html2canvas(pageEl, {
-                    scale: 2,
-                    useCORS: false,
-                    allowTaint: false,
-                    backgroundColor: '#ffffff',
+                    imageTimeout: 2500,
                     width: captureW,
                     height: captureH,
                     windowWidth: captureW,
@@ -1929,9 +1929,27 @@ async function exportPDF() {
                     scrollX: 0,
                     scrollY: 0,
                     logging: false,
+                    onclone: prunePortfolioClone
+                });
+            } catch (pageErr) {
+                canvas = await html2canvas(pageEl, {
+                    scale: 1.5,
+                    useCORS: false,
+                    allowTaint: false,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 2000,
+                    width: captureW,
+                    height: captureH,
+                    windowWidth: captureW,
+                    windowHeight: captureH,
+                    scrollX: 0,
+                    scrollY: 0,
+                    logging: false,
+                    onclone: prunePortfolioClone,
                     ignoreElements: (el) => el.tagName === 'IMG' && el.src && !el.src.startsWith('data:') && !el.src.startsWith(location.origin)
                 });
             } finally {
+                pageEl.removeAttribute('data-h2c-target');
                 pageEl.style.height = prevHeight;
                 pageEl.style.overflow = prevOverflow;
             }

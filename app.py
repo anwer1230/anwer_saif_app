@@ -7797,6 +7797,11 @@ def fresh():
 def static_files(filename):
     return app.send_static_file(filename)
 
+@app.route('/assets/aistudio/<path:filename>')
+def aistudio_assets(filename):
+    assets_dir = os.path.join(app.root_path, 'public', 'assets', 'aistudio')
+    return send_from_directory(assets_dir, filename)
+
 @app.route("/manifest.json")
 def manifest():
     manifest_data = {
@@ -13829,7 +13834,7 @@ def performance_witnesses_page():
 @app.route("/school_reports")
 @app.route("/school_reports/")
 def school_reports_page():
-    """ملف التقارير والشواهد المدرسية - الواجهة التفاعلية الكاملة"""
+    """ملف التقارير والبرامج التربوية والأنشطة المدرسية - الواجهة التفاعلية الكاملة"""
     resp = make_response(
         send_file(
             os.path.join(app.root_path, 'templates', 'school_reports.html'),
@@ -15150,15 +15155,16 @@ def api_pptx_canva_connect_token():
 
 @app.route('/api/edu/canva/browse', methods=['GET', 'POST'])
 def api_edu_canva_browse():
-    """فتح وجلب قوالب كانفا داخل واجهة ملف الشواهد وملف التقارير بدون مغادرة الواجهة."""
+    """تصفح وجلب قوالب كانفا داخل واجهة الخدمات التعليمية دون فتح كانفا خارجياً."""
     if not _pptx_dimp:
-        return jsonify({'error': 'وحدة قوالب كانفا غير متاحة'}), 500
+        return jsonify({'success': False, 'error': 'وحدة قوالب كانفا غير متاحة', 'templates': [], 'fetched': []}), 500
     try:
         data = (request.get_json(silent=True) or {}) if request.method == 'POST' else {}
-        query = (data.get('query') or request.args.get('q') or '').strip()
-        category = (data.get('category') or request.args.get('category') or 'all').strip()
+        q = (data.get('q') or data.get('query') or request.args.get('q') or request.args.get('query') or '').strip()
+        cat = (data.get('category') or request.args.get('category') or 'all').strip()
+        src = (data.get('source') or request.args.get('source') or 'all').strip()
+        token = (data.get('canva_token') or data.get('access_token') or '').strip()
         canva_url = (data.get('canva_url') or '').strip()
-        access_token = (data.get('access_token') or '').strip()
         custom_name = (data.get('name') or '').strip()
 
         imported_item = None
@@ -15166,24 +15172,182 @@ def api_edu_canva_browse():
             imported_item = _pptx_dimp.import_canva_url(
                 url=canva_url,
                 custom_name=custom_name,
-                category=category if category != 'all' else 'شواهد وتقارير',
+                category=cat if cat != 'all' else 'شواهد وتقارير',
             )
-        if access_token:
-            _pptx_dimp.fetch_canva_api_designs(access_token)
+            cat = 'all'
 
-        browse_cat = 'all' if (canva_url or access_token) else category
-        result = _pptx_dimp.browse_canva_public_templates(query=query, category=browse_cat)
+        res = _pptx_dimp.browse_edu_canva(query=q, category=cat, source=src, canva_token=token)
         accounts_store = _pptx_dimp.get_google_accounts()
+        live_count = res.get('live_count', 0)
         return jsonify({
             'success': True,
-            'templates': result['templates'],
-            'live_fetched_count': result.get('live_fetched_count', 0),
-            'source_note': result.get('source_note', ''),
+            **res,
+            'live_fetched_count': live_count,
+            'source_note': f"تم الجلب من Canva ({live_count} قالب) + المكتبة التعليمية" if live_count else "كتالوج كانفا المدمج + القوالب المستوردة",
             'imported_template': imported_item,
             'accounts': accounts_store,
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/import_urls', methods=['POST'])
+def api_edu_canva_import_urls():
+    """استيراد رابط أو عدة روابط قوالب من كانفا إلى معرض التحديد الداخلي."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    try:
+        body = request.get_json(silent=True) or {}
+        urls_raw = body.get('urls') or body.get('url') or ''
+        category = (body.get('category') or 'تصاميمي المجلوبة').strip()
+        custom_name = (body.get('name') or '').strip()
+        if isinstance(urls_raw, str):
+            url_list = [u.strip() for u in re.split(r'[\n,\s]+', urls_raw) if u.strip()]
+        elif isinstance(urls_raw, list):
+            url_list = [str(u).strip() for u in urls_raw if str(u).strip()]
+        else:
+            url_list = []
+        if not url_list:
+            return jsonify({'success': False, 'error': 'يرجى لصق رابط قالب كانفا واحد على الأقل'}), 400
+        imported = []
+        for idx, u in enumerate(url_list[:15]):
+            nm = custom_name if (custom_name and len(url_list) == 1) else (f"{custom_name} ({idx+1})" if custom_name else "")
+            tpl = _pptx_dimp.import_canva_url(url=u, custom_name=nm, category=category)
+            imported.append(tpl)
+        return jsonify({'success': True, 'templates': imported, 'count': len(imported)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/fetch_selected', methods=['POST'])
+def api_edu_canva_fetch_selected():
+    """جلب القوالب التي حددها المستخدم من متصفح كانفا الداخلي وتجهيزها للتطبيق والمعاينة."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    try:
+        body = request.get_json(silent=True) or {}
+        selected = body.get('templates') or []
+        token = (body.get('canva_token') or '').strip()
+        fetched = _pptx_dimp.fetch_selected_edu_canva(selected, canva_token=token)
+        all_fetched = _pptx_dimp.get_fetched_edu_canva()
+        return jsonify({'success': True, 'fetched_now': fetched, 'fetched': all_fetched, 'count': len(fetched)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/fetched', methods=['GET'])
+def api_edu_canva_fetched_list():
+    if not _pptx_dimp:
+        return jsonify({'success': True, 'fetched': []})
+    return jsonify({'success': True, 'fetched': _pptx_dimp.get_fetched_edu_canva()})
+
+
+@app.route('/api/edu/canva/fetched/<tid>', methods=['DELETE'])
+def api_edu_canva_fetched_delete(tid):
+    if not _pptx_dimp:
+        return jsonify({'success': True, 'fetched': []})
+    rem = _pptx_dimp.remove_fetched_edu_canva(tid)
+    return jsonify({'success': True, 'fetched': rem})
+
+
+@app.route('/api/edu/canva/proxy_img', methods=['GET'])
+def api_edu_canva_proxy_img():
+    """بروكسي آمن لصور قوالب كانفا لتفادي أخطاء CORS عند التصوير والتصدير إلى PDF."""
+    import urllib.parse
+    img_url = (request.args.get('url') or '').strip()
+    if not img_url.startswith(('https://', 'http://')):
+        return '', 400
+    parsed = urllib.parse.urlparse(img_url)
+    host = (parsed.hostname or '').lower()
+    allowed = (
+        host.endswith('canva.com')
+        or host.endswith('canva-static.com')
+        or host.endswith('googleusercontent.com')
+        or (host.endswith('web.archive.org') and 'im_' in (parsed.path or ''))
+    )
+    if not allowed:
+        return '', 403
+    try:
+        r = requests.get(
+            img_url,
+            timeout=8,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+            },
+        )
+        ctype = r.headers.get('Content-Type', '')
+        if not r.ok or not ctype.startswith('image/') or len(r.content) > 5_000_000:
+            return '', 404
+        resp = make_response(r.content)
+        resp.headers['Content-Type'] = ctype.split(';')[0]
+        resp.headers['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    except Exception:
+        return '', 404
+
+
+@app.route('/api/edu/canva/import_file', methods=['POST'])
+def api_edu_canva_import_file():
+    """استيراد تصميم كانفا من ملف صورة أو PDF أو PowerPoint مصدّر من كانفا وتوليد قالب جاهز داخلياً."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'يرجى اختيار ملف تصميم من كانفا (صورة أو PDF أو PPTX)'}), 400
+    f = request.files['file']
+    name = (request.form.get('name') or '').strip()
+    category = (request.form.get('category') or 'تصاميمي المجلوبة').strip()
+    try:
+        tpl = _pptx_dimp.import_canva_uploaded_file(
+            filename=f.filename or 'canva_design',
+            raw_bytes=f.read(),
+            custom_name=name,
+            category=category,
+        )
+        return jsonify({'success': True, 'template': tpl})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/process_for_merge', methods=['POST'])
+def api_edu_canva_process_for_merge():
+    """معالجة القالب المختار من كانفا وتحويله إلى صيغة متوافقة (صور PNG A4 + ملف PDF) للدمج المباشر في الملفات."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    try:
+        body = request.get_json(silent=True) or {}
+        tpl_item = body.get('template') or body
+        token = (body.get('canva_token') or '').strip()
+        if not isinstance(tpl_item, dict) or not (tpl_item.get('id') or tpl_item.get('name')):
+            return jsonify({'success': False, 'error': 'بيانات القالب المختار مطلوبة للمعالجة'}), 400
+        processed_tpl = _pptx_dimp.process_edu_canva_template_for_merge(tpl_item, canva_token=token)
+        return jsonify({
+            'success': True,
+            'template': processed_tpl,
+            'processed_pdf_url': processed_tpl.get('processed_pdf_url', ''),
+            'processed_pages': processed_tpl.get('processed_pages', []),
+            'processed_format': processed_tpl.get('processed_format', 'PNG + PDF (A4)'),
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/asset/<tid>/<filename>', methods=['GET'])
+def api_edu_canva_processed_asset(tid, filename):
+    """تقديم ملفات القالب المعالجة (صور PNG أو PDF) بنفس النطاق لضمان الدمج والتصدير لـ PDF بدون قيود CORS."""
+    from flask import send_from_directory
+    safe_tid = re.sub(r'[^A-Za-z0-9_-]', '', tid or '')
+    if not safe_tid or safe_tid != tid:
+        return '', 404
+    if not re.match(r'^(?:page_\d{2}\.png|template\.pdf)$', filename or ''):
+        return '', 404
+    asset_dir = os.path.join(_cfg.DATA_DIR, 'edu_canva_processed', safe_tid)
+    if not os.path.isdir(asset_dir) or not os.path.isfile(os.path.join(asset_dir, filename)):
+        return '', 404
+    as_dl = request.args.get('download') == '1'
+    resp = send_from_directory(asset_dir, filename, as_attachment=as_dl)
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
 
 
 @app.route('/api/pptx/canva/google_accounts', methods=['GET', 'POST', 'DELETE'])

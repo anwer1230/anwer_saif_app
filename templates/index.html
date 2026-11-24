@@ -5263,8 +5263,9 @@
                         style="width:56px;height:56px;background:rgba(30,58,138,0.12);color:#1e3a8a;">
                     <i class="fas fa-book-open fa-2x"></i>
                   </span>
-                  <span class="fw-bold fs-6 text-dark mb-1">ملف التقارير والشواهد المدرسية</span>
+                  <span class="fw-bold fs-6 text-dark mb-1">ملف التقارير والبرامج التربوية والأنشطة المدرسية</span>
                   <span class="text-muted small">تقارير البرامج والأنشطة بالصور وباركود QR وإدارة الصفحات وتصدير PDF</span>
+                  <span id="eduBadgeReports" class="badge bg-info text-dark mt-2 d-none" style="font-size:0.7rem;"></span>
                 </button>
               </div>
               <div class="col-12 col-md-6">
@@ -5347,12 +5348,12 @@
         </div>
       </div>
     </div>
-    <!-- ===== مودال ملف التقارير والشواهد المدرسية (الواجهة الكاملة) ===== -->
+    <!-- ===== مودال ملف التقارير والبرامج التربوية والأنشطة المدرسية (الواجهة الكاملة) ===== -->
     <div class="modal fade" id="schoolReportsModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
           <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);">
-            <h5 class="modal-title mb-0"><i class="fas fa-book-open me-2"></i>ملف التقارير والشواهد المدرسية</h5>
+            <h5 class="modal-title mb-0"><i class="fas fa-book-open me-2"></i>ملف التقارير والبرامج التربوية والأنشطة المدرسية</h5>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
               <button type="button" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
                 <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
@@ -5372,7 +5373,7 @@
             <iframe id="schoolReportsFrame" src="about:blank"
               allow="fullscreen"
               style="width:100%;height:100%;border:none;display:block;"
-              title="ملف التقارير والشواهد المدرسية"></iframe>
+              title="ملف التقارير والبرامج التربوية والأنشطة المدرسية"></iframe>
           </div>
         </div>
       </div>
@@ -5495,6 +5496,23 @@
         window.location.assign(targetUrl);
         return false;
       }
+      function refreshEduCanvaMergedBadges() {
+        const el = document.getElementById('eduBadgeReports');
+        if (!el) return;
+        try {
+          const raw = localStorage.getItem('ecs_merged_template_reports');
+          const tpl = raw ? JSON.parse(raw) : null;
+          if (tpl && tpl.name) {
+            el.textContent = '🎨 قالب مدمج: ' + tpl.name;
+            el.classList.remove('d-none');
+          } else {
+            el.textContent = '';
+            el.classList.add('d-none');
+          }
+        } catch (_) {}
+      }
+      document.getElementById('eduServicesModal')?.addEventListener('show.bs.modal', refreshEduCanvaMergedBadges);
+      document.addEventListener('DOMContentLoaded', refreshEduCanvaMergedBadges);
     </script>
 
 

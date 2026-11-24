@@ -102,7 +102,12 @@
     body.print-preview-mode .witness-actions,
     body.print-preview-mode .witness-box-tools,
     body.print-preview-mode .page-ctrl-bar,
-    body.print-preview-mode .witness-del-btn { display: none !important; }
+    body.print-preview-mode .witness-del-btn,
+    body.print-preview-mode .evidence-box.evidence-placeholder,
+    body.print-preview-mode .evidence-box.no-actual-image,
+    body.print-preview-mode .evidence-grid.evidence-grid-empty,
+    body.print-preview-mode .evidence-grid:empty,
+    body.print-preview-mode .sub-heading.witness-heading-empty { display: none !important; }
     body.print-preview-mode .editable-area {
         box-shadow: none !important;
         outline: none !important; pointer-events: none;
@@ -633,7 +638,12 @@
     body.pdf-exporting .witness-box-tools,
     body.pdf-exporting .page-ctrl-bar,
     body.pdf-exporting .witness-del-btn,
-    body.pdf-exporting .edit-only { display: none !important; }
+    body.pdf-exporting .edit-only,
+    body.pdf-exporting .evidence-box.evidence-placeholder,
+    body.pdf-exporting .evidence-box.no-actual-image,
+    body.pdf-exporting .evidence-grid.evidence-grid-empty,
+    body.pdf-exporting .evidence-grid:empty,
+    body.pdf-exporting .sub-heading.witness-heading-empty { display: none !important; }
     body.pdf-exporting * { letter-spacing: 0 !important; }
     body.pdf-exporting .cover { height: 1120px !important; min-height: 1120px !important; max-height: 1120px !important; width: 794px !important; overflow: hidden !important; padding: 48px 36px !important; }
     body.pdf-exporting .cover::before { display: none !important; }
@@ -655,7 +665,7 @@
         }
         * { letter-spacing: 0 !important; }
         .container { box-shadow: none !important; width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
-        .toolbar, .preview-bar, .fmt-bar, .modal-overlay, .witness-actions, .witness-box-tools, .page-ctrl-bar, .witness-del-btn, .print-btn-container, .no-print, .edit-only, .pdf-overlay, .pdf-ready-banner, .img-lightbox { display: none !important; }
+        .toolbar, .preview-bar, .fmt-bar, .modal-overlay, .witness-actions, .witness-box-tools, .page-ctrl-bar, .witness-del-btn, .print-btn-container, .no-print, .edit-only, .pdf-overlay, .pdf-ready-banner, .img-lightbox, .evidence-box.evidence-placeholder, .evidence-box.no-actual-image, .evidence-grid.evidence-grid-empty, .evidence-grid:empty, .sub-heading.witness-heading-empty { display: none !important; }
         .cover { width: 100% !important; height: 296mm !important; min-height: 296mm !important; max-height: 296mm !important; overflow: hidden !important; margin: 0; border-radius: 0; page-break-after: always; }
         .cover::before { display: none; }
         .single-page-report { height: auto; min-height: 295mm; page-break-after: always; page-break-inside: avoid; margin: 0; padding: 36px; justify-content: flex-start; overflow: visible; }
@@ -2782,6 +2792,7 @@ function addNewPage(afterEl) {
         container.appendChild(page);
     }
     initPageControls();
+    renderAllWitnesses();
     page.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setStatus('✅ تمت إضافة صفحة جديدة');
 }
@@ -2844,6 +2855,7 @@ function addNewSection() {
     container.appendChild(header);
     container.appendChild(report);
     initPageControls();
+    renderAllWitnesses();
     header.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setStatus('✅ تمت إضافة قسم وتقرير جديد');
 }
@@ -3899,10 +3911,12 @@ function renderWitnesses(container) {
             }
             this.onerror = null;
             this.style.display = 'none';
+            box.classList.add('no-actual-image');
             const fb = document.createElement('div');
             fb.className = 'witness-fallback';
             fb.innerHTML = '<div class="icon">🖼️</div><div class="label">تعذر تحميل الصورة — اضغط زر الشواهد لرفع بديل</div>';
             box.appendChild(fb);
+            syncEmptyEvidenceGridState(container);
         };
 
         const tools = document.createElement('div');
@@ -4030,15 +4044,46 @@ function renderWitnesses(container) {
 
         renderSingleQRCode(qrDiv, link.url, 112);
     });
+
+    syncEmptyEvidenceGridState(container);
+}
+
+function syncEmptyEvidenceGridState(grid) {
+    if (!grid) return;
+    let hasActualWitness = false;
+    Array.from(grid.querySelectorAll(':scope > .evidence-box')).forEach(box => {
+        if (box.classList.contains('evidence-placeholder') || box.classList.contains('no-actual-image')) {
+            return;
+        }
+        const liveImg = Array.from(box.querySelectorAll('img.witness-photo')).some(im => im.style.display !== 'none');
+        const hasQr = !!box.querySelector('.qr-container');
+        const hasStatic = box.classList.contains('evidence-static-card');
+        if (liveImg || hasQr || hasStatic) {
+            hasActualWitness = true;
+        } else {
+            box.classList.add('no-actual-image');
+        }
+    });
+    grid.classList.toggle('evidence-grid-empty', !hasActualWitness);
+    const nodes = getWitnessSectionNodes(grid);
+    if (nodes && nodes.heading) {
+        nodes.heading.classList.toggle('witness-heading-empty', !hasActualWitness);
+    }
 }
 
 function renderAllWitnesses() {
     document.querySelectorAll('#mainContainer .evidence-grid').forEach(grid => {
         if (grid.dataset.images || grid.dataset.links || grid.querySelector('.evidence-static-card, .evidence-placeholder') || grid.nextElementSibling?.classList.contains('witness-actions')) {
             renderWitnesses(grid);
+        } else {
+            syncEmptyEvidenceGridState(grid);
         }
     });
 }
+
+window.addEventListener('beforeprint', () => {
+    document.querySelectorAll('#mainContainer .evidence-grid').forEach(syncEmptyEvidenceGridState);
+});
 
 function viewImage(src) {
     const lb = document.getElementById('imgLightboxModal');

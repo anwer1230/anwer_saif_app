@@ -603,6 +603,8 @@ app.config.update(
     SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_HTTPONLY=False,
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    TEMPLATES_AUTO_RELOAD=True,
+    SEND_FILE_MAX_AGE_DEFAULT=0,
 )
 
 def resolve_request_user_id(data=None):

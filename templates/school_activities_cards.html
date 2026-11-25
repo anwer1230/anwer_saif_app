@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ملف الأنشطة المدرسية وبطاقات التنفيذ — مدرسة آمنة بنت عفان 1448هـ</title>
+  <title>ملف الأنشطة المدرسية وبطاقات التنفيذ | مدرسة آمنة بنت عفان - 1448هـ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -39,6 +39,7 @@
       font-size: 13.5px;
     }
 
+    /* ================= شريط الأيقونتين الوظيفيتين العلوي ================= */
     .app-topbar {
       position: sticky;
       top: 0;
@@ -77,6 +78,7 @@
       font-weight: 600;
     }
 
+    /* الأيقونتان الوظيفيتان الرئيسيتان */
     .main-tabs {
       display: flex;
       flex-wrap: wrap;
@@ -148,6 +150,7 @@
       opacity: 0.94;
     }
 
+    /* ================= حاويات الواجهات ================= */
     .workspace {
       padding: 24px 16px 50px;
       display: flex;
@@ -168,11 +171,12 @@
       display: none !important;
     }
 
+    /* ================= تنسيق الصفحات الرسمية A4 ================= */
     .a4-sheet {
       width: 210mm;
       min-height: 297mm;
       background: var(--white);
-      padding: 10mm 11mm;
+      padding: 12mm 13mm;
       border-radius: 6px;
       box-shadow: 0 10px 30px rgba(15, 76, 92, 0.13);
       border-top: 6px solid var(--primary);
@@ -183,21 +187,22 @@
       position: relative;
     }
 
+    /* الترويسة الرسمية الموحدة */
     .official-header {
       border: 2px solid var(--border-strong);
       border-radius: 8px;
       overflow: hidden;
-      margin-bottom: 9px;
+      margin-bottom: 12px;
     }
 
     .official-top-bar {
       background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 65%, var(--primary-light) 100%);
       color: #ffffff;
-      padding: 6px 14px;
+      padding: 8px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 700;
     }
 
@@ -209,38 +214,39 @@
       background: var(--accent-soft);
       border-top: 2px solid var(--accent);
       border-bottom: 2px solid var(--border-strong);
-      padding: 6px 14px;
+      padding: 8px 14px;
       text-align: center;
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 800;
       color: var(--primary-dark);
     }
 
     .official-meta-strip {
       background: var(--teal-soft);
-      padding: 5px 12px;
+      padding: 6px 12px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       gap: 8px;
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--primary);
     }
 
+    /* الجداول الرسمية */
     table.official-table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
       border: 2px solid var(--border-strong);
-      margin-bottom: 9px;
+      margin-bottom: 12px;
     }
 
     table.official-table th,
     table.official-table td {
       border: 1.5px solid var(--border);
-      padding: 4.5px 6.5px;
-      font-size: 11.2px;
+      padding: 6px 8px;
+      font-size: 12px;
       vertical-align: middle;
       word-wrap: break-word;
     }
@@ -274,39 +280,40 @@
       background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%) !important;
       color: #ffffff !important;
       font-weight: 800;
-      font-size: 12px;
+      font-size: 12.5px;
       padding: 5px 10px !important;
     }
 
+    /* بطاقة الغلاف في واجهة ملف الأنشطة */
     .cover-frame {
       border: 2.5px solid var(--primary);
       border-radius: 12px;
-      padding: 15px;
+      padding: 18px;
       background: linear-gradient(180deg, #ffffff 0%, #f6fafb 100%);
       display: flex;
       flex-direction: column;
-      gap: 11px;
+      gap: 14px;
     }
 
     .cover-hero {
       background: linear-gradient(135deg, var(--primary-dark), var(--primary));
       color: #ffffff;
       border-radius: 10px;
-      padding: 16px;
+      padding: 20px;
       text-align: center;
       border-bottom: 4px solid var(--accent);
     }
 
     .cover-hero h1 {
       margin: 0 0 6px;
-      font-size: 19.5px;
+      font-size: 22px;
       font-weight: 800;
       color: #ffffff;
     }
 
     .cover-hero p {
       margin: 0;
-      font-size: 13px;
+      font-size: 14px;
       color: #f6dc9c;
       font-weight: 700;
     }
@@ -317,12 +324,12 @@
       color: var(--primary-dark);
       border: 1px solid var(--accent);
       border-radius: 999px;
-      padding: 1px 8px;
-      font-size: 10.5px;
+      padding: 2px 10px;
+      font-size: 11.5px;
       font-weight: 800;
-      margin-top: 2px;
     }
 
+    /* شريط تصفية البطاقات داخل واجهة بطاقة التنفيذ */
     .sub-filter-bar {
       width: 210mm;
       max-width: 100%;
@@ -341,13 +348,13 @@
     .sub-filter-label {
       font-weight: 800;
       color: var(--primary-dark);
-      font-size: 12.5px;
+      font-size: 13px;
     }
 
     .sub-filter-btns {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
+      gap: 6px;
     }
 
     .wk-btn {
@@ -355,9 +362,9 @@
       background: var(--teal-soft);
       color: var(--primary-dark);
       border-radius: 7px;
-      padding: 4px 9px;
+      padding: 5px 11px;
       font-family: 'Cairo', sans-serif;
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
     }
@@ -368,10 +375,11 @@
       border-color: var(--primary-dark);
     }
 
+    /* خيارات أيقونة منصة مدرستي داخل بطاقة التنفيذ */
     .icons-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 4px 10px;
+      gap: 5px 10px;
     }
 
     .icon-choice {
@@ -414,34 +422,17 @@
       border: 1.5px dashed var(--primary);
       border-right: 4px solid var(--accent);
       border-radius: 6px;
-      padding: 6px 9px;
-      font-size: 11.2px;
-      line-height: 1.55;
+      padding: 7px 10px;
+      font-size: 12px;
     }
 
-    .grade-line {
-      margin-bottom: 4px;
-    }
-    .grade-line:last-child {
-      margin-bottom: 0;
-    }
-
-    .msg-card {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-right: 4px solid var(--primary);
-      border-radius: 6px;
-      padding: 5.5px 9px;
-      margin-bottom: 5.5px;
-      font-size: 11.2px;
-    }
-
+    /* التواقيع والتذييل */
     table.sign-grid {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
       border: 2px solid var(--border-strong);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     table.sign-grid th {
@@ -456,19 +447,19 @@
 
     table.sign-grid td {
       border: 1.5px solid var(--border);
-      padding: 5px 8px;
+      padding: 6px 8px;
       font-size: 11.5px;
       vertical-align: top;
     }
 
     .official-footer {
       border-top: 2px solid var(--primary);
-      padding-top: 5px;
+      padding-top: 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--muted);
     }
@@ -479,12 +470,13 @@
       padding: 2px 10px;
       border-radius: 4px;
       font-family: Arial, sans-serif;
-      font-size: 10.5px;
+      font-size: 11px;
     }
 
+    /* ================= إعدادات الطباعة ================= */
     @page {
       size: A4 portrait;
-      margin: 7mm;
+      margin: 8mm;
     }
 
     @media print {
@@ -530,14 +522,16 @@
 </head>
 <body>
 
+  <!-- ================= شريط الأيقونتين الوظيفيتين العلوي ================= -->
   <header class="app-topbar">
     <div class="topbar-inner">
       <div class="brand-info">
-        <span class="brand-title">النشاط الطلابي — الدراسات الاجتماعية</span>
-        <span class="brand-sub">إدارة تعليم نجران | مدرسة آمنة بنت عفان | الفصل الدراسي الأول 1448هـ</span>
+        <span class="brand-title">بوابة توثيق النشاط الطلابي — الدراسات الاجتماعية</span>
+        <span class="brand-sub">إدارة تعليم نجران | مدرسة آمنة بنت عفان | العام الدراسي 1448هـ</span>
       </div>
 
-      <nav class="main-tabs" aria-label="التنقل بين ملف الأنشطة المدرسية وبطاقات التنفيذ">
+      <!-- الأيقونتان الوظيفيتان بجانب بعضهما -->
+      <nav class="main-tabs" aria-label="التبديل بين ملف الأنشطة وبطاقة التنفيذ">
         <button type="button" class="func-icon-btn active" id="tabPlanBtn" onclick="switchView('plan')">
           <span class="icon-circle">📁</span>
           <span>ملف الأنشطة المدرسية</span>
@@ -550,7 +544,7 @@
 
         <button type="button" class="print-action-btn" onclick="window.print()">
           <span>🖨️</span>
-          <span>طباعة</span>
+          <span>طباعة / PDF</span>
         </button>
       </nav>
     </div>
@@ -558,9 +552,12 @@
 
   <main class="workspace">
 
-    <!-- الأيقونة الأولى: ملف الأنشطة المدرسية -->
+    <!-- =====================================================================
+         الواجهة الأولى: ملف الأنشطة المدرسية الرسمي (التصميم الكامل والمحتوى)
+         ===================================================================== -->
     <section id="planView" class="view-panel">
 
+      <!-- الصفحة 1: غلاف الملف وبيانات التوثيق وجدول الحصص -->
       <article class="a4-sheet">
         <div>
           <div class="official-header">
@@ -568,30 +565,31 @@
               <span>المملكة العربية السعودية — وزارة التعليم</span>
               <span class="gold-tag">إدارة تعليم نجران — مدرسة آمنة بنت عفان</span>
             </div>
-            <div class="official-title-box">خطة النشاط الطلابي — مادة الدراسات الاجتماعية</div>
+            <div class="official-title-box">ملف خطة النشاط الطلابي والتكامل المنهجي</div>
             <div class="official-meta-strip">
               <span>المادة: الدراسات الاجتماعية</span>
-              <span>الصفوف المستهدفة: الرابع - الخامس - السادس</span>
+              <span>الصفوف: الرابع – الخامس – السادس الابتدائي</span>
               <span>الفصل الدراسي الأول 1448هـ</span>
             </div>
           </div>
 
           <div class="cover-frame">
             <div class="cover-hero">
-              <h1>التكامل المنهجي للأنشطة</h1>
-              <p>مادة الدراسات الاجتماعية (الصفوف العليا) — العام الدراسي 1448هـ</p>
+              <h1>التكامل المنهجي للأنشطة الصفية والإثرائية عن بُعد</h1>
+              <p>مقرر الدراسات الاجتماعية للصفوف العليا — تنفيذ عبر منصة مدرستي والكتاب المدرسي</p>
             </div>
 
+            <!-- جدول بيانات التوثيق والمتابعة -->
             <table class="official-table">
               <tbody>
                 <tr class="banner-row">
-                  <td colspan="4">بيانات التوثيق والمتابعة</td>
+                  <td colspan="4">أولاً: بيانات التوثيق والمتابعة المدرسية</td>
                 </tr>
                 <tr>
                   <th class="lbl">المدرسة والإدارة</th>
-                  <td class="val">آمنة بنت عفان / تعليم نجران</td>
+                  <td class="val">مدرسة آمنة بنت عفان / إدارة تعليم نجران</td>
                   <th class="lbl">العام الدراسي</th>
-                  <td class="val">1448 هـ — الفصل الدراسي الأول</td>
+                  <td class="val">1448هـ — الفصل الدراسي الأول</td>
                 </tr>
                 <tr>
                   <th class="lbl">معلمة المادة</th>
@@ -600,18 +598,19 @@
                   <td class="val">أ. البتول آل دويس</td>
                 </tr>
                 <tr>
-                  <th class="lbl">الصفوف المستهدفة</th>
-                  <td class="val">الرابع - الخامس - السادس</td>
-                  <th class="lbl">المهام الثابتة</th>
-                  <td class="val">منصة مدرستي + الكتاب المدرسي</td>
+                  <th class="lbl">الفئة المستهدفة</th>
+                  <td class="val">طالبات الصفوف العليا (رابع – خامس – سادس)</td>
+                  <th class="lbl">آلية التنفيذ</th>
+                  <td class="val">آلية تنفيذ النشاط ونوعه (مدمج ومنصة) + الكتاب المدرسي</td>
                 </tr>
               </tbody>
             </table>
 
+            <!-- جدول توزيع الحصص الأسبوعية المدمجة بالأنشطة -->
             <table class="official-table">
               <thead>
                 <tr>
-                  <th colspan="5">توزيع الحصص الأسبوعية</th>
+                  <th colspan="5">ثانياً: جدول توزيع الحصص الأسبوعية المدمجة بالأنشطة</th>
                 </tr>
                 <tr>
                   <th>الأحد</th>
@@ -623,31 +622,32 @@
               </thead>
               <tbody>
                 <tr style="text-align:center; font-weight:800;">
-                  <td class="val">رابع<br><span class="badge-pill">الحصة 5</span></td>
-                  <td class="val">سادس<br><span class="badge-pill">الحصة 4</span></td>
-                  <td class="val">رابع<br><span class="badge-pill">الحصة 4</span></td>
-                  <td class="val">خامس<br><span class="badge-pill">الحصة 1</span></td>
-                  <td class="val">خامس<br><span class="badge-pill">الحصة 3</span></td>
+                  <td class="val">رابع — الحصة 5<br><span class="badge-pill">شرح وتهيئة</span></td>
+                  <td class="val">سادس — الحصة 4<br><span class="badge-pill">تطبيق النشاط</span></td>
+                  <td class="val">رابع — الحصة 4<br><span class="badge-pill">تطبيق النشاط</span></td>
+                  <td class="val">خامس — الحصة 1<br><span class="badge-pill">شرح وتهيئة</span></td>
+                  <td class="val">خامس — الحصة 3<br><span class="badge-pill">تطبيق النشاط</span></td>
                 </tr>
               </tbody>
             </table>
 
+            <!-- مجالات النشاط المعتمدة وآلية التنفيذ عن بُعد -->
             <table class="official-table">
               <tbody>
                 <tr class="banner-row">
-                  <td colspan="2">الإجازات والاختبارات</td>
+                  <td colspan="2">ثالثاً: المجالات المعتمدة وآلية تنفيذ النشاط ونوعه (مدمج ومنصة)</td>
                 </tr>
                 <tr>
-                  <th class="lbl">إجازة اليوم الوطني</th>
-                  <td class="val">الخميس 1448-04-13 (الأسبوع 5).</td>
+                  <th class="lbl">المجالات المعتمدة</th>
+                  <td class="val">المواطنة والحياة • الأيام والمناسبات الوطنية والعالمية • الثقافة والفنون • العلوم والتقنية • النشاط الكشفي • الرياضة والصحة</td>
                 </tr>
                 <tr>
-                  <th class="lbl">إجازة الخريف</th>
-                  <td class="val">بعد الأسبوع 13 (06/05 – 06/09).</td>
-                </tr>
-                <tr>
-                  <th class="lbl">الاختبارات النهائية</th>
-                  <td class="val">الأسبوع 19 (07/25 – 07/29): الاختبارات النهائية (لا توجد حصص نشاط)، وتليها إجازة منتصف العام الدراسي.</td>
+                  <th class="lbl">آلية تنفيذ النشاط ونوعه (مدمج ومنصة)</th>
+                  <td class="val">
+                    1. <strong>العرض والتمهيد (3 دقائق):</strong> ربط عنوان النشاط بدرس الاجتماعيات عبر شريحة أو رسالة في الدردشة.<br>
+                    2. <strong>التفاعل الرقمي (10 دقائق):</strong> طرح سؤال التحدي ومشاركة 4–6 طالبات صوتياً أو كتابياً في شات الحصة.<br>
+                    3. <strong>التوثيق والرفع:</strong> حفظ لقطات الشاشة وتعبئة بطاقة التنفيذ ورفعها عبر الأيقونة المناسبة في منصة مدرستي.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -655,28 +655,29 @@
         </div>
 
         <footer class="official-footer">
-          <span>مدرسة آمنة بنت عفان — إدارة تعليم نجران</span>
+          <span>ملف النشاط الطلابي المعتمد — مدرسة آمنة بنت عفان (تعليم نجران)</span>
           <span class="moe-badge">www.MOE.GOV.SA</span>
         </footer>
       </article>
 
+      <!-- الصفحة 2: الخطة الفصلية الكاملة (الأسابيع 1 إلى 10) -->
       <article class="a4-sheet">
         <div>
           <div class="official-header">
             <div class="official-top-bar">
               <span>الخطة الفصلية للأنشطة الصفية واللاصفية (1448هـ)</span>
-              <span class="gold-tag">الأسابيع من 1 إلى 10</span>
+              <span class="gold-tag">الجزء الأول: الأسابيع من (1) إلى (10)</span>
             </div>
-            <div class="official-title-box">الخطة الفصلية للأنشطة الصفية واللاصفية — الأسبوع 1 إلى 10</div>
+            <div class="official-title-box">التوزيع الفصلي للأنشطة المرتبطة بمقرر الدراسات الاجتماعية</div>
           </div>
 
           <table class="official-table">
             <thead>
               <tr>
                 <th style="width:15%;">الأسبوع والتاريخ</th>
-                <th style="width:19%;">مجال النشاط والبرنامج</th>
-                <th style="width:29%;">مواضيع الدروس (رابع / خامس / سادس)</th>
-                <th style="width:37%;">آلية تنفيذ النشاط ونوعه</th>
+                <th style="width:20%;">مجال النشاط والبرنامج</th>
+                <th style="width:28%;">مواضيع الدروس (رابع / خامس / سادس)</th>
+                <th style="width:37%;">آلية تنفيذ النشاط ونوعه (مدمج ومنصة)</th>
               </tr>
             </thead>
             <tbody id="planPart1Body"></tbody>
@@ -685,27 +686,28 @@
 
         <footer class="official-footer">
           <span>المعلمة: أ. أسماء ياسين الخيري | مديرة المدرسة: أ. البتول آل دويس</span>
-          <span class="moe-badge">www.MOE.GOV.SA</span>
+          <span class="moe-badge">صفحة 2 من 3</span>
         </footer>
       </article>
 
+      <!-- الصفحة 3: الخطة الفصلية الكاملة (الأسابيع 11 إلى 19) + الاعتماد -->
       <article class="a4-sheet">
         <div>
           <div class="official-header">
             <div class="official-top-bar">
               <span>الخطة الفصلية للأنشطة الصفية واللاصفية (1448هـ)</span>
-              <span class="gold-tag">الأسابيع من 11 إلى 19</span>
+              <span class="gold-tag">الجزء الثاني: الأسابيع من (11) إلى (19)</span>
             </div>
-            <div class="official-title-box">الخطة الفصلية للأنشطة الصفية واللاصفية — الأسبوع 11 إلى 19</div>
+            <div class="official-title-box">استكمال الخطة الفصلية واعتمادها الرسمي</div>
           </div>
 
           <table class="official-table">
             <thead>
               <tr>
                 <th style="width:15%;">الأسبوع والتاريخ</th>
-                <th style="width:19%;">مجال النشاط والبرنامج</th>
-                <th style="width:29%;">مواضيع الدروس (رابع / خامس / سادس)</th>
-                <th style="width:37%;">آلية تنفيذ النشاط ونوعه</th>
+                <th style="width:20%;">مجال النشاط والبرنامج</th>
+                <th style="width:28%;">مواضيع الدروس (رابع / خامس / سادس)</th>
+                <th style="width:37%;">آلية تنفيذ النشاط ونوعه (مدمج ومنصة)</th>
               </tr>
             </thead>
             <tbody id="planPart2Body"></tbody>
@@ -739,48 +741,29 @@
         </div>
 
         <footer class="official-footer">
-          <span>مدرسة آمنة بنت عفان — إدارة تعليم نجران</span>
-          <span class="moe-badge">www.MOE.GOV.SA</span>
-        </footer>
-      </article>
-
-      <article class="a4-sheet">
-        <div>
-          <div class="official-header">
-            <div class="official-top-bar">
-              <span>الدراسات الاجتماعية — الصفوف العليا</span>
-              <span class="gold-tag">الأسابيع 9 – 19</span>
-            </div>
-            <div class="official-title-box">أنشطة الصفوف الرابع والخامس والسادس (الأسابيع 9 – 19)</div>
-          </div>
-
-          <div id="chatMessagesContainer"></div>
-        </div>
-
-        <footer class="official-footer">
-          <span>المعلمة: أ. أسماء ياسين الخيري | مديرة المدرسة: أ. البتول آل دويس</span>
-          <span class="moe-badge">www.MOE.GOV.SA</span>
+          <span>تُعتمد الخطة وتُحفظ في ملف إنجاز المعلمة وسجل النشاط الطلابي بالمدرسة</span>
+          <span class="moe-badge">صفحة 3 من 3</span>
         </footer>
       </article>
     </section>
 
-    <!-- الأيقونة الثانية: بطاقة تنفيذ نشاط (الأسابيع 9 إلى 19 فقط) -->
+    <!-- =====================================================================
+         الواجهة الثانية: بطاقة تنفيذ نشاط (النماذج الرسمية المعبأة الفعلية)
+         ===================================================================== -->
     <section id="cardsView" class="view-panel hidden">
+      <!-- شريط تصفية الأسابيع داخل واجهة البطاقات -->
       <div class="sub-filter-bar">
-        <span class="sub-filter-label">الأسبوع:</span>
+        <span class="sub-filter-label">اختر بطاقة التنفيذ المعبأة حسب الأسبوع:</span>
         <div class="sub-filter-btns">
-          <button type="button" class="wk-btn active" onclick="filterCards('all', this)">الكل (9–19)</button>
-          <button type="button" class="wk-btn" onclick="filterCards('9', this)">9</button>
-          <button type="button" class="wk-btn" onclick="filterCards('10', this)">10</button>
-          <button type="button" class="wk-btn" onclick="filterCards('11', this)">11</button>
-          <button type="button" class="wk-btn" onclick="filterCards('12', this)">12</button>
-          <button type="button" class="wk-btn" onclick="filterCards('13', this)">13</button>
-          <button type="button" class="wk-btn" onclick="filterCards('14', this)">14</button>
-          <button type="button" class="wk-btn" onclick="filterCards('15', this)">15</button>
-          <button type="button" class="wk-btn" onclick="filterCards('16', this)">16</button>
-          <button type="button" class="wk-btn" onclick="filterCards('17', this)">17</button>
-          <button type="button" class="wk-btn" onclick="filterCards('18', this)">18</button>
-          <button type="button" class="wk-btn" onclick="filterCards('19', this)">19</button>
+          <button type="button" class="wk-btn active" onclick="filterCards('all', this)">جميع البطاقات (8)</button>
+          <button type="button" class="wk-btn" onclick="filterCards('2', this)">أسبوع 2 (أبو بكر)</button>
+          <button type="button" class="wk-btn" onclick="filterCards('5', this)">أسبوع 5 (اليوم الوطني)</button>
+          <button type="button" class="wk-btn" onclick="filterCards('13', this)">أسبوع 13</button>
+          <button type="button" class="wk-btn" onclick="filterCards('14', this)">أسبوع 14</button>
+          <button type="button" class="wk-btn" onclick="filterCards('15', this)">أسبوع 15</button>
+          <button type="button" class="wk-btn" onclick="filterCards('16', this)">أسبوع 16</button>
+          <button type="button" class="wk-btn" onclick="filterCards('17', this)">أسبوع 17</button>
+          <button type="button" class="wk-btn" onclick="filterCards('18', this)">أسبوع 18</button>
         </div>
       </div>
 
@@ -790,486 +773,327 @@
   </main>
 
   <script>
+    /* ================= بيانات الخطة الكاملة (الأسابيع 1 إلى 19) ================= */
     const fullPlanData = [
       {
         week: "الأسبوع 1<br>03/10 – 03/14",
-        program: "التهيئة والاستعداد<br>(حياكم)",
+        program: "التهيئة والاستعداد (حياكم)",
         lessons: "• رابع وسادس: التهيئة.<br>• خامس: الخلفاء الراشدون (وصف البيعة).",
-        mechanism: "• رابع وسادس: نشاط تهيئة وتعارف.<br>• خامس: نشاط صفي حول مفهوم الشورى والبيعة."
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): نشاط تهيئة وتعارف لتهيئة الطالبات للعام الجديد، وتنفيذ نشاط للخامس حول مفهوم الشورى والبيعة في عهد الخلفاء الراشدين."
       },
       {
         week: "الأسبوع 2<br>03/17 – 03/21",
         program: "المواطنة والحياة<br>(مهارات طموحة: رحلة النجاح)",
         lessons: "• رابع: المواطنة: الهوية الوطنية.<br>• خامس: الخليفة أبو بكر الصديق رضي الله عنه.<br>• سادس: الخلافة الراشدة: سمات الخلفاء.",
-        mechanism: "• رابع: مناقشة صفية حول مفهوم الوطن والهوية الوطنية.<br>• خامس: بطاقات إثرائية لصفات أبي بكر (الصدق، العفة ص25).<br>• سادس: نشاط سمات الخلفاء الراشدين."
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): بطاقات إثرائية لصفات أبي بكر (الصدق، العفة ص25) ومناقشة لرابع حول مفهوم الوطن والهوية الوطنية."
       },
       {
         week: "الأسبوع 3<br>03/24 – 03/28",
-        program: "المواطنة والحياة<br>(مهارات طموحة: سفراء الاستدامة)",
+        program: "المواطنة والحياة<br>(سفراء الاستدامة)",
         lessons: "• رابع: المواطنة: نظام الحكم.<br>• خامس وسادس: الخليفة عمر بن الخطاب رضي الله عنه.",
-        mechanism: "• رابع: خريطة مفاهيم لمفهوم الحكومة.<br>• خامس وسادس: نشاط استنتاج معنى لقب الفاروق (ص30)."
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تحليل تاريخي ووطني لاستنتاج معنى لقب الفاروق (ص30) وتلخيص إنجازاته، وتوضيح مفهوم الحكومة للرابع عبر خريطة مفاهيم."
       },
       {
         week: "الأسبوع 4<br>04/02 – 04/06",
-        program: "الرياضة والصحة<br>(إسعافات أولية: صحتي ومسؤوليتي)",
+        program: "الرياضة والصحة<br>(صحتي ومسؤوليتي)",
         lessons: "• رابع: مراجعة (الرموز الوطنية).<br>• خامس وسادس: الخليفة عثمان بن عفان رضي الله عنه.",
-        mechanism: "• رابع: مسابقة مراجعة تفاعلية للرموز الوطنية.<br>• خامس وسادس: إبراز سبب تسمية عثمان بـ (ذو النورين ص37) واستشهاده."
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): بحث وتلخيص لإبراز سبب تسمية عثمان بـ (ذو النورين ص37) واستشهاده وتنفيذ مسابقة مراجعة تفاعلية للصف الرابع."
       },
       {
         week: "الأسبوع 5<br>04/09 – 04/13",
-        program: "الأيام والمناسبات<br>(اليوم الوطني: الإرث والأمجاد)",
+        program: "الأيام والمناسبات<br>اليوم الوطني (الإرث والأمجاد)",
         lessons: "• رابع: التاريخ: مفهوم التاريخ والمؤرخ.<br>• خامس وسادس: مراجعة عامة.<br>• الخميس 04/13: إجازة اليوم الوطني.",
-        mechanism: "• رابع: نشاط توثيق أمجاد الوطن وربط المؤرخ بتدوين تاريخ المملكة.<br>• خامس وسادس: مراجعة عامة (دون أنشطة في إجازة اليوم الوطني الخميس 04/13)."
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): فعاليات اليوم الوطني (4 حصص) لتوثيق أمجاد الوطن وتوحيده وربط درس (المؤرخ) لرابع بتدوين تاريخ المملكة العربية السعودية."
       },
       {
         week: "الأسبوع 6<br>04/16 – 04/20",
-        program: "الرياضة والصحة<br>(الرياضة الجماعية: الإرث والأمجاد)",
-        lessons: "• رابع: التاريخ: المصادر (مفهوم الإشاعة).<br>• خامس وسادس: التاريخ الإسلامي: الدولة الأموية.",
-        mechanism: "• رابع: نشاط التثبت من المصادر ومحاربة الإشاعة.<br>• خامس وسادس: تحديد عاصمة الأمويين دمشق (ص50) على الخريطة ونسبهم."
+        program: "الرياضة والصحة<br>(الإرث والأمجاد)",
+        lessons: "• رابع: التاريخ: المصادر (مفهوم الإشاعة).<br>• خامس وسادس: الدولة الأموية.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): خرائط وتفكير ناقد لتحديد عاصمة الأمويين دمشق (ص50) ونسبهم، ونشاط لرابع حول التثبت من المصادر ومحاربة الإشاعة."
       },
       {
         week: "الأسبوع 7<br>04/23 – 04/27",
         program: "الأيام والمناسبات<br>(يوم المعلم + صانع الأثر)",
-        lessons: "• رابع: التاريخ: السبب والنتيجة (مناطق المملكة).<br>• خامس وسادس: التاريخ الإسلامي: الدولة العباسية.",
-        mechanism: "• رابع: نشاط تعداد مناطق المملكة.<br>• خامس وسادس: تحديد نسب الدولة العباسية للعباس بن عبد المطلب (ص58)."
+        lessons: "• رابع: السبب والنتيجة (مناطق المملكة).<br>• خامس وسادس: الدولة العباسية.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): خرائط وشخصيات لتحديد نسب الدولة العباسية للعباس بن عبد المطلب (ص58) وتعداد مناطق المملكة لرابع مع الاحتفاء بيوم المعلم."
       },
       {
         week: "الأسبوع 8<br>04/30 – 05/04",
-        program: "الرياضة والصحة<br>(صحتي في بيئتي: مهارات المستقبل)",
-        lessons: "• رابع وسادس: مراجعة عامة.<br>• خامس: التاريخ الإسلامي: الحضارة الإسلامية.",
-        mechanism: "• رابع وسادس: حل أوراق عمل مراجعة.<br>• خامس: تصميم مطوية مصغرة حول خصائص الحضارة الإسلامية وإسهاماتها."
+        program: "الرياضة والصحة<br>(صحتي في بيئتي)",
+        lessons: "• رابع وسادس: مراجعة عامة.<br>• خامس: الحضارة الإسلامية.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تصميم بطاقة/مطوية مصغرة حول خصائص الحضارة الإسلامية وإسهاماتها وحل أوراق عمل مراجعة للرابع وسادس."
       },
       {
         week: "الأسبوع 9<br>05/07 – 05/11",
-        program: "النشاط الكشفي<br>(بصمتي الكشفية: مهارات المستقبل)",
-        lessons: "• رابع: الجغرافيا: مفهوم الجغرافيا والخريطة.<br>• خامس وسادس: الأمن الوطني: الأمن ورجال الأمن.",
-        mechanism: "• رابع: تدريب عملي على قراءة الخريطة وتحديد الموقع.<br>• خامس وسادس: استعراض بطولات رجال الأمن وكيفية المحافظة على نعمة الأمن."
+        program: "النشاط الكشفي<br>(بصمتي الكشفية)",
+        lessons: "• رابع: مفهوم الجغرافيا والخريطة.<br>• خامس وسادس: الأمن ورجال الأمن.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تدريب عملي على قراءة الخريطة وتحديد الموقع للرابع واستعراض بطولات رجال الأمن وكيفية المحافظة على نعمة الأمن."
       },
       {
         week: "الأسبوع 10<br>05/14 – 05/18",
-        program: "النشاط الكشفي<br>(خيمتي الجميلة: سفراء الاستدامة)",
-        lessons: "• رابع: الجغرافيا: الموقع والجهات الأصلية.<br>• خامس: الأمن الوطني: أجهزة الأمن.<br>• سادس: مراجعة عامة.",
-        mechanism: "• رابع: تطبيق الجهات الأصلية عملياً.<br>• خامس: تصميم بطاقة أرقام الطوارئ (الشرطة 999، الدفاع المدني 998، 111) وواجبنا تجاه الشهداء.<br>• سادس: مراجعة عامة."
+        program: "النشاط الكشفي<br>(خيمتي الجميلة)",
+        lessons: "• رابع: الموقع والجهات الأصلية.<br>• خامس: أجهزة الأمن. • سادس: مراجعة.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تطبيق الجهات الأصلية للرابع وتصميم بطاقة أرقام الطوارئ (الشرطة 999، الدفاع المدني 998، 111) وواجبنا تجاه الشهداء."
       },
       {
         week: "الأسبوع 11<br>05/21 – 05/25",
-        program: "النشاط الكشفي<br>(بوصلة الاكتشاف: كن واعياً)",
-        lessons: "• رابع: الجغرافيا: المكان (الأماكن السياحية).<br>• خامس وسادس: جغرافية وطني: الموقع والحدود.",
-        mechanism: "• رابع: عرض صور لأبرز المعالم السياحية.<br>• خامس وسادس: استخدام البوصلة لتحديد حدود المملكة وأهمية موقعها الاستراتيجي."
+        program: "النشاط الكشفي<br>(بوصلة الاكتشاف)",
+        lessons: "• رابع: المكان (الأماكن السياحية).<br>• خامس وسادس: الموقع والحدود.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تحديد حدود المملكة وأهمية موقعها الاستراتيجي لخامس وسادس وعرض صور لأبرز المعالم السياحية للرابع."
       },
       {
         week: "الأسبوع 12<br>05/28 – 06/02",
-        program: "العلوم والتقنية<br>(إنترنت الأشياء: كن واعياً)",
-        lessons: "• رابع: الجغرافيا: البيئة وتكيف الإنسان.<br>• خامس وسادس: جغرافية وطني: مظاهر السطح.",
-        mechanism: "• رابع: نشاط تكيف الإنسان مع البيئة.<br>• خامس وسادس: نشاط مظاهر السطح (ص62) ووصف الحمم والصخور البركانية وجبل الملساء والحرات (حرة رهط وخيبر) واستعراض جبال عسير والسودة."
+        program: "العلوم والتقنية<br>(إنترنت الأشياء - كن واعياً)",
+        lessons: "• رابع: البيئة وتكيف الإنسان.<br>• خامس وسادس: مظاهر السطح.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): وصف المعالم التضاريسية (حمم وصخور بركانية، جبل الملساء، حرة رهط وخيبر ص62) واستعراض جبال عسير والسودة رقمياً."
       },
       {
         week: "الأسبوع 13<br>06/05 – 06/09",
-        program: "العلوم والتقنية<br>(الاستدامة وجودة الحياة: كن واعياً)",
-        lessons: "• رابع: الحركة (نقل البضائع) ومراجعة.<br>• خامس وسادس: جغرافية وطني: المناطق الرملية.",
-        mechanism: "• رابع: تتبع خطوط نقل البضائع ومراجعة.<br>• خامس وسادس: وصف صحراء الربع الخالي (ص93) ومشاريع الاستدامة فيها."
+        program: "العلوم والتقنية<br>(الاستدامة وجودة الحياة)",
+        lessons: "• رابع: الحركة (نقل البضائع) ومراجعة.<br>• خامس وسادس: المناطق الرملية.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): وصف صحراء الربع الخالي (ص93) ومشاريع الاستدامة فيها، وتتبع وسائل وخطوط نقل البضائع في المملكة للرابع."
       },
       {
         week: "الأسبوع 14<br>06/12 – 06/16",
         program: "مناسبات وتقنية<br>(اليوم العالمي لذوي الإعاقة + AI)",
-        lessons: "• رابع: الاقتصاد: مفهوم الاقتصاد والسلع.<br>• خامس وسادس: جغرافية وطني: الأودية.",
-        mechanism: "• رابع: تصنيف السلع الاستهلاكية مع تعزيز دمج ذوي الإعاقة.<br>• خامس وسادس: تحديد أطول أودية المملكة (وادي الرمة ص97) على الخريطة."
+        lessons: "• رابع: مفهوم الاقتصاد والسلع.<br>• خامس وسادس: جغرافية وطني: الأودية.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تحديد أطول أودية المملكة (وادي الرمة ص97) وتصنيف السلع الاستهلاكية للرابع مع تعزيز دمج ذوي الإعاقة."
       },
       {
         week: "الأسبوع 15<br>06/19 – 06/23",
         program: "النادي الثقافي<br>(الذكاء الاصطناعي وتطبيقاته)",
-        lessons: "• رابع: الاقتصاد: التبادل التجاري.<br>• خامس وسادس: جغرافية وطني: المناطق الساحلية والجزر.",
-        mechanism: "• رابع: جدول مقارنة بين التبادل التجاري قديماً وحديثاً.<br>• خامس وسادس: استكشاف جزر فرسان (ص93) والشعب المرجانية."
+        lessons: "• رابع: الاقتصاد: التبادل التجاري.<br>• خامس وسادس: المناطق الساحلية والجزر.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): مقارنة بين التبادل التجاري قديماً وحديثاً للرابع واستكشاف جزر فرسان (ص93) والشعب المرجانية لخامس وسادس."
       },
       {
         week: "الأسبوع 16<br>06/26 – 07/01",
         program: "مناسبات وتقنية<br>(اليوم العالمي للغة العربية + AI)",
-        lessons: "• رابع وسادس: مراجعة عامة.<br>• خامس: جغرافية وطني: المناطق الإدارية.",
-        mechanism: "• رابع وسادس: مراجعة عامة وتعزيز الهوية واللغة العربية.<br>• خامس: مسابقة تحديد المناطق الإدارية الـ 13 للمملكة (ص90)."
+        lessons: "• رابع وسادس: مراجعة عامة.<br>• خامس: المناطق الإدارية الـ 13.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): مسابقة تحديد المناطق الإدارية الـ 13 للمملكة (ص90) لخامس وتعزيز الهوية واللغة العربية في أنشطة المراجعة."
       },
       {
         week: "الأسبوع 17<br>07/04 – 07/08",
         program: "العلوم والتقنية<br>(مشاريع الذكاء الاصطناعي)",
-        lessons: "• رابع وخامس وسادس: مراجعة عامة شاملة.",
-        mechanism: "• رابع وخامس وسادس: مسابقات إلكترونية وألعاب تعليمية شاملة لمقررات الفصل الدراسي الأول."
+        lessons: "• جميع الصفوف (رابع / خامس / سادس): مراجعة عامة شاملة.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): مسابقات إلكترونية وأسئلة تفاعلية شاملة لمقررات الفصل الدراسي الأول عبر منصة مدرستي."
       },
       {
-        week: "الأسبوع 18<br>07/18 – 07/22",
-        program: "الختام والتقويم<br>(تقييم الأنشطة)",
-        lessons: "• رابع وخامس وسادس: مراجعة وتقييم الأنشطة.",
-        mechanism: "• رابع وخامس وسادس: رصد تفاعل الطالبات في الأنشطة والواجبات (منصة مدرستي والكتاب) وتقييم الأنشطة."
-      },
-      {
-        week: "الأسبوع 19<br>07/25 – 07/29",
-        program: "الاختبارات النهائية<br>(التقرير الختامي)",
-        lessons: "• رابع وخامس وسادس: الاختبارات النهائية.",
-        mechanism: "• الاختبارات النهائية (لا توجد حصص نشاط) وإعداد التقرير الختامي للنشاط."
+        week: "الأسبوع 18 و 19<br>07/18 – 07/29",
+        program: "الختام والتقويم / الاختبارات النهائية",
+        lessons: "• الأسبوع 18: مراجعة نهائية وتقييم الأنشطة.<br>• الأسبوع 19: الاختبارات النهائية.",
+        mechanism: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تكريم الطالبات المتفاعلات رقمياً، رصد الأنشطة والواجبات في منصة مدرستي والكتاب، وإعداد التقرير الختامي."
       }
     ];
 
-    const chatBank = [
-      {
-        title: "الأسبوع 9 (05/07 – 05/11)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (مفهوم الجغرافيا والخريطة):</strong> قراءة الخريطة وتحديد الموقع.</div>
-          <div class="grade-line"><strong>• الصف الخامس (الأمن الوطني: الأمن):</strong> استعراض نماذج من أعمال رجال الأمن وكيفية المحافظة على نعمة الأمن.</div>
-          <div class="grade-line"><strong>• الصف السادس (الأمن الوطني: الأمن ورجال الأمن):</strong> بطولات رجال الأمن ودور المواطن في حفظ الأمن.</div>
-        `
-      },
-      {
-        title: "الأسبوع 10 (05/14 – 05/18)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (الموقع والجهات الأصلية):</strong> تطبيق الجهات الأصلية عملياً.</div>
-          <div class="grade-line"><strong>• الصف الخامس (أجهزة الأمن):</strong> تصميم بطاقة أرقام الطوارئ (الشرطة 999، الدفاع المدني 998، 111) وواجبنا تجاه الشهداء.</div>
-          <div class="grade-line"><strong>• الصف السادس (مراجعة عامة):</strong> مراجعة عامة.</div>
-        `
-      },
-      {
-        title: "الأسبوع 11 (05/21 – 05/25)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (المكان: الأماكن السياحية):</strong> عرض صور لأبرز المعالم السياحية.</div>
-          <div class="grade-line"><strong>• الصف الخامس (الموقع والحدود):</strong> استخدام البوصلة لتحديد حدود المملكة وموقعها الجغرافي.</div>
-          <div class="grade-line"><strong>• الصف السادس (الموقع والحدود):</strong> أهمية الموقع الاستراتيجي للمملكة العربية السعودية.</div>
-        `
-      },
-      {
-        title: "الأسبوع 12 (05/28 – 06/02)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (البيئة وتكيف الإنسان):</strong> طرق تكيف الإنسان مع البيئة.</div>
-          <div class="grade-line"><strong>• الصف الخامس (مظاهر السطح - ص62):</strong> وصف المعالم التضاريسية (حمم وصخور بركانية، جبل الملساء، الحرات وأشهرها حرة رهط وخيبر).</div>
-          <div class="grade-line"><strong>• الصف السادس (مظاهر السطح):</strong> استعراض جبال عسير والسودة والتمييز بين الجبال والهضاب.</div>
-        `
-      },
-      {
-        title: "الأسبوع 13 (06/05 – 06/09)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (الحركة: نقل البضائع ومراجعة):</strong> تتبع خطوط نقل البضائع ومراجعة.</div>
-          <div class="grade-line"><strong>• الصف الخامس (المناطق الرملية - ص93):</strong> وصف صحراء الربع الخالي ورمال الدهناء.</div>
-          <div class="grade-line"><strong>• الصف السادس (المناطق الرملية):</strong> مشاريع الاستدامة في المناطق الرملية وتقدير تنوع التضاريس.</div>
-        `
-      },
-      {
-        title: "الأسبوع 14 (06/12 – 06/16)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (مفهوم الاقتصاد والسلع):</strong> تصنيف السلع الاستهلاكية مع تعزيز دمج ذوي الإعاقة.</div>
-          <div class="grade-line"><strong>• الصف الخامس (الأودية - ص97):</strong> تحديد أطول أودية المملكة (وادي الرمة) على الخريطة.</div>
-          <div class="grade-line"><strong>• الصف السادس (الأودية):</strong> تعداد أهم الأودية وتعزيز دمج ذوي الإعاقة.</div>
-        `
-      },
-      {
-        title: "الأسبوع 15 (06/19 – 06/23)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (التبادل التجاري):</strong> جدول مقارنة بين التبادل التجاري قديماً وحديثاً.</div>
-          <div class="grade-line"><strong>• الصف الخامس (المناطق الساحلية والجزر - ص93):</strong> استكشاف جزر فرسان والشعب المرجانية.</div>
-          <div class="grade-line"><strong>• الصف السادس (المناطق الساحلية والجزر):</strong> خارطة مفاهيم لأهم الجزر والمناطق الساحلية.</div>
-        `
-      },
-      {
-        title: "الأسبوع 16 (06/26 – 07/01)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (مراجعة عامة):</strong> مراجعة عامة وتعزيز الهوية واللغة العربية.</div>
-          <div class="grade-line"><strong>• الصف الخامس (المناطق الإدارية - ص90):</strong> مسابقة تحديد المناطق الإدارية الـ 13 للمملكة.</div>
-          <div class="grade-line"><strong>• الصف السادس (مراجعة عامة):</strong> مراجعة عامة وتعزيز الهوية واللغة العربية.</div>
-        `
-      },
-      {
-        title: "الأسبوع 17 (07/04 – 07/08)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع (مراجعة عامة شاملة):</strong> مسابقات إلكترونية وألعاب تعليمية شاملة.</div>
-          <div class="grade-line"><strong>• الصف الخامس (مراجعة عامة شاملة):</strong> مسابقات إلكترونية وألعاب تعليمية شاملة.</div>
-          <div class="grade-line"><strong>• الصف السادس (مراجعة عامة شاملة):</strong> مسابقات إلكترونية وألعاب تعليمية شاملة.</div>
-        `
-      },
-      {
-        title: "الأسبوع 18 (07/18 – 07/22)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع والخامس والسادس (مراجعة وتقييم الأنشطة):</strong> رصد تفاعل الطالبات في الأنشطة والواجبات (منصة مدرستي والكتاب) وتقييم الأنشطة.</div>
-        `
-      },
-      {
-        title: "الأسبوع 19 (07/25 – 07/29)",
-        details: `
-          <div class="grade-line"><strong>• الصف الرابع والخامس والسادس:</strong> الاختبارات النهائية (لا توجد حصص نشاط) وإعداد التقرير الختامي.</div>
-        `
-      }
-    ];
-
+    /* ================= بيانات بطاقات التنفيذ المعبأة الفعلية ================= */
     const executionCardsData = [
       {
-        weekKey: "9",
-        badge: "الأسبوع 9 (05/07 – 05/11)",
-        programName: "النشاط الكشفي: بصمتي الكشفية (مهارات المستقبل)",
-        domain: "النشاط الكشفي / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        weekKey: "2",
+        badge: "بطاقة نشاط صفي / إثرائي — الأسبوع الثاني",
+        programName: "بطاقات إثرائية لصفات الخليفة أبي بكر الصديق رضي الله عنه (مهارات طموحة: رحلة النجاح)",
+        domain: "المواطنة والحياة — التكامل المنهجي (ص 25)",
+        sessionsCount: "حصتان (الحصة 1 يوم الأربعاء والحصة 3 يوم الخميس)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 07 / 05 / 1448هـ",
-        endInfo: "الخميس: 11 / 05 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الأربعاء | الأسبوع: 2 | التاريخ: 20 / 03 / 1448هـ",
+        endInfo: "اليوم: الخميس | الأسبوع: 2 | التاريخ: 21 / 03 / 1448هـ",
+        grade: "الصف الخامس الابتدائي (الحصة 1 و 3)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
-        selectedIcon: "بنك الإثراءات",
-        partnersCount: "......",
-        partnersNames: "......",
-        detailsHtml: `
-          <div class="grade-line">• <strong>رابع (مفهوم الجغرافيا والخريطة):</strong> تدريب عملي على قراءة الخريطة وتحديد الموقع.</div>
-          <div class="grade-line">• <strong>خامس (الأمن الوطني: الأمن):</strong> استعراض نماذج من أعمال رجال الأمن وكيفية المحافظة على نعمة الأمن.</div>
-          <div class="grade-line">• <strong>سادس (الأمن الوطني: الأمن ورجال الأمن):</strong> استعراض بطولات رجال الأمن وكيفية المحافظة على نعمة الأمن.</div>
-        `,
-        notes: "......",
-        signDate: "11 / 05 / 1448هـ"
-      },
-      {
-        weekKey: "10",
-        badge: "الأسبوع 10 (05/14 – 05/18)",
-        programName: "النشاط الكشفي: خيمتي الجميلة (سفراء الاستدامة)",
-        domain: "النشاط الكشفي / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
-        term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 14 / 05 / 1448هـ",
-        endInfo: "الخميس: 18 / 05 / 1448هـ",
-        grade: "رابع - خامس - سادس",
-        teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
+        studentsCount: "نسبة تفاعل تتجاوز 95% من طالبات الصف الخامس",
+        disabledStudentsCount: "مشمولون بالدمج الصفي والتفاعلي",
+        parentsCount: "متابعة أسرية عبر منصة مدرستي",
         selectedIcon: "قيمنا الغالية",
-        partnersCount: "......",
-        partnersNames: "......",
+        partnersCount: "0",
+        partnersNames: "لا يوجد (نشاط صفي وإثرائي منهجي)",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): بطاقات إثرائية لصفات أبي بكر (الصدق، العفة ص25) ومناقشة لرابع حول مفهوم الوطن والهوية الوطنية عبر منصة مدرستي والكتاب المدرسي.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (الموقع والجهات الأصلية):</strong> تطبيق الجهات الأصلية عملياً.</div>
-          <div class="grade-line">• <strong>خامس (أجهزة الأمن):</strong> تصميم بطاقة أرقام الطوارئ (الشرطة 999، الدفاع المدني 998، 111) وواجبنا تجاه الشهداء.</div>
-          <div class="grade-line">• <strong>سادس (مراجعة عامة):</strong> مراجعة عامة.</div>
+          <strong>أهداف النشاط:</strong> تعدد الطالبة أبرز صفات أبي بكر الصديق رضي الله عنه (الصدق، العفة، التواضع، الحلم)، وتستنتج أثر التحلي بالصدق والأمانة في بناء المواطن الصالح.<br>
+          <strong>خطوات التنفيذ:</strong> عرض بصري تمهيدي، توزيع بطاقات مواقف من سيرته (ص 25)، استخراج الصفة القيادية وربطها بالسلوك اليومي للطالبة وتوثيقها في منصة مدرستي.
         `,
-        notes: "......",
-        signDate: "18 / 05 / 1448هـ"
+        notes: "تم توثيق نماذج البطاقات الإثرائية ورصد تفاعل الطالبات في سجل المتابعة ومنصة مدرستي.",
+        signDate: "21 / 03 / 1448هـ"
       },
       {
-        weekKey: "11",
-        badge: "الأسبوع 11 (05/21 – 05/25)",
-        programName: "النشاط الكشفي: بوصلة الاكتشاف (كن واعياً)",
-        domain: "النشاط الكشفي / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        weekKey: "5",
+        badge: "بطاقة برنامج نشاط متكامل — الأسبوع الخامس",
+        programName: "اليوم الوطني السعودي (الإرث والأمجاد)",
+        domain: "الأيام والمناسبات الوطنية — التاريخ والمواطنة",
+        sessionsCount: "4 حصص (تكامل منهجي للصفوف العليا)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 21 / 05 / 1448هـ",
-        endInfo: "الخميس: 25 / 05 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الأحد | الأسبوع: 5 | التاريخ: 09 / 04 / 1448هـ",
+        endInfo: "اليوم: الأربعاء | الأسبوع: 5 | التاريخ: 12 / 04 / 1448هـ",
+        grade: "طالبات الصفوف العليا (رابع – خامس – سادس)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
-        selectedIcon: "بنك الإثراءات",
-        partnersCount: "......",
-        partnersNames: "......",
+        studentsCount: "جميع طالبات الصفوف العليا المشاركات بالفعاليات",
+        disabledStudentsCount: "مشاركة شاملة وميسّرة",
+        parentsCount: "مشاركة وتفاعل الأسرة في الأعمال الوطنية",
+        selectedIcon: "قيمنا الغالية",
+        partnersCount: "0",
+        partnersNames: "مبادرات داخلية ومعرض أعمال الطالبات بالمدرسة",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): 4 حصص لتوثيق أمجاد الوطن وتوحيده وربط درس (المؤرخ) لرابع بتدوين تاريخ المملكة العربية السعودية عبر منصة مدرستي والأنشطة الصفية.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (المكان: الأماكن السياحية):</strong> عرض صور لأبرز المعالم السياحية.</div>
-          <div class="grade-line">• <strong>خامس (الموقع والحدود):</strong> استخدام البوصلة لتحديد حدود المملكة وموقعها الجغرافي.</div>
-          <div class="grade-line">• <strong>سادس (الموقع والحدود):</strong> تحديد حدود المملكة وأهمية موقعها الاستراتيجي.</div>
+          <strong>أهداف البرنامج:</strong> تعزيز قيم الانتماء والولاء للوطن والقيادة الرشيدة، وربط درس (مفهوم التاريخ والمؤرخ للصف الرابع) بتوثيق أمجاد توحيد المملكة.<br>
+          <strong>مراحل التنفيذ:</strong> عروض مرئية حول توحيد المملكة، نشاط «توثيق أمجاد الوطن» للصف الرابع، ومسابقات ثقافية وتاريخية تفاعلية للصفين الخامس والسادس.
         `,
-        notes: "......",
-        signDate: "25 / 05 / 1448هـ"
-      },
-      {
-        weekKey: "12",
-        badge: "الأسبوع 12 (05/28 – 06/02)",
-        programName: "العلوم والتقنية: إنترنت الأشياء (كن واعياً)",
-        domain: "العلوم والتقنية / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
-        term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 28 / 05 / 1448هـ",
-        endInfo: "الخميس: 02 / 06 / 1448هـ",
-        grade: "رابع - خامس - سادس",
-        teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
-        selectedIcon: "التطوير الذاتي",
-        partnersCount: "......",
-        partnersNames: "......",
-        detailsHtml: `
-          <div class="grade-line">• <strong>رابع (البيئة وتكيف الإنسان):</strong> نشاط تكيف الإنسان مع البيئة.</div>
-          <div class="grade-line">• <strong>خامس (مظاهر السطح - ص62):</strong> وصف المعالم التضاريسية (حمم وصخور بركانية، جبل الملساء، الحرات وأشهرها حرة رهط وخيبر).</div>
-          <div class="grade-line">• <strong>سادس (مظاهر السطح):</strong> استعراض جبال عسير والسودة والتمييز بين الجبال والهضاب.</div>
-        `,
-        notes: "......",
-        signDate: "02 / 06 / 1448هـ"
+        notes: "تم توثيق ألبوم صور الفعاليات والمسابقات ونماذج من مطويات ولوحات الطالبات الوطنية.",
+        signDate: "12 / 04 / 1448هـ"
       },
       {
         weekKey: "13",
-        badge: "الأسبوع 13 (06/05 – 06/09)",
-        programName: "العلوم والتقنية: الاستدامة وجودة الحياة (كن واعياً)",
-        domain: "العلوم والتقنية / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        badge: "بطاقة تنفيذ عن بُعد — الأسبوع الثالث عشر",
+        programName: "الاستدامة وجودة الحياة (كن واعياً) — المناطق الرملية وحركة البضائع",
+        domain: "العلوم والتقنية / الجغرافيا",
+        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس (حصة نشاط مدمجة)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 05 / 06 / 1448هـ",
-        endInfo: "الخميس: 09 / 06 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الاثنين | الأسبوع: 13 | التاريخ: 06 / 06 / 1448هـ",
+        endInfo: "اليوم: الخميس | الأسبوع: 13 | التاريخ: 09 / 06 / 1448هـ",
+        grade: "رابع (الثلاثاء ح4) | سادس (الاثنين ح4) | خامس (الخميس ح3)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
+        studentsCount: "...... طالبة (من كشف حضور المنصة)",
+        disabledStudentsCount: "...... طالبة",
+        parentsCount: "...... ولي أمر",
         selectedIcon: "بنك الإثراءات",
-        partnersCount: "......",
-        partnersNames: "......",
+        partnersCount: "0",
+        partnersNames: "لا يوجد (تنفيذ إلكتروني عبر منصة مدرستي)",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): وصف صحراء الربع الخالي (ص93) ومشاريع الاستدامة فيها، وتتبع وسائل وخطوط نقل البضائع في المملكة للرابع عبر منصة مدرستي.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (الحركة: نقل البضائع ومراجعة):</strong> تتبع خطوط نقل البضائع ومراجعة.</div>
-          <div class="grade-line">• <strong>خامس (المناطق الرملية - ص93):</strong> وصف صحراء الربع الخالي ورمال الدهناء.</div>
-          <div class="grade-line">• <strong>سادس (المناطق الرملية):</strong> وصف صحراء الربع الخالي ومشاريع الاستدامة فيها.</div>
+          <strong>التنفيذ عن بُعد عبر منصة مدرستي:</strong><br>
+          • <strong>رابع:</strong> نشاط «رحلة البضائع في وطني» وتحديد وسائل النقل الآمنة وحماية البيئة.<br>
+          • <strong>خامس وسادس:</strong> استكشاف «صحراء الربع الخالي والمناطق الرملية» ومشاريع الاستدامة والطاقة الشمسية وحماية الغطاء النباتي.
         `,
-        notes: "تلي الأسبوع 13 إجازة الخريف.",
+        notes: "تم تنفيذ النشاط في شات الحصة الافتراضية وتوثيق مشاركات الطالبات بلقطات الشاشة.",
         signDate: "09 / 06 / 1448هـ"
       },
       {
         weekKey: "14",
-        badge: "الأسبوع 14 (06/12 – 06/16)",
-        programName: "مناسبات وتقنية: اليوم العالمي لذوي الإعاقة + AI",
-        domain: "مناسبات وتقنية / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        badge: "بطاقة تنفيذ عن بُعد — الأسبوع الرابع عشر",
+        programName: "اليوم العالمي لذوي الإعاقة + الأودية والسلع الاستهلاكية",
+        domain: "الأيام والمناسبات والتقنية / الجغرافيا والاقتصاد",
+        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس (حصة نشاط مدمجة)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 12 / 06 / 1448هـ",
-        endInfo: "الخميس: 16 / 06 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الاثنين | الأسبوع: 14 | التاريخ: 13 / 06 / 1448هـ",
+        endInfo: "اليوم: الخميس | الأسبوع: 14 | التاريخ: 16 / 06 / 1448هـ",
+        grade: "رابع (الثلاثاء ح4) | سادس (الاثنين ح4) | خامس (الخميس ح3)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
+        studentsCount: "...... طالبة (من كشف حضور المنصة)",
+        disabledStudentsCount: "...... طالبة",
+        parentsCount: "...... ولي أمر",
         selectedIcon: "قيمنا الغالية",
-        partnersCount: "......",
-        partnersNames: "......",
+        partnersCount: "0",
+        partnersNames: "لا يوجد (تنفيذ إلكتروني عبر منصة مدرستي)",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تحديد أطول أودية المملكة (وادي الرمة ص97) وتصنيف السلع الاستهلاكية للرابع مع تعزيز دمج ذوي الإعاقة عبر منصة مدرستي.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (مفهوم الاقتصاد والسلع):</strong> تصنيف السلع الاستهلاكية مع تعزيز دمج ذوي الإعاقة.</div>
-          <div class="grade-line">• <strong>خامس (الأودية - ص97):</strong> تحديد أطول أودية المملكة (وادي الرمة) على الخريطة.</div>
-          <div class="grade-line">• <strong>سادس (الأودية):</strong> تعداد أهم الأودية وتعزيز دمج ذوي الإعاقة.</div>
+          <strong>التنفيذ عن بُعد عبر منصة مدرستي:</strong><br>
+          • <strong>رابع:</strong> تصنيف السلع الضرورية وغير الضرورية وكتابة عبارات ترحيب ودعم لزميلاتنا من ذوي الإعاقة.<br>
+          • <strong>خامس وسادس:</strong> تحديد أطول أودية المملكة (وادي الرمة ص97) والسلامة أثناء الأمطار واقتراح مبادرات لدمج ذوي الإعاقة.
         `,
-        notes: "......",
+        notes: "شهدت الحصص تفاعلاً إنسانياً وتربوياً مميزاً في تعزيز ثقافة دمج ذوي الإعاقة.",
         signDate: "16 / 06 / 1448هـ"
       },
       {
         weekKey: "15",
-        badge: "الأسبوع 15 (06/19 – 06/23)",
-        programName: "النادي الثقافي: الذكاء الاصطناعي وتطبيقاته",
-        domain: "النادي الثقافي / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        badge: "بطاقة تنفيذ عن بُعد — الأسبوع الخامس عشر",
+        programName: "النادي الثقافي والبيئي — المناطق الساحلية والجزر والتبادل التجاري",
+        domain: "النادي الثقافي / الجغرافيا والاقتصاد",
+        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس (حصة نشاط مدمجة)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 19 / 06 / 1448هـ",
-        endInfo: "الخميس: 23 / 06 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الاثنين | الأسبوع: 15 | التاريخ: 20 / 06 / 1448هـ",
+        endInfo: "اليوم: الخميس | الأسبوع: 15 | التاريخ: 23 / 06 / 1448هـ",
+        grade: "رابع (الثلاثاء ح4) | سادس (الاثنين ح4) | خامس (الخميس ح3)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
+        studentsCount: "...... طالبة (من كشف حضور المنصة)",
+        disabledStudentsCount: "...... طالبة",
+        parentsCount: "...... ولي أمر",
         selectedIcon: "بنك الإثراءات",
-        partnersCount: "......",
-        partnersNames: "......",
+        partnersCount: "0",
+        partnersNames: "لا يوجد (تنفيذ إلكتروني عبر منصة مدرستي)",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): مقارنة بين التبادل التجاري قديماً وحديثاً للرابع واستكشاف جزر فرسان (ص93) والشعب المرجانية لخامس وسادس عبر منصة مدرستي.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (التبادل التجاري):</strong> جدول مقارنة بين التبادل التجاري قديماً وحديثاً.</div>
-          <div class="grade-line">• <strong>خامس (المناطق الساحلية والجزر - ص93):</strong> استكشاف جزر فرسان والشعب المرجانية.</div>
-          <div class="grade-line">• <strong>سادس (المناطق الساحلية والجزر):</strong> خارطة مفاهيم لأهم الجزر والمناطق الساحلية.</div>
+          <strong>التنفيذ عن بُعد عبر منصة مدرستي:</strong><br>
+          • <strong>رابع:</strong> مقارنة بين التبادل التجاري قديماً (المقايضة) وحديثاً (التسوق الإلكتروني الآمن).<br>
+          • <strong>خامس وسادس:</strong> رحلة افتراضية إلى جزر فرسان (ص93) والشعب المرجانية وتقديم نصائح لحماية البيئة البحرية.
         `,
-        notes: "......",
+        notes: "تم توثيق إجابات الطالبات في محادثة منصة مدرستي وإرفاق الشواهد في ملف الإنجاز.",
         signDate: "23 / 06 / 1448هـ"
       },
       {
         weekKey: "16",
-        badge: "الأسبوع 16 (06/26 – 07/01)",
-        programName: "مناسبات وتقنية: اليوم العالمي للغة العربية + AI",
-        domain: "مناسبات وتقنية / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        badge: "بطاقة تنفيذ عن بُعد — الأسبوع السادس عشر",
+        programName: "اليوم العالمي للغة العربية وتحدي المناطق الإدارية الـ 13",
+        domain: "الأيام والمناسبات / الجغرافيا والمراجعة",
+        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس (حصة نشاط مدمجة)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 26 / 06 / 1448هـ",
-        endInfo: "الخميس: 01 / 07 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الاثنين | الأسبوع: 16 | التاريخ: 27 / 06 / 1448هـ",
+        endInfo: "اليوم: الخميس | الأسبوع: 16 | التاريخ: 01 / 07 / 1448هـ",
+        grade: "رابع (الثلاثاء ح4) | سادس (الاثنين ح4) | خامس (الخميس ح3)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
+        studentsCount: "...... طالبة (من كشف حضور المنصة)",
+        disabledStudentsCount: "...... طالبة",
+        parentsCount: "...... ولي أمر",
         selectedIcon: "نادي القراءة",
-        partnersCount: "......",
-        partnersNames: "......",
+        partnersCount: "0",
+        partnersNames: "لا يوجد (تنفيذ إلكتروني عبر منصة مدرستي)",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): مسابقة تحديد المناطق الإدارية الـ 13 للمملكة (ص90) لخامس وتعزيز الهوية واللغة العربية في أنشطة المراجعة عبر منصة مدرستي.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (مراجعة عامة):</strong> مراجعة عامة وتعزيز الهوية واللغة العربية.</div>
-          <div class="grade-line">• <strong>خامس (المناطق الإدارية - ص90):</strong> مسابقة تحديد المناطق الإدارية الـ 13 للمملكة.</div>
-          <div class="grade-line">• <strong>سادس (مراجعة عامة):</strong> مراجعة عامة وتعزيز الهوية واللغة العربية.</div>
+          <strong>التنفيذ عن بُعد عبر منصة مدرستي:</strong><br>
+          • <strong>رابع وسادس:</strong> صياغة جمل وتعريفات تاريخية وجغرافية بلغة عربية فصيحة احتفاءً باليوم العالمي للغة العربية.<br>
+          • <strong>خامس:</strong> مسابقة سريعة لتحديد المناطق الإدارية الـ 13 للمملكة (ص90) بلغة سليمة.
         `,
-        notes: "......",
+        notes: "أسهم النشاط في تعزيز الاعتزاز باللغة العربية الفصحى أثناء مراجعة المفاهيم الجغرافية.",
         signDate: "01 / 07 / 1448هـ"
       },
       {
         weekKey: "17",
-        badge: "الأسبوع 17 (07/04 – 07/08)",
-        programName: "العلوم والتقنية: مشاريع الذكاء الاصطناعي",
-        domain: "العلوم والتقنية / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        badge: "بطاقة تنفيذ عن بُعد — الأسبوع السابع عشر",
+        programName: "المراجعة التفاعلية الشاملة (مسابقات إلكترونية لمقرر الفصل الأول)",
+        domain: "العلوم والتقنية / المراجعة الشاملة",
+        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس (حصة نشاط مدمجة)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 04 / 07 / 1448هـ",
-        endInfo: "الخميس: 08 / 07 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الاثنين | الأسبوع: 17 | التاريخ: 05 / 07 / 1448هـ",
+        endInfo: "اليوم: الخميس | الأسبوع: 17 | التاريخ: 08 / 07 / 1448هـ",
+        grade: "رابع (الثلاثاء ح4) | سادس (الاثنين ح4) | خامس (الخميس ح3)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
+        studentsCount: "...... طالبة (من كشف حضور المنصة)",
+        disabledStudentsCount: "...... طالبة",
+        parentsCount: "...... ولي أمر",
         selectedIcon: "التطوير الذاتي",
-        partnersCount: "......",
-        partnersNames: "......",
+        partnersCount: "0",
+        partnersNames: "لا يوجد (تنفيذ إلكتروني عبر منصة مدرستي)",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): مسابقات إلكترونية وأسئلة تفاعلية شاملة لمقررات الفصل الدراسي الأول عبر منصة مدرستي.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (مراجعة عامة شاملة):</strong> مسابقات إلكترونية وألعاب تعليمية شاملة.</div>
-          <div class="grade-line">• <strong>خامس (مراجعة عامة شاملة):</strong> مسابقات إلكترونية وألعاب تعليمية شاملة.</div>
-          <div class="grade-line">• <strong>سادس (مراجعة عامة شاملة):</strong> مسابقات إلكترونية وألعاب تعليمية شاملة.</div>
+          <strong>التنفيذ عن بُعد عبر منصة مدرستي:</strong><br>
+          تنفيذ جولة تحدي ومسابقة إلكترونية سريعة شملت أبرز مفاهيم التاريخ والجغرافيا والمواطنة والاقتصاد للصفوف الرابع والخامس والسادس استعداداً للاختبارات النهائية.
         `,
-        notes: "......",
+        notes: "تفاعل مرتفع من الطالبات وسرعة استجابة عالية في أسئلة المراجعة التفاعلية.",
         signDate: "08 / 07 / 1448هـ"
       },
       {
         weekKey: "18",
-        badge: "الأسبوع 18 (07/18 – 07/22)",
-        programName: "الختام والتقويم: تقييم الأنشطة",
-        domain: "الختام والتقويم / الدراسات الاجتماعية",
-        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس",
+        badge: "بطاقة تنفيذ عن بُعد — الأسبوع الثامن عشر (الختام)",
+        programName: "الختام والتقويم — تقييم الأنشطة وتكريم المتميزات عن بُعد",
+        domain: "التقويم والختام / المواطنة والحياة",
+        sessionsCount: "حسب دليل الخطط الدراسية / الإصدار السادس (حصة نشاط مدمجة)",
         term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 18 / 07 / 1448هـ",
-        endInfo: "الخميس: 22 / 07 / 1448هـ",
-        grade: "رابع - خامس - سادس",
+        startInfo: "اليوم: الاثنين | الأسبوع: 18 | التاريخ: 19 / 07 / 1448هـ",
+        endInfo: "اليوم: الخميس | الأسبوع: 18 | التاريخ: 22 / 07 / 1448هـ",
+        grade: "رابع (الثلاثاء ح4) | سادس (الاثنين ح4) | خامس (الخميس ح3)",
         teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
+        studentsCount: "...... طالبة (إجمالي المشاركات في الفصل الأول)",
+        disabledStudentsCount: "...... طالبة",
+        parentsCount: "...... ولي أمر",
         selectedIcon: "قيمنا الغالية",
-        partnersCount: "......",
-        partnersNames: "......",
+        partnersCount: "0",
+        partnersNames: "لا يوجد (تنفيذ إلكتروني عبر منصة مدرستي)",
+        mechanismType: "آلية تنفيذ النشاط ونوعه (مدمج ومنصة): تكريم الطالبات المتفاعلات رقمياً، رصد الأنشطة والواجبات في منصة مدرستي والكتاب، وإعداد التقرير الختامي.",
         detailsHtml: `
-          <div class="grade-line">• <strong>رابع (مراجعة وتقييم الأنشطة):</strong> رصد تفاعل الطالبات في الأنشطة والواجبات (منصة مدرستي والكتاب) وتقييم الأنشطة.</div>
-          <div class="grade-line">• <strong>خامس (مراجعة وتقييم الأنشطة):</strong> رصد تفاعل الطالبات في الأنشطة والواجبات (منصة مدرستي والكتاب) وتقييم الأنشطة.</div>
-          <div class="grade-line">• <strong>سادس (مراجعة وتقييم الأنشطة):</strong> رصد تفاعل الطالبات في الأنشطة والواجبات (منصة مدرستي والكتاب) وتقييم الأنشطة.</div>
+          <strong>التنفيذ عن بُعد عبر منصة مدرستي:</strong><br>
+          رصد تفاعل الطالبات في الأنشطة الصفية والإثرائية والواجبات، وتقديم رسائل الشكر والتكريم الرقمي للمتميزات، وإغلاق ملف الأنشطة للفصل الدراسي الأول.
         `,
-        notes: "......",
+        notes: "اكتملت جميع متطلبات خطة النشاط وتم إعداد الشواهد والتقرير الختامي للاعتماد.",
         signDate: "22 / 07 / 1448هـ"
-      },
-      {
-        weekKey: "19",
-        badge: "الأسبوع 19 (07/25 – 07/29)",
-        programName: "الاختبارات النهائية والتقرير الختامي",
-        domain: "الدراسات الاجتماعية",
-        sessionsCount: "0 (الاختبارات النهائية — لا توجد حصص نشاط)",
-        term: "الفصل الدراسي الأول 1448هـ",
-        startInfo: "الأحد: 25 / 07 / 1448هـ",
-        endInfo: "الخميس: 29 / 07 / 1448هـ",
-        grade: "رابع - خامس - سادس",
-        teacher: "أسماء ياسين الخيري",
-        studentsCount: "......",
-        disabledStudentsCount: "......",
-        parentsCount: "......",
-        selectedIcon: "التطوير الذاتي",
-        partnersCount: "......",
-        partnersNames: "......",
-        detailsHtml: `
-          <div class="grade-line">• <strong>رابع وخامس وسادس:</strong> الاختبارات النهائية (لا توجد حصص نشاط) وإعداد التقرير الختامي للنشاط، وتليها إجازة منتصف العام الدراسي.</div>
-        `,
-        notes: "الاختبارات النهائية — لا توجد حصص نشاط.",
-        signDate: "29 / 07 / 1448هـ"
       }
     ];
 
+    /* ================= بناء الجداول والبطاقات ================= */
     function renderPlanTables() {
       const part1 = fullPlanData.slice(0, 10);
       const part2 = fullPlanData.slice(10);
@@ -1285,13 +1109,6 @@
 
       document.getElementById("planPart1Body").innerHTML = part1.map(mapRow).join("");
       document.getElementById("planPart2Body").innerHTML = part2.map(mapRow).join("");
-
-      document.getElementById("chatMessagesContainer").innerHTML = chatBank.map(item => `
-        <div class="msg-card">
-          <div style="font-weight:800; color:var(--primary-dark); margin-bottom:3px;">${item.title}</div>
-          <div style="color:var(--text);">${item.details}</div>
-        </div>
-      `).join("");
     }
 
     const platformIcons = ["بنك الإثراءات", "التطوير الذاتي", "قيمنا الغالية", "نادي القراءة"];
@@ -1326,7 +1143,7 @@
               <div class="official-meta-strip">
                 <span>${card.badge}</span>
                 <span>المادة: الدراسات الاجتماعية</span>
-                <span>الصفوف: رابع - خامس - سادس</span>
+                <span>التنفيذ: عن بُعد (منصة مدرستي)</span>
               </div>
             </div>
 
@@ -1358,9 +1175,13 @@
                   <th class="lbl">المعلم/ة المنفذ/ة</th>
                   <td class="val">${card.teacher}</td>
                 </tr>
+                <tr>
+                  <th class="lbl">آلية تنفيذ النشاط ونوعه (مدمج ومنصة)</th>
+                  <td class="val" colspan="3">${card.mechanismType}</td>
+                </tr>
 
                 <tr class="banner-row">
-                  <td colspan="4">بيانات المشاركة والتنفيذ</td>
+                  <td colspan="4">بيانات المشاركة والتنفيذ عبر منصة مدرستي</td>
                 </tr>
 
                 <tr>
@@ -1432,6 +1253,7 @@
       `).join("");
     }
 
+    /* ================= وظيفة التبديل بين الأيقونتين ================= */
     function switchView(viewName) {
       const planView = document.getElementById("planView");
       const cardsView = document.getElementById("cardsView");
@@ -1452,6 +1274,7 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    /* ================= تصفية بطاقات التنفيذ حسب الأسبوع ================= */
     function filterCards(wk, btn) {
       document.querySelectorAll(".wk-btn").forEach(b => b.classList.remove("active"));
       if (btn) btn.classList.add("active");

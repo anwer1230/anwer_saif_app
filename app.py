@@ -15162,7 +15162,7 @@ def api_edu_canva_browse():
         data = (request.get_json(silent=True) or {}) if request.method == 'POST' else {}
         q = (data.get('q') or data.get('query') or request.args.get('q') or request.args.get('query') or '').strip()
         cat = (data.get('category') or request.args.get('category') or 'all').strip()
-        src = (data.get('source') or request.args.get('source') or 'all').strip()
+        src = (data.get('source') or request.args.get('source') or 'cached').strip()
         token = (data.get('canva_token') or data.get('access_token') or '').strip()
         canva_url = (data.get('canva_url') or '').strip()
         custom_name = (data.get('name') or '').strip()
@@ -15183,7 +15183,7 @@ def api_edu_canva_browse():
             'success': True,
             **res,
             'live_fetched_count': live_count,
-            'source_note': f"تم الجلب من Canva ({live_count} قالب) + المكتبة التعليمية" if live_count else "كتالوج كانفا المدمج + القوالب المستوردة",
+            'source_note': f"تم الجلب من Canva ({live_count} قالب) + المكتبة التعليمية" if live_count else "مكتبة كانفا المدمجة والسريعة + القوالب الموثقة",
             'imported_template': imported_item,
             'accounts': accounts_store,
         })
@@ -15252,7 +15252,7 @@ def api_edu_canva_fetched_delete(tid):
 
 @app.route('/api/edu/canva/proxy_img', methods=['GET'])
 def api_edu_canva_proxy_img():
-    """بروكسي آمن لصور قوالب كانفا لتفادي أخطاء CORS عند التصوير والتصدير إلى PDF."""
+    """بروكسي آمن ومخزن مؤقتاً لصور قوالب كانفا لتفادي أخطاء CORS وسرعة المعاينة والـ PDF."""
     import urllib.parse
     img_url = (request.args.get('url') or '').strip()
     if not img_url.startswith(('https://', 'http://')):
@@ -15268,20 +15268,13 @@ def api_edu_canva_proxy_img():
     if not allowed:
         return '', 403
     try:
-        r = requests.get(
-            img_url,
-            timeout=8,
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0 Safari/537.36',
-                'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-            },
-        )
-        ctype = r.headers.get('Content-Type', '')
-        if not r.ok or not ctype.startswith('image/') or len(r.content) > 5_000_000:
+        from pptx_app.modules.design_importer import fetch_canva_image_bytes_cached
+        raw_bytes, ctype = fetch_canva_image_bytes_cached(img_url, timeout=(2.0, 4.5))
+        if not raw_bytes:
             return '', 404
-        resp = make_response(r.content)
-        resp.headers['Content-Type'] = ctype.split(';')[0]
-        resp.headers['Cache-Control'] = 'public, max-age=86400'
+        resp = make_response(raw_bytes)
+        resp.headers['Content-Type'] = (ctype or 'image/jpeg').split(';')[0]
+        resp.headers['Cache-Control'] = 'public, max-age=604800'
         return resp
     except Exception:
         return '', 404

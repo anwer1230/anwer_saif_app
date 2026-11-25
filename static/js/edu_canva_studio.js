@@ -62,6 +62,32 @@
     return tpl.fallback_preview_data_url || tpl.safe_preview_data_url || '';
   }
 
+  async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 15000) {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: ctrl ? ctrl.signal : options.signal,
+      });
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (_) {
+        throw new Error(res.ok ? 'استجابة غير متوقعة من الخادم' : `خطأ من الخادم (${res.status})`);
+      }
+      return { res, data };
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        throw new Error('انتهت مهلة الاتصال بكانفا — يرجى المحاولة مرة أخرى');
+      }
+      throw err;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   function ensureStylesInjected() {
     if (document.getElementById('eduCanvaStudioStyles')) return;
     const style = document.createElement('style');
@@ -539,14 +565,14 @@
   async function loadCatalog(liveSearch) {
     const q = (document.getElementById('ecsSearchInput')?.value || '').trim();
     const token = (document.getElementById('ecsCanvaTokenInput')?.value || '').trim();
-    showStatus('⏳ جاري فتح بوابة كانفا الداخلية وجلب القوالب الحقيقية...');
+    const isLive = Boolean(liveSearch);
+    showStatus(isLive ? '⏳ جاري البحث المباشر في قوالب كانفا...' : '⏳ جاري تحميل مكتبة قوالب كانفا...');
     try {
-      const res = await fetch('/api/edu/canva/browse', {
+      const { res, data } = await fetchJsonWithTimeout('/api/edu/canva/browse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q, category: activeCategory || 'all', source: liveSearch ? 'live' : 'all', canva_token: token }),
-      });
-      const data = await res.json();
+        body: JSON.stringify({ q, category: activeCategory || 'all', source: isLive ? 'live' : 'cached', canva_token: token }),
+      }, isLive ? 15000 : 10000);
       if (!res.ok || data.success === false) throw new Error(data.error || 'تعذر جلب القوالب');
       catalogTemplates = data.templates || [];
       if (Array.isArray(data.fetched)) {
@@ -557,11 +583,31 @@
       updateCounts();
       if (data.api_error) {
         showStatus(`⚠️ تم عرض ${catalogTemplates.length} قالب — تنبيه Canva API: ${data.api_error}`, true);
+      } else if (data.live_warning) {
+        showStatus(`✅ تم عرض ${catalogTemplates.length} قالب جاهز من المكتبة الموثقة (تعذر الاتصال اللحظي بكانفا الآن).`);
       } else {
         const extra = data.live_count ? ` (بينها ${data.live_count} قالب مجلوب مباشرة من كانفا)` : '';
-        showStatus(`✅ تم جلب ${catalogTemplates.length} قالب كانفا حقيقي داخل واجهة الوظيفة${extra}. اضغط "👁️ فتح" للمعاينة أو حدد ما تريد لجلبه وتطبيق محتواك.`);
+        showStatus(`✅ تم تحميل ${catalogTemplates.length} قالب كانفا حقيقي داخل واجهة الوظيفة${extra}. اضغط "👁️ فتح" للمعاينة أو حدد ما تريد لجلبه وتطبيق محتواك.`);
       }
     } catch (e) {
+      if (isLive) {
+        try {
+          const fb = await fetchJsonWithTimeout('/api/edu/canva/browse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q, category: activeCategory || 'all', source: 'cached', canva_token: token }),
+          }, 8000);
+          if (fb.res.ok && fb.data && fb.data.success !== false) {
+            catalogTemplates = fb.data.templates || [];
+            if (Array.isArray(fb.data.fetched)) fetchedTemplates = fb.data.fetched;
+            renderBrowseGrid();
+            renderFetchedGrid();
+            updateCounts();
+            showStatus(`⚠️ استغرق البحث المباشر وقتاً أطول — تم عرض ${catalogTemplates.length} قالب محفوظ وموثق فوراً.`, true);
+            return;
+          }
+        } catch (_) {}
+      }
       showStatus('❌ ' + (e.message || e), true);
     }
   }
@@ -575,12 +621,11 @@
     }
     showStatus('⏳ جاري قراءة الرابط وجلب بيانات وصورة القالب من كانفا...');
     try {
-      const res = await fetch('/api/edu/canva/import_urls', {
+      const { res, data } = await fetchJsonWithTimeout('/api/edu/canva/import_urls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ urls, name, category: 'تصاميمي المجلوبة' }),
-      });
-      const data = await res.json();
+      }, 20000);
       if (!res.ok || !data.success) throw new Error(data.error || 'تعذر استيراد الرابط');
       document.getElementById('ecsUrlsInput').value = '';
       document.getElementById('ecsUrlNameInput').value = '';
@@ -608,8 +653,7 @@
     fd.append('category', 'تصاميمي المجلوبة');
     showStatus('⏳ جاري استيراد ملف كانفا ومعالجته إلى صور A4 وملف PDF متوافق...');
     try {
-      const res = await fetch('/api/edu/canva/import_file', { method: 'POST', body: fd });
-      const data = await res.json();
+      const { res, data } = await fetchJsonWithTimeout('/api/edu/canva/import_file', { method: 'POST', body: fd }, 25000);
       if (!res.ok || !data.success) throw new Error(data.error || 'تعذر استيراد الملف');
       fileInput.value = '';
       if (data.template && data.template.id) selectedIds.add(data.template.id);
@@ -842,12 +886,11 @@
     const token = (document.getElementById('ecsCanvaTokenInput')?.value || '').trim();
     showStatus(`⏳ جاري جلب ${items.length} قالب فعلياً من كانفا وتجهيز صورها وألوانها داخل واجهة الوظيفة...`);
     try {
-      const res = await fetch('/api/edu/canva/fetch_selected', {
+      const { res, data } = await fetchJsonWithTimeout('/api/edu/canva/fetch_selected', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ templates: items, canva_token: token }),
-      });
-      const data = await res.json();
+      }, 22000);
       if (!res.ok || !data.success) throw new Error(data.error || 'فشل جلب القوالب المحددة');
       fetchedTemplates = data.fetched || [];
       renderFetchedGrid();
@@ -1552,12 +1595,11 @@
     }
     const token = (document.getElementById('ecsCanvaTokenInput')?.value || '').trim();
     try {
-      const res = await fetch('/api/edu/canva/process_for_merge', {
+      const { res, data } = await fetchJsonWithTimeout('/api/edu/canva/process_for_merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template: stripHeavyFields(tpl), canva_token: token }),
-      });
-      const data = await res.json();
+      }, 22000);
       if (res.ok && data.success && data.template) {
         return {
           ...tpl,

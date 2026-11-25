@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 import requests
+from requests.adapters import HTTPAdapter
 from bs4 import BeautifulSoup
 
 import config as _cfg
@@ -17,6 +18,71 @@ from pptx_app.modules.templates import CANVA_TEMPLATES
 CANVA_CACHE_FILE = os.path.join(_cfg.DATA_DIR, "canva_imported_templates.json")
 GOOGLE_ACCOUNTS_FILE = os.path.join(_cfg.DATA_DIR, "canva_google_accounts.json")
 EDU_CANVA_PROCESSED_DIR = os.path.join(_cfg.DATA_DIR, "edu_canva_processed")
+EDU_CANVA_IMG_CACHE_DIR = os.path.join(_cfg.DATA_DIR, "edu_canva_img_cache")
+
+_CANVA_HTTP_SESSION: Optional[requests.Session] = None
+
+
+def _get_canva_http_session() -> requests.Session:
+    global _CANVA_HTTP_SESSION
+    if _CANVA_HTTP_SESSION is None:
+        s = requests.Session()
+        adapter = HTTPAdapter(pool_connections=16, pool_maxsize=16)
+        s.mount("https://", adapter)
+        s.mount("http://", adapter)
+        s.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0.0.0 Safari/537.36",
+            "Accept-Language": "ar,en-US;q=0.9,en;q=0.8",
+        })
+        _CANVA_HTTP_SESSION = s
+    return _CANVA_HTTP_SESSION
+
+
+def fetch_canva_image_bytes_cached(img_url: str, timeout=(2.0, 4.5)) -> tuple[Optional[bytes], str]:
+    """تحميل وتخزين صور قوالب كانفا على القرص محلياً لتفادي تكرار التحميل وبطء المعاينة."""
+    u = (img_url or "").strip()
+    if not u.startswith(("https://", "http://")):
+        return None, ""
+    key = hashlib.md5(u.encode("utf-8")).hexdigest()
+    bin_path = os.path.join(EDU_CANVA_IMG_CACHE_DIR, f"{key}.bin")
+    meta_path = os.path.join(EDU_CANVA_IMG_CACHE_DIR, f"{key}.ctype")
+    try:
+        if os.path.isfile(bin_path) and os.path.getsize(bin_path) > 100:
+            with open(bin_path, "rb") as fb:
+                raw = fb.read()
+            ctype = "image/jpeg"
+            if os.path.isfile(meta_path):
+                with open(meta_path, "r", encoding="utf-8") as fm:
+                    ctype = (fm.read() or "").strip() or "image/jpeg"
+            return raw, ctype
+    except Exception:
+        pass
+
+    try:
+        r = _get_canva_http_session().get(
+            u,
+            timeout=timeout,
+            headers={
+                "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+                "Referer": "https://www.canva.com/",
+            },
+        )
+        ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if r.ok and ctype.startswith("image/") and 100 < len(r.content) < 5_000_000:
+            try:
+                os.makedirs(EDU_CANVA_IMG_CACHE_DIR, exist_ok=True)
+                tmp_bin = bin_path + ".tmp"
+                with open(tmp_bin, "wb") as fb:
+                    fb.write(r.content)
+                os.replace(tmp_bin, bin_path)
+                with open(meta_path, "w", encoding="utf-8") as fm:
+                    fm.write(ctype)
+            except Exception:
+                pass
+            return r.content, ctype
+    except Exception:
+        pass
+    return None, ""
 
 
 def _safe_asset_id(raw_id: str) -> str:
@@ -351,11 +417,10 @@ def _fetch_canva_oembed(url: str) -> Dict[str, str]:
     """محاولة جلب بيانات oEmbed الرسمية لقالب/تصميم كانفا."""
     out: Dict[str, str] = {}
     try:
-        r = requests.get(
+        r = _get_canva_http_session().get(
             "https://www.canva.com/_ajax/oembed",
             params={"url": url},
-            timeout=5,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125.0 Safari/537.36"},
+            timeout=(2.0, 3.0),
         )
         if r.ok and r.text:
             raw = re.sub(r"^[^\{]*", "", r.text.strip())
@@ -473,11 +538,10 @@ class DesignImporter:
         safe_data_url = ""
         if preview_image:
             try:
-                ir = requests.get(preview_image, timeout=6, headers={"User-Agent": "Mozilla/5.0"})
-                ctype = (ir.headers.get("Content-Type") or "").split(";")[0].strip().lower()
-                if ir.ok and ctype.startswith("image/") and len(ir.content) < 4_000_000:
-                    palette = _extract_palette_from_image_bytes(ir.content)
-                    safe_data_url = f"data:{ctype};base64,{_b64.b64encode(ir.content).decode('ascii')}"
+                img_bytes, ctype = fetch_canva_image_bytes_cached(preview_image, timeout=(2.0, 4.5))
+                if img_bytes and len(img_bytes) < 4_000_000:
+                    palette = _extract_palette_from_image_bytes(img_bytes)
+                    safe_data_url = f"data:{ctype};base64,{_b64.b64encode(img_bytes).decode('ascii')}"
             except Exception:
                 pass
 
@@ -1106,6 +1170,233 @@ EDU_CANVA_TEMPLATES: List[Dict[str, Any]] = [
     },
 ]
 
+_NON_EDU_CANVA_KEYWORDS = (
+    "wedding", "pernikahan", "restoran", "restaurant", "baby-journal",
+    "baby journal", "instrumentos-musicales", "instrumentos musicales",
+    "cocktail", "menu-restoran", "menu restoran", "ramadhan",
+)
+
+
+def _is_non_edu_template(item: Dict[str, Any]) -> bool:
+    if not isinstance(item, dict):
+        return True
+    hay = f"{item.get('name', '')} {item.get('canva_url', '')} {item.get('preview_image', '')}".lower()
+    return any(k in hay for k in _NON_EDU_CANVA_KEYWORDS)
+
+
+CURATED_CANVA_MARKETPLACE_TEMPLATES: List[Dict[str, Any]] = [
+    {
+        "id": "canva_mp_EAF-eTDNqew",
+        "canva_id": "EAF-eTDNqew",
+        "name": "كانفا — الصحة النفسية والإرشاد المدرسي الأخضر A4",
+        "category": "شواهد وتوثيق",
+        "source": "Canva Marketplace Live",
+        "layout": "botanical_frame",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "غلاف مستند تعليمي A4 أنيق بالتدرج الأخضر يناسب التوجيه الطلابي والشواهد التربوية.",
+        "colors": {"primary": "#166534", "secondary": "#14532d", "accent": "#10b981", "bg": "#f3fbf6", "card_bg": "#ffffff", "text_dark": "#13261a", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAF-eTDNqew/1/0/1131w/canva-documento-a4-portada-salud-mental-ilustrado-verde-cRVCjT60RXk.jpg",
+        "canva_url": "https://www.canva.com/templates/EAF-eTDNqew-documento-a4-portada-salud-mental-ilustrado-verde/",
+        "badge_text": "Canva شواهد",
+    },
+    {
+        "id": "canva_mp_EAFA1-LEZ3k",
+        "canva_id": "EAFA1-LEZ3k",
+        "name": "كانفا — أوراق الزهور المائية للتوثيق A4",
+        "category": "شواهد وتوثيق",
+        "source": "Canva Marketplace Live",
+        "layout": "botanical_frame",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "إطار ألوان مائية بزهور رقيقة A4 مثالي لشواهد المعلمات وملفات الإنجاز.",
+        "colors": {"primary": "#2f5d80", "secondary": "#1b3a52", "accent": "#7fb0d9", "bg": "#f7fbff", "card_bg": "#ffffff", "text_dark": "#152635", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAFA1-LEZ3k/1/0/1131w/canva-documento-a4-bloc-notas-hoja-carta-flores-acuarela-gHY3klheKY0.jpg",
+        "canva_url": "https://www.canva.com/templates/EAFA1-LEZ3k-documento-a4-bloc-notas-hoja-carta-flores-acuarela/",
+        "badge_text": "Canva شواهد",
+    },
+    {
+        "id": "canva_mp_EAFa53bSQh0",
+        "canva_id": "EAFa53bSQh0",
+        "name": "كانفا — الإطار الوردي المتدرج الناعم A4",
+        "category": "شواهد وتوثيق",
+        "source": "Canva Marketplace Live",
+        "layout": "pastel_card",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "تصميم A4 متدرج بالوردي والمشمشي لإبراز الشواهد والمبادرات التربوية.",
+        "colors": {"primary": "#8c4a58", "secondary": "#5c2d37", "accent": "#e09f97", "bg": "#fff8f9", "card_bg": "#ffffff", "text_dark": "#2d181e", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAFa53bSQh0/1/0/1131w/canva-orange-pink-gradient-background-stationery-border-a4-document-hnYishFWjuU.jpg",
+        "canva_url": "https://www.canva.com/templates/EAFa53bSQh0-orange-pink-gradient-background-stationery-border-a4-document/",
+        "badge_text": "Canva شواهد",
+    },
+    {
+        "id": "canva_mp_EAFa-nnOb9c",
+        "canva_id": "EAFa-nnOb9c",
+        "name": "كانفا — الغلاف الفني الخطي البني والبيج A4",
+        "category": "شواهد وتوثيق",
+        "source": "Canva Marketplace Live",
+        "layout": "pastel_card",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "غلاف يوميات وتوثيق هادئ بدرجات البيج والبني الدافئ بمقاس A4.",
+        "colors": {"primary": "#6b4f2d", "secondary": "#433018", "accent": "#d97706", "bg": "#fdfaf4", "card_bg": "#ffffff", "text_dark": "#24190c", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAFa-nnOb9c/1/0/1131w/canva-beige-brown-aesthetic-line-art-daily-journal-cover-a4-document-L2QgVHsdzgc.jpg",
+        "canva_url": "https://www.canva.com/templates/EAFa-nnOb9c-beige-brown-aesthetic-line-art-daily-journal-cover-a4-document/",
+        "badge_text": "Canva شواهد",
+    },
+    {
+        "id": "canva_mp_EAF-ERcfPrA",
+        "canva_id": "EAF-ERcfPrA",
+        "name": "كانفا — الغلاف الإبداعي الملون للأنشطة الطلابية A4",
+        "category": "شواهد وتوثيق",
+        "source": "Canva Marketplace Live",
+        "layout": "gradient_arch",
+        "font_family": "Cairo",
+        "heading_font": "Cairo",
+        "description": "غلاف تعليمي حيوي متعدد الألوان يناسب أنشطة الطالبات والمسابقات المدرسية.",
+        "colors": {"primary": "#1e4b6e", "secondary": "#102e47", "accent": "#00b4d8", "bg": "#f4f9fc", "card_bg": "#ffffff", "text_dark": "#0f172a", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAF-ERcfPrA/1/0/1131w/canva-documento-a4-portada-de-cuaderno-comic-creativo-multicolor-FUyzdkmeFGk.jpg",
+        "canva_url": "https://www.canva.com/templates/EAF-ERcfPrA-documento-a4-portada-de-cuaderno-comic-creativo-multicolor/",
+        "badge_text": "Canva شواهد",
+    },
+    {
+        "id": "canva_mp_EAFA67337ZE",
+        "canva_id": "EAFA67337ZE",
+        "name": "كانفا — شهادة التميز الفضية والذهبية",
+        "category": "شهادات وتكريم",
+        "source": "Canva Marketplace Live",
+        "layout": "royal_double",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "شهادة تكريم رسمية بتفاصيل فضية وذهبية لتكريم الطالبات والمعلمات.",
+        "colors": {"primary": "#6b4f2d", "secondary": "#433018", "accent": "#d97706", "bg": "#fdfaf4", "card_bg": "#ffffff", "text_dark": "#24190c", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAFA67337ZE/1/0/400w/canva-silver-and-gold-minimalist-employee-of-the-month-certificate-CXrfuYm5Dbw.jpg",
+        "canva_url": "https://www.canva.com/templates/EAFA67337ZE-silver-and-gold-minimalist-employee-of-the-month-certificate/",
+        "badge_text": "Canva شهادة",
+    },
+    {
+        "id": "canva_mp_EAFA7nFGR6w",
+        "canva_id": "EAFA7nFGR6w",
+        "name": "كانفا — بوستر الأنشطة المدرسية والأندية الوردي والأزرق",
+        "category": "تقارير مدرسية",
+        "source": "Canva Marketplace Live",
+        "layout": "pastel_card",
+        "font_family": "Cairo",
+        "heading_font": "Cairo",
+        "description": "تصميم مشرق لبرامج الأنشطة المدرسية والأندية والمبادرات الطلابية.",
+        "colors": {"primary": "#8c4a58", "secondary": "#5c2d37", "accent": "#e09f97", "bg": "#fff8f9", "card_bg": "#ffffff", "text_dark": "#2d181e", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAFA7nFGR6w/1/0/1131w/canva-pink-blue-playful-modern-illustration-activity-club-school-poster-p6e3vWx0qzg.jpg",
+        "canva_url": "https://www.canva.com/templates/EAFA7nFGR6w-pink-blue-playful-modern-illustration-activity-club-school-poster/",
+        "badge_text": "Canva تقرير",
+    },
+    {
+        "id": "canva_mp_EAFA9Zq4z_g",
+        "canva_id": "EAFA9Zq4z_g",
+        "name": "كانفا — قالب المشاريع الجماعية والتعلم النشط المدرسي",
+        "category": "تقارير مدرسية",
+        "source": "Canva Marketplace Live",
+        "layout": "pastel_card",
+        "font_family": "Cairo",
+        "heading_font": "Cairo",
+        "description": "تصميم باستيل لطيف للتعلم التعاوني ومشاريع الفصول الابتدائية.",
+        "colors": {"primary": "#26538d", "secondary": "#16355e", "accent": "#f59e0b", "bg": "#f8fafc", "card_bg": "#ffffff", "text_dark": "#0f172a", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAFA9Zq4z_g/1/0/400w/canva-yellow-blue-pastel-cute-simple-3d-group-project-education-school-presentation-KU1JYeScHgE.jpg",
+        "canva_url": "https://www.canva.com/templates/EAFA9Zq4z_g-yellow-blue-pastel-cute-simple-3d-group-project-education-school-presentation/",
+        "badge_text": "Canva تقرير",
+    },
+    {
+        "id": "canva_mp_EAG-_LAt630",
+        "canva_id": "EAG-_LAt630",
+        "name": "كانفا — مستند التقارير الإبداعية الحديث A4",
+        "category": "تقارير مدرسية",
+        "source": "Canva Marketplace Live",
+        "layout": "gradient_arch",
+        "font_family": "Cairo",
+        "heading_font": "Cairo",
+        "description": "مستند تقارير حديث بألوان واضحة وتنسيق منظم للتقارير والخطط المدرسية.",
+        "colors": {"primary": "#0f766e", "secondary": "#115e59", "accent": "#f97316", "bg": "#f4fbf9", "card_bg": "#ffffff", "text_dark": "#0f172a", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAG-_LAt630/1/0/1131w/canva-doc-reporte-de-marketing-moderno-rosa-verde-y-naranja-DmOoLghCffo.jpg",
+        "canva_url": "https://www.canva.com/templates/EAG-_LAt630-doc-reporte-de-marketing-moderno-rosa-verde-y-naranja/",
+        "badge_text": "Canva تقرير",
+    },
+    {
+        "id": "canva_mp_EAF-db-OMBs",
+        "canva_id": "EAF-db-OMBs",
+        "name": "كانفا — ملف السيرة الذاتية والإنجاز الأزرق والأصفر A4",
+        "category": "ملفات أداء وإنجاز",
+        "source": "Canva Marketplace Live",
+        "layout": "clean_stripe",
+        "font_family": "Cairo",
+        "heading_font": "Cairo",
+        "description": "قالب سيرة ذاتية وبورتفوليو مهني منظم بالأزرق والأصفر مقاس A4.",
+        "colors": {"primary": "#1e4b6e", "secondary": "#102e47", "accent": "#eab308", "bg": "#f4f9fc", "card_bg": "#ffffff", "text_dark": "#0f172a", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAF-db-OMBs/1/0/1131w/canva-kuning-dan-biru-profesional-cv-resume-marketing-a4-Eio_DpnoxrU.jpg",
+        "canva_url": "https://www.canva.com/templates/EAF-db-OMBs-kuning-dan-biru-profesional-cv-resume-marketing-a4-eio-dpnoxru/",
+        "badge_text": "Canva سيرة",
+    },
+    {
+        "id": "canva_mp_EAG-ho8gmxg",
+        "canva_id": "EAG-ho8gmxg",
+        "name": "كانفا — البورتفوليو الكريمي الحديث لملفات الإنجاز",
+        "category": "ملفات أداء وإنجاز",
+        "source": "Canva Marketplace Live",
+        "layout": "pastel_card",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "تصميم كريمي هادئ ومرتب لعرض ملفات الأداء الوظيفي والسيرة المهنية.",
+        "colors": {"primary": "#6b4f2d", "secondary": "#433018", "accent": "#d97706", "bg": "#fdfaf4", "card_bg": "#ffffff", "text_dark": "#24190c", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAG-ho8gmxg/1/0/400w/canva-cream-modern-content-creator-portfolio-presentation-owqRFqQ5PSQ.jpg",
+        "canva_url": "https://www.canva.com/templates/EAG-ho8gmxg-cream-modern-content-creator-portfolio-presentation/",
+        "badge_text": "Canva A4",
+    },
+    {
+        "id": "canva_mp_EAG-MANo3Ro",
+        "canva_id": "EAG-MANo3Ro",
+        "name": "كانفا — كتيب البورتفوليو العصري الأزرق والذهبي A4",
+        "category": "ملفات أداء وإنجاز",
+        "source": "Canva Marketplace Live",
+        "layout": "modern_ribbon",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "تصميم كتيب إنجاز وبورتفوليو تعليمي متكامل بدرجات الأزرق والذهبي.",
+        "colors": {"primary": "#1e4b6e", "secondary": "#102e47", "accent": "#f59e0b", "bg": "#f8fafc", "card_bg": "#ffffff", "text_dark": "#0f172a", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAG-MANo3Ro/1/0/1131w/canva-orange-yellow-and-blue-modern-interior-designer-portfolio-booklet-hYIEUzUwEc4.jpg",
+        "canva_url": "https://www.canva.com/templates/EAG-MANo3Ro-orange-yellow-and-blue-modern-interior-designer-portfolio-booklet/",
+        "badge_text": "Canva كتيب",
+    },
+    {
+        "id": "canva_mp_EAFA7E4zF6w",
+        "canva_id": "EAFA7E4zF6w",
+        "name": "كانفا — بوستر البرامج والفعاليات المدرسية الوردي",
+        "category": "تقارير مدرسية",
+        "source": "Canva Marketplace Live",
+        "layout": "pastel_card",
+        "font_family": "Cairo",
+        "heading_font": "Cairo",
+        "description": "قالب فعاليات وأنشطة مدرسية بطابع عصري واضح.",
+        "colors": {"primary": "#8c4a58", "secondary": "#5c2d37", "accent": "#e09f97", "bg": "#fff8f9", "card_bg": "#ffffff", "text_dark": "#2d181e", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAFA7E4zF6w/1/0/1131w/canva-white-pink-modern-illustration-music-club-school-poster-UjcXJVgraXc.jpg",
+        "canva_url": "https://www.canva.com/templates/EAFA7E4zF6w-white-pink-modern-illustration-music-club-school-poster/",
+        "badge_text": "Canva فعاليات",
+    },
+    {
+        "id": "canva_mp_EAG-Ioa44aM",
+        "canva_id": "EAG-Ioa44aM",
+        "name": "كانفا — البورتفوليو الكلاسيكي الأسود والبيج",
+        "category": "ملفات أداء وإنجاز",
+        "source": "Canva Marketplace Live",
+        "layout": "clean_stripe",
+        "font_family": "Cairo",
+        "heading_font": "Amiri",
+        "description": "تنسيق تحريري رسمي بالبيج والأسود لملفات الأداء والشواهد.",
+        "colors": {"primary": "#2d3748", "secondary": "#1a202c", "accent": "#c8a97e", "bg": "#fdfaf6", "card_bg": "#ffffff", "text_dark": "#1a202c", "text_light": "#ffffff"},
+        "preview_image": "https://marketplace.canva.com/EAG-Ioa44aM/1/0/400w/canva-nero-bianco-e-beige-tipografico-portfolio-presentazione-i0xStsdE5Vc.jpg",
+        "canva_url": "https://www.canva.com/templates/EAG-Ioa44aM-nero-bianco-e-beige-tipografico-portfolio-presentazione/",
+        "badge_text": "Canva كلاسيك",
+    },
+]
+
 
 def _extract_palette_from_image_bytes(raw_bytes: bytes) -> Optional[Dict[str, str]]:
     """استخراج لوحة ألوان عالية التباين من صورة قالب كانفا المجلوب عند توفر Pillow."""
@@ -1280,12 +1571,10 @@ def _lookup_marketplace_image_by_id(canva_id: str) -> str:
     if len(cid) < 8:
         return ""
     # 1) الفحص الفوري في القوالب الموثقة والمخزنة محلياً
-    local_pool = list(EDU_CANVA_TEMPLATES)
-    cached_live = _load_json(EDU_CANVA_LIVE_CACHE_FILE, {})
-    if isinstance(cached_live, dict):
-        for lst in cached_live.values():
-            if isinstance(lst, list):
-                local_pool.extend(lst)
+    local_pool = list(EDU_CANVA_TEMPLATES) + list(CURATED_CANVA_MARKETPLACE_TEMPLATES)
+    cached_live = _load_json(EDU_CANVA_LIVE_CACHE_FILE, [])
+    if isinstance(cached_live, list):
+        local_pool.extend(cached_live)
     for item in local_pool:
         if not isinstance(item, dict):
             continue
@@ -1297,7 +1586,7 @@ def _lookup_marketplace_image_by_id(canva_id: str) -> str:
 
     # 2) البحث السريع في فهرس marketplace.canva.com
     try:
-        r = requests.get(
+        r = _get_canva_http_session().get(
             "https://web.archive.org/cdx/search/cdx",
             params={
                 "url": f"marketplace.canva.com/{cid}/*",
@@ -1305,7 +1594,7 @@ def _lookup_marketplace_image_by_id(canva_id: str) -> str:
                 "output": "json",
                 "limit": 10,
             },
-            timeout=4,
+            timeout=(2.0, 3.0),
         )
         if r.ok:
             rows = r.json()[1:]
@@ -1369,6 +1658,8 @@ def _parse_marketplace_url_to_template(img_url: str, fallback_cat: str = "ملف
         pal = {"primary": "#1e4b6e", "secondary": "#102e47", "accent": "#00b4d8", "bg": "#f4f9fc", "card_bg": "#ffffff", "text_dark": "#0f172a", "text_light": "#ffffff"}
 
     slug_for_url = re.sub(r"[^a-zA-Z0-9-]+", "-", "-".join(clean_words)).strip("-").lower()
+    if any(k in low or k in slug_for_url for k in _NON_EDU_CANVA_KEYWORDS):
+        return None
     return {
         "id": f"canva_mp_{cid}",
         "canva_id": cid,
@@ -1387,14 +1678,13 @@ def _parse_marketplace_url_to_template(img_url: str, fallback_cat: str = "ملف
 
 
 def _canva_live_search_scrape(query: str = "", category: str = "all", limit: int = 12) -> List[Dict[str, Any]]:
-    """جلب قوالب كانفا الحقيقية من Canva Marketplace + الكاش الذكي مع استخراج الألوان الفعلية."""
-    from concurrent.futures import ThreadPoolExecutor
+    """جلب قوالب كانفا الحقيقية من Canva Marketplace + الكاش الذكي بسرعة وبمهلة زمنية مضبوطة."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as _FutTimeout
 
     kw_list = _translate_canva_query_keywords(query, category)
     kw_regex = "|".join(re.escape(k) for k in kw_list)
     q_seed = sum(ord(ch) for ch in (query or "edu")) % 6
 
-    # بادئات متنوعة حتى لا تتكرر نفس النتائج في كل بحث
     all_prefixes = ["EAF-", "EAG-", "EAFa", "EAFb", "EAFc", "EAFd", "EAFm", "EAGa"]
     chosen_prefixes = [all_prefixes[(q_seed + i) % len(all_prefixes)] for i in range(3)]
     fallback_cat = category if (category and category != "all" and category != "تصاميمي المجلوبة") else "ملفات أداء وإنجاز"
@@ -1403,16 +1693,16 @@ def _canva_live_search_scrape(query: str = "", category: str = "all", limit: int
         out: List[Dict[str, Any]] = []
         try:
             flt_kw = f"original:.*/1/0/(?:400w|566w|800w|1131w)/canva-[a-z0-9-]*(?:{kw_regex})[a-z0-9-]*-[A-Za-z0-9_-]+\\.(?:jpg|png|webp)$"
-            r = requests.get(
+            r = _get_canva_http_session().get(
                 "https://web.archive.org/cdx/search/cdx",
                 params={
                     "url": f"marketplace.canva.com/{prefix}*",
                     "filter": ["statuscode:200", "mimetype:image/.*", flt_kw],
                     "output": "json",
-                    "limit": 18,
+                    "limit": 16,
                     "collapse": "urlkey",
                 },
-                timeout=5,
+                timeout=(2.0, 3.0),
             )
             if r.ok:
                 rows = r.json()[1:]
@@ -1427,24 +1717,35 @@ def _canva_live_search_scrape(query: str = "", category: str = "all", limit: int
     discovered: List[Dict[str, Any]] = []
     seen_cids = set()
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        for batch in pool.map(_query_cdx, chosen_prefixes):
-            for item in batch:
-                cid = item.get("canva_id") or item["id"]
-                if cid in seen_cids:
-                    continue
-                seen_cids.add(cid)
-                discovered.append(item)
+    pool = ThreadPoolExecutor(max_workers=3)
+    try:
+        futures = [pool.submit(_query_cdx, pref) for pref in chosen_prefixes]
+        try:
+            for fut in as_completed(futures, timeout=4.2):
+                try:
+                    batch = fut.result() or []
+                except Exception:
+                    batch = []
+                for item in batch:
+                    cid = item.get("canva_id") or item["id"]
+                    if cid in seen_cids:
+                        continue
+                    seen_cids.add(cid)
+                    discovered.append(item)
+        except _FutTimeout:
+            pass
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
 
-    # استخراج الألوان الحقيقية لأول 6 قوالب جديدة عبر تحميل صور marketplace.canva.com مباشرة
+    # استخراج الألوان الحقيقية لأول 3 قوالب فقط بمهلة قصيرة وتخزين صورها في القرص
     def _enrich_palette(tpl: Dict[str, Any]) -> Dict[str, Any]:
         u = tpl.get("preview_image") or ""
         if not u:
             return tpl
         try:
-            ir = requests.get(u, timeout=4, headers={"User-Agent": "Mozilla/5.0"})
-            if ir.ok and ir.headers.get("Content-Type", "").startswith("image/"):
-                pal = _extract_palette_from_image_bytes(ir.content)
+            raw, _ = fetch_canva_image_bytes_cached(u, timeout=(1.5, 2.2))
+            if raw:
+                pal = _extract_palette_from_image_bytes(raw)
                 if pal:
                     tpl["colors"] = pal
         except Exception:
@@ -1452,27 +1753,46 @@ def _canva_live_search_scrape(query: str = "", category: str = "all", limit: int
         return tpl
 
     if discovered:
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            enriched = list(pool.map(_enrich_palette, discovered[:6]))
-            discovered[:6] = enriched
+        epool = ThreadPoolExecutor(max_workers=3)
+        try:
+            efuts = [epool.submit(_enrich_palette, item) for item in discovered[:3]]
+            try:
+                for idx, fut in enumerate(as_completed(efuts, timeout=2.5)):
+                    try:
+                        fut.result()
+                    except Exception:
+                        pass
+            except _FutTimeout:
+                pass
+        finally:
+            epool.shutdown(wait=False, cancel_futures=True)
 
-        # تحديث الكاش المحلي للقوالب الحقيقية المكتشفة لسرعة البحث لاحقاً
-        live_cache = _load_json(EDU_CANVA_LIVE_CACHE_FILE, [])
-        if not isinstance(live_cache, list):
-            live_cache = []
-        new_ids = {x["id"] for x in discovered}
-        merged_cache = discovered + [x for x in live_cache if isinstance(x, dict) and x.get("id") not in new_ids]
-        _save_json(EDU_CANVA_LIVE_CACHE_FILE, merged_cache[:60])
+        try:
+            live_cache = _load_json(EDU_CANVA_LIVE_CACHE_FILE, [])
+            if not isinstance(live_cache, list):
+                live_cache = []
+            live_cache = [x for x in live_cache if not _is_non_edu_template(x)]
+            new_ids = {x["id"] for x in discovered}
+            merged_cache = discovered + [x for x in live_cache if isinstance(x, dict) and x.get("id") not in new_ids]
+            _save_json(EDU_CANVA_LIVE_CACHE_FILE, merged_cache[:60])
+        except Exception:
+            pass
     else:
-        # في حال تباطؤ أو انقطاع CDX المؤقت، نستخدم القوالب الحقيقية المحفوظة في الكاش
         live_cache = _load_json(EDU_CANVA_LIVE_CACHE_FILE, [])
+        fallback_pool: List[Dict[str, Any]] = []
         if isinstance(live_cache, list):
-            for item in live_cache:
-                if not isinstance(item, dict):
-                    continue
-                hay = f"{item.get('name','')} {item.get('canva_url','')} {item.get('category','')}".lower()
-                if any(k in hay for k in kw_list) or not query.strip():
-                    discovered.append(item)
+            fallback_pool.extend(live_cache)
+        fallback_pool.extend(CURATED_CANVA_MARKETPLACE_TEMPLATES)
+        for item in fallback_pool:
+            if not isinstance(item, dict) or _is_non_edu_template(item):
+                continue
+            cid = item.get("canva_id") or item.get("id")
+            if cid in seen_cids:
+                continue
+            hay = f"{item.get('name','')} {item.get('canva_url','')} {item.get('category','')}".lower()
+            if any(k in hay for k in kw_list) or not query.strip():
+                seen_cids.add(cid)
+                discovered.append(item)
 
     return discovered[:limit]
 
@@ -1491,7 +1811,6 @@ def _normalize_edu_template(raw: Dict[str, Any]) -> Dict[str, Any]:
 
     preview_image = (raw.get("preview_image") or "").strip()
     raw_safe = (raw.get("safe_preview_data_url") or "").strip()
-    # عدم تغطية الصورة الحقيقية بصورة SVG المولدة أبداً!
     is_real_raster_data = raw_safe.startswith("data:image/jpeg") or raw_safe.startswith("data:image/png") or raw_safe.startswith("data:image/webp") or raw_safe.startswith("data:image/gif")
     safe_preview_data_url = raw_safe if is_real_raster_data else ""
 
@@ -1541,11 +1860,12 @@ def _edu_patch_importer():
         self,
         query: str = "",
         category: str = "all",
-        source: str = "all",
+        source: str = "cached",
         canva_token: str = "",
     ) -> Dict[str, Any]:
         live_items: List[Dict[str, Any]] = []
         api_error = ""
+        live_warning = ""
         if canva_token and canva_token.strip():
             try:
                 api_items = self.fetch_canva_api_designs(canva_token.strip())
@@ -1553,8 +1873,11 @@ def _edu_patch_importer():
             except Exception as exc:
                 api_error = str(exc)
 
-        if source in ("all", "live"):
-            live_items.extend(_canva_live_search_scrape(query=query, category=category, limit=12))
+        if source == "live":
+            try:
+                live_items.extend(_canva_live_search_scrape(query=query, category=category, limit=12))
+            except Exception as exc:
+                live_warning = str(exc)
 
         imported = _load_json(CANVA_CACHE_FILE, [])
         if not isinstance(imported, list):
@@ -1570,9 +1893,11 @@ def _edu_patch_importer():
 
         catalog: List[Dict[str, Any]] = []
         seen_ids = set()
-        for src_list in (live_items, imported, EDU_CANVA_TEMPLATES, live_cached, CANVA_TEMPLATES):
+        for src_list in (live_items, imported, EDU_CANVA_TEMPLATES, CURATED_CANVA_MARKETPLACE_TEMPLATES, live_cached, CANVA_TEMPLATES):
             for item in src_list:
                 if not isinstance(item, dict):
+                    continue
+                if src_list is live_cached and _is_non_edu_template(item):
                     continue
                 norm = _normalize_edu_template(item)
                 if norm["id"] in seen_ids:
@@ -1580,12 +1905,14 @@ def _edu_patch_importer():
                 seen_ids.add(norm["id"])
                 catalog.append(norm)
 
-        # حفظ فهرس المعرض الحالي للرجوع السريع عند تحديد القوالب
         browse_cache = [
             {k: v for k, v in it.items() if k not in ("safe_preview_data_url", "fallback_preview_data_url")}
-            for it in catalog[:90]
+            for it in catalog[:110]
         ]
-        _save_json(EDU_CANVA_BROWSE_CACHE_FILE, browse_cache)
+        try:
+            _save_json(EDU_CANVA_BROWSE_CACHE_FILE, browse_cache)
+        except Exception:
+            pass
 
         kw = (query or "").strip().lower()
         kw_en = _translate_canva_query_keywords(query, category) if kw else []
@@ -1609,10 +1936,12 @@ def _edu_patch_importer():
             "fetched": [_normalize_edu_template(x) for x in fetched_saved],
             "live_count": len(live_items),
             "api_error": api_error,
+            "live_warning": live_warning,
         }
 
     def fetch_selected_edu_canva(self, selected_items: List[Dict[str, Any]], canva_token: str = "") -> List[Dict[str, Any]]:
         import base64 as _b64
+        from concurrent.futures import ThreadPoolExecutor
         if not isinstance(selected_items, list) or not selected_items:
             raise ValueError("يرجى تحديد قالب واحد على الأقل لجلبه")
 
@@ -1622,6 +1951,7 @@ def _edu_patch_importer():
             _load_json(EDU_CANVA_LIVE_CACHE_FILE, []),
             _load_json(CANVA_CACHE_FILE, []),
             EDU_CANVA_TEMPLATES,
+            CURATED_CANVA_MARKETPLACE_TEMPLATES,
             CANVA_TEMPLATES,
         ):
             if isinstance(src_list, list):
@@ -1630,8 +1960,9 @@ def _edu_patch_importer():
                         n = _normalize_edu_template(it)
                         catalog_map[n["id"]] = n
 
-        fetched_results: List[Dict[str, Any]] = []
-        for raw_item in selected_items:
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        def _process_one(raw_item: Any) -> Optional[Dict[str, Any]]:
             if isinstance(raw_item, str):
                 base = catalog_map.get(raw_item, {"id": raw_item, "name": raw_item})
             elif isinstance(raw_item, dict):
@@ -1641,7 +1972,7 @@ def _edu_patch_importer():
                     if v not in (None, ""):
                         base[k] = v
             else:
-                continue
+                return None
 
             norm = _normalize_edu_template(base)
             c_url = norm.get("canva_url", "")
@@ -1654,38 +1985,32 @@ def _edu_patch_importer():
                 if not norm.get("preview_image") and norm.get("canva_id"):
                     norm["preview_image"] = _lookup_marketplace_image_by_id(norm["canva_id"])
 
-            # تحميل صورة القالب الفعلية من كانفا، استخراج ألوانها الحقيقية، وتخزينها محلياً لتفادي CORS أثناء PDF والطباعة
             img_url = norm.get("preview_image", "")
             if img_url.startswith(("http://", "https://")) and not norm.get("safe_preview_data_url"):
-                try:
-                    img_resp = requests.get(
-                        img_url,
-                        timeout=7,
-                        headers={
-                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0 Safari/537.36",
-                            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-                        },
-                    )
-                    if img_resp.ok and img_resp.headers.get("Content-Type", "").startswith("image/") and len(img_resp.content) < 4_500_000:
-                        extracted_pal = _extract_palette_from_image_bytes(img_resp.content)
-                        if extracted_pal:
-                            norm["colors"] = extracted_pal
+                raw_bytes, ctype = fetch_canva_image_bytes_cached(img_url, timeout=(2.0, 4.0))
+                if raw_bytes:
+                    extracted_pal = _extract_palette_from_image_bytes(raw_bytes)
+                    if extracted_pal:
+                        norm["colors"] = extracted_pal
+                    if len(raw_bytes) < 2_200_000:
                         norm["safe_preview_data_url"] = (
-                            f"data:{img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]};base64,"
-                            + _b64.b64encode(img_resp.content).decode("ascii")
+                            f"data:{ctype or 'image/jpeg'};base64,"
+                            + _b64.b64encode(raw_bytes).decode("ascii")
                         )
-                except Exception:
-                    pass
 
-            norm["fetched_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
-            fetched_results.append(norm)
+            norm["fetched_at"] = now_str
+            return norm
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            mapped = list(pool.map(_process_one, selected_items[:45]))
+        fetched_results: List[Dict[str, Any]] = [x for x in mapped if x is not None]
 
         existing = _load_json(EDU_CANVA_FETCHED_FILE, [])
         if not isinstance(existing, list):
             existing = []
         new_ids = {x["id"] for x in fetched_results}
         merged = fetched_results + [x for x in existing if isinstance(x, dict) and x.get("id") not in new_ids]
-        _save_json(EDU_CANVA_FETCHED_FILE, merged[:40])
+        _save_json(EDU_CANVA_FETCHED_FILE, merged[:45])
         return fetched_results
 
     def get_fetched_edu_canva(self) -> List[Dict[str, Any]]:
@@ -1726,6 +2051,7 @@ def _edu_patch_importer():
             _load_json(EDU_CANVA_BROWSE_CACHE_FILE, []),
             _load_json(EDU_CANVA_LIVE_CACHE_FILE, []),
             EDU_CANVA_TEMPLATES,
+            CURATED_CANVA_MARKETPLACE_TEMPLATES,
             CANVA_TEMPLATES,
         ):
             if isinstance(src_list, list):
@@ -1796,27 +2122,21 @@ def _edu_patch_importer():
 
             if img_url.startswith(("http://", "https://")):
                 try:
-                    ir = requests.get(
-                        img_url,
-                        timeout=8,
-                        headers={
-                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0 Safari/537.36",
-                            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-                        },
-                    )
-                    if ir.ok and ir.headers.get("Content-Type", "").startswith("image/") and len(ir.content) < 5_000_000:
-                        pal = _extract_palette_from_image_bytes(ir.content)
+                    raw_img_bytes, ctype = fetch_canva_image_bytes_cached(img_url, timeout=(2.0, 4.5))
+                    if raw_img_bytes:
+                        pal = _extract_palette_from_image_bytes(raw_img_bytes)
                         if pal:
                             norm["colors"] = pal
                             bg_hex = pal.get("bg", bg_hex)
                             p_hex = pal.get("primary", p_hex)
                             a_hex = pal.get("accent", a_hex)
-                        with Image.open(io.BytesIO(ir.content)) as im:
+                        with Image.open(io.BytesIO(raw_img_bytes)) as im:
                             pil_pages = [_render_a4_canvas_from_pil(im, bg_hex=bg_hex, primary_hex=p_hex, accent_hex=a_hex)]
-                        norm["safe_preview_data_url"] = (
-                            f"data:{ir.headers.get('Content-Type', 'image/jpeg').split(';')[0]};base64,"
-                            + _b64.b64encode(ir.content).decode("ascii")
-                        )
+                        if len(raw_img_bytes) < 2_200_000:
+                            norm["safe_preview_data_url"] = (
+                                f"data:{ctype or 'image/jpeg'};base64,"
+                                + _b64.b64encode(raw_img_bytes).decode("ascii")
+                            )
                 except Exception:
                     pil_pages = []
 

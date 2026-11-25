@@ -1032,6 +1032,16 @@
         font-family: inherit; font-size: 12px; font-weight: 700;
     }
     .table-controls button:hover { background: var(--dark); }
+    .app-confirm-overlay {
+        display: none; position: fixed; inset: 0; z-index: 260000;
+        background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(4px);
+        align-items: center; justify-content: center; padding: 16px;
+    }
+    .app-confirm-overlay.show { display: flex; }
+    .app-confirm-box {
+        background: #ffffff; border-radius: 14px; width: 100%; max-width: 420px;
+        padding: 22px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
 </style>
 </head>
 <body>
@@ -1083,6 +1093,18 @@
     <a id="pdfDirectDownloadLink" href="#" download="سجل_شواهد_الأداء_الوظيفي.pdf">📥 حفظ الملف</a>
     <button type="button" class="open-btn" onclick="openLastPdfBlob()">👁️ فتح الملف</button>
     <button type="button" class="close-btn" onclick="closePdfReadyBanner()">✕</button>
+</div>
+
+<!-- ===== نافذة تأكيد داخل التطبيق ===== -->
+<div class="app-confirm-overlay" id="appConfirmModal">
+    <div class="app-confirm-box">
+        <h3 id="appConfirmTitle" style="color:#1e3a8a;margin-bottom:10px;font-size:18px;font-weight:900;">تأكيد الإجراء</h3>
+        <p id="appConfirmMessage" style="color:#374151;font-size:15px;margin-bottom:22px;line-height:1.7;"></p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button type="button" id="appConfirmOkBtn" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;">نعم، تأكيد</button>
+            <button type="button" onclick="closeAppConfirm(false)" style="background:#64748b;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;">إلغاء</button>
+        </div>
+    </div>
 </div>
 
 <!-- ===== عارض صور الشواهد المدمج ===== -->
@@ -2092,6 +2114,7 @@ function addRow(btn) {
         <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
     `;
     tbody.appendChild(tr);
+    markUserEdited();
     const firstInput = tr.querySelector('.col-witness .cell-content');
     if (firstInput) firstInput.focus();
     initWitnessCells();
@@ -2190,6 +2213,7 @@ function applyModalStyleToAll() {
         renderWitnessCell(td);
         count++;
     });
+    markUserEdited();
     setStatus(`✅ تم تطبيق الحجم والموضع على ${count} صف`);
 }
 
@@ -2565,6 +2589,7 @@ function saveWitness() {
     });
     currentWitnessCell.dataset.witness = JSON.stringify(data);
     renderWitnessCell(currentWitnessCell);
+    markUserEdited();
     closeWitnessModal();
     setStatus('✅ تم حفظ الشواهد وإعدادات العرض');
 }
@@ -2645,6 +2670,7 @@ function adjustWitnessSize(btn, delta) {
     }
     cell.dataset.witness = JSON.stringify(data);
     renderWitnessCell(cell);
+    markUserEdited();
 }
 
 function cycleWitnessPlacement(btn) {
@@ -2656,6 +2682,7 @@ function cycleWitnessPlacement(btn) {
     data.placement = order[(idx + 1) % order.length];
     cell.dataset.witness = JSON.stringify(data);
     renderWitnessCell(cell);
+    markUserEdited();
 }
 
 function removeImageFromWitness(btn, idx) {
@@ -2665,6 +2692,7 @@ function removeImageFromWitness(btn, idx) {
     data.images.splice(idx, 1);
     cell.dataset.witness = JSON.stringify(data);
     renderWitnessCell(cell);
+    markUserEdited();
 }
 
 function updatePageOverflowFlag(el) {
@@ -2798,13 +2826,49 @@ function addNewPage() {
     `;
     const lastPage = wrap.lastElementChild;
     wrap.insertBefore(page, lastPage);
+    markUserEdited();
     page.scrollIntoView({behavior:'smooth', block:'start'});
     setStatus('تمت إضافة صفحة جديدة');
 }
 
 /* ============ الحفظ والاسترجاع ============ */
+const DEFAULT_CONTENT_VERSION = '2026-11-25-v1';
+let hasUserEdited = false;
+let pendingConfirmCb = null;
+
+function markUserEdited() {
+    hasUserEdited = true;
+}
+
+function showAppConfirm(title, message, onConfirm) {
+    const modal = document.getElementById('appConfirmModal');
+    const titleEl = document.getElementById('appConfirmTitle');
+    const msgEl = document.getElementById('appConfirmMessage');
+    const okBtn = document.getElementById('appConfirmOkBtn');
+    if (!modal || !okBtn) {
+        if (onConfirm) onConfirm();
+        return;
+    }
+    if (titleEl) titleEl.textContent = title || 'تأكيد';
+    if (msgEl) msgEl.textContent = message || '';
+    pendingConfirmCb = onConfirm;
+    okBtn.onclick = function() {
+        closeAppConfirm(true);
+    };
+    modal.classList.add('show');
+}
+
+function closeAppConfirm(confirmed) {
+    const modal = document.getElementById('appConfirmModal');
+    if (modal) modal.classList.remove('show');
+    const cb = pendingConfirmCb;
+    pendingConfirmCb = null;
+    if (confirmed && typeof cb === 'function') cb();
+}
+
 function getState() {
     return {
+        version: DEFAULT_CONTENT_VERSION,
         pagesHTML: document.getElementById('pagesWrap').innerHTML,
         activeCanvaTemplate: activeCanvaTemplate || null,
         timestamp: new Date().toISOString()
@@ -2814,6 +2878,7 @@ function getState() {
 function saveData() {
     try {
         localStorage.setItem('perf_form_v5', JSON.stringify(getState()));
+        hasUserEdited = false;
         setStatus('✅ تم الحفظ - ' + new Date().toLocaleTimeString('ar-SA'));
     } catch(e) {
         setStatus('❌ فشل الحفظ: ' + e.message);
@@ -2825,11 +2890,14 @@ function loadData() {
     if (!raw) { setStatus('لا توجد بيانات محفوظة'); return; }
     try {
         const state = JSON.parse(raw);
-        document.getElementById('pagesWrap').innerHTML = state.pagesHTML;
+        if (state.pagesHTML) {
+            document.getElementById('pagesWrap').innerHTML = state.pagesHTML;
+        }
         initWitnessCells();
         if (state.activeCanvaTemplate) {
             applyCanvaTemplateToContent(state.activeCanvaTemplate, false);
         }
+        hasUserEdited = false;
         setStatus('✅ تم استرجاع البيانات');
     } catch(e) {
         setStatus('❌ خطأ: ' + e.message);
@@ -2837,11 +2905,11 @@ function loadData() {
 }
 
 function resetAll() {
-    if (confirm('هل أنت متأكد من حذف كل التعديلات والعودة للنموذج الأصلي؟')) {
+    showAppConfirm('إعادة تعيين السجل', 'هل أنت متأكد من حذف كل التعديلات والعودة للنموذج الأصلي الثابت؟', () => {
         localStorage.removeItem('perf_form_v5');
         localStorage.removeItem(CANVA_ACTIVE_STORAGE_KEY);
         location.reload();
-    }
+    });
 }
 
 /* ============ تجهيز باركود QR قبل المعاينة أو الطباعة ============ */
@@ -3219,11 +3287,37 @@ function escCanvaHtml(str) {
     return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+async function fetchCanvaJson(url, options = {}, timeoutMs = 15000) {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+    try {
+        const res = await fetch(url, {
+            ...options,
+            signal: ctrl ? ctrl.signal : options.signal,
+        });
+        const text = await res.text();
+        let data = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            throw new Error(res.ok ? 'استجابة غير متوقعة من الخادم' : `خطأ من الخادم (${res.status})`);
+        }
+        return { res, data };
+    } catch (err) {
+        if (err && err.name === 'AbortError') {
+            throw new Error('انتهت مهلة الاتصال بكانفا — يرجى المحاولة مرة أخرى');
+        }
+        throw err;
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
 function openCanvaHubModal() {
     document.getElementById('canvaTemplatesModal')?.classList.add('show');
     renderCollectedCanvaTemplates();
     if (!canvaFetchedTemplates.length) {
-        fetchCanvaInsideUI();
+        fetchCanvaInsideUI(false);
     } else {
         renderFetchedCanvaTemplates();
     }
@@ -3239,20 +3333,20 @@ function filterCanvaCategory(cat, btnEl) {
     renderFetchedCanvaTemplates();
 }
 
-async function fetchCanvaInsideUI() {
+async function fetchCanvaInsideUI(forceLive = true) {
     const btn = document.getElementById('btnFetchCanvaInside');
     const statusEl = document.getElementById('canvaHubStatus');
     const q = (document.getElementById('canvaSearchInput')?.value || '').trim();
+    const isLive = Boolean(forceLive);
     const orig = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ جاري فتح كانفا وجلب القوالب...'; }
-    if (statusEl) statusEl.textContent = '⏳ جاري الاتصال بكانفا وجلب القوالب داخل الواجهة...';
+    if (btn) { btn.disabled = true; btn.innerHTML = isLive ? '⏳ جاري جلب قوالب كانفا...' : '⏳ جاري تحميل القوالب...'; }
+    if (statusEl) statusEl.textContent = isLive ? '⏳ جاري الاتصال بكانفا وجلب القوالب داخل الواجهة...' : '⏳ جاري تحميل مكتبة قوالب كانفا السريعة...';
     try {
-        const res = await fetch('/api/edu/canva/browse', {
+        const { res, data: d } = await fetchCanvaJson('/api/edu/canva/browse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: q, category: canvaSelectedCategory })
-        });
-        const d = await res.json();
+            body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: isLive ? 'live' : 'cached' })
+        }, isLive ? 15000 : 10000);
         if (!res.ok || d.error) throw new Error(d.error || 'تعذر جلب القوالب');
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
         const badge = document.getElementById('canvaGoogleActiveBadge');
@@ -3261,9 +3355,26 @@ async function fetchCanvaInsideUI() {
         }
         renderFetchedCanvaTemplates();
         if (statusEl) {
-            statusEl.textContent = `✅ تم جلب ${canvaFetchedTemplates.length} قالب من كانفا داخل الواجهة (${d.source_note || 'جاهز للتحديد'})`;
+            statusEl.textContent = d.live_warning
+                ? `✅ تم عرض ${canvaFetchedTemplates.length} قالب جاهز من المكتبة الموثقة (تعذر الاتصال اللحظي الآن)`
+                : `✅ تم تحميل ${canvaFetchedTemplates.length} قالب من كانفا داخل الواجهة (${d.source_note || 'جاهز للتحديد'})`;
         }
     } catch (e) {
+        if (isLive) {
+            try {
+                const fb = await fetchCanvaJson('/api/edu/canva/browse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: 'cached' })
+                }, 8000);
+                if (fb.res.ok && fb.data && !fb.data.error) {
+                    canvaFetchedTemplates = Array.isArray(fb.data.templates) ? fb.data.templates : [];
+                    renderFetchedCanvaTemplates();
+                    if (statusEl) statusEl.textContent = `⚠️ استغرق الاتصال المباشر وقتاً أطول — تم عرض ${canvaFetchedTemplates.length} قالب محفوظ وموثق فوراً.`;
+                    return;
+                }
+            } catch (_) {}
+        }
         if (statusEl) statusEl.textContent = '⚠️ ' + e.message;
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = orig; }
@@ -3277,12 +3388,11 @@ async function importCanvaLinkInsideUI() {
     if (!url) { if (statusEl) statusEl.textContent = '⚠️ الصق رابط قالب أو تصميم من كانفا أولاً.'; return; }
     if (statusEl) statusEl.textContent = '⏳ جاري جلب القالب من الرابط داخل الواجهة...';
     try {
-        const res = await fetch('/api/edu/canva/browse', {
+        const { res, data: d } = await fetchCanvaJson('/api/edu/canva/browse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ canva_url: url, name, category: 'شواهد وتقارير' })
-        });
-        const d = await res.json();
+            body: JSON.stringify({ canva_url: url, name, category: 'شواهد وتقارير', source: 'cached' })
+        }, 18000);
         if (!res.ok || d.error) throw new Error(d.error || 'فشل جلب الرابط');
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
         if (d.imported_template && d.imported_template.id) {
@@ -3303,12 +3413,11 @@ async function syncCanvaTokenInsideUI() {
     if (!token) { if (statusEl) statusEl.textContent = '⚠️ أدخل Canva API Token أولاً.'; return; }
     if (statusEl) statusEl.textContent = '⏳ جاري جلب تصاميمك الشخصية من كانفا...';
     try {
-        const res = await fetch('/api/edu/canva/browse', {
+        const { res, data: d } = await fetchCanvaJson('/api/edu/canva/browse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: token })
-        });
-        const d = await res.json();
+            body: JSON.stringify({ access_token: token, source: 'cached' })
+        }, 18000);
         if (!res.ok || d.error) throw new Error(d.error || 'تعذر المزامنة');
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
         renderFetchedCanvaTemplates();
@@ -3345,13 +3454,26 @@ function selectAllFetchedCanva(flag) {
     renderFetchedCanvaTemplates();
 }
 
+function getSafeCanvaThumbUrl(t) {
+    if (!t) return '';
+    if (t.safe_preview_data_url && /^data:image\/(jpeg|jpg|png|webp|gif)/i.test(t.safe_preview_data_url)) {
+        return t.safe_preview_data_url;
+    }
+    if (t.preview_image && /^https?:\/\//i.test(t.preview_image)) {
+        return '/api/edu/canva/proxy_img?url=' + encodeURIComponent(t.preview_image);
+    }
+    return t.fallback_preview_data_url || '';
+}
+
 function buildCanvaCardThumbHTML(t) {
     const c = t.colors || {};
     const p = c.primary || '#1e3a8a';
     const s = c.secondary || '#0f172a';
     const a = c.accent || '#f59e0b';
     const bg = c.bg || '#f8fafc';
-    const previewImg = t.preview_image ? `<img src="${escCanvaHtml(t.preview_image)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.25;">` : '';
+    const srcUrl = getSafeCanvaThumbUrl(t);
+    const fbUrl = t.fallback_preview_data_url || '';
+    const previewImg = srcUrl ? `<img src="${escCanvaHtml(srcUrl)}" data-fb="${escCanvaHtml(fbUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}else{this.style.display='none';}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.25;">` : '';
     return `<div class="canva-tpl-thumb" style="background:${bg};border-bottom:2px solid ${p};">
         ${previewImg}
         <div style="position:relative;z-index:2;height:26px;background:linear-gradient(135deg,${p},${s});border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
@@ -3590,15 +3712,25 @@ function setStatus(msg) {
     setTimeout(() => { el.textContent = 'جاهز للتعديل'; }, 5000);
 }
 
-/* ============ حفظ تلقائي ============ */
+/* ============ حفظ تلقائي عند وجود تعديل فعلي كل 30 ثانية ============ */
 setInterval(() => {
-    try { localStorage.setItem('perf_form_v5', JSON.stringify(getState())); } catch(e) {}
+    if (!hasUserEdited) return;
+    try {
+        localStorage.setItem('perf_form_v5', JSON.stringify(getState()));
+        hasUserEdited = false;
+    } catch(e) {}
 }, 30000);
 
 window.addEventListener('load', () => {
     const isStandalone = window.self === window.top || new URLSearchParams(window.location.search).get('standalone') === '1';
     const backBtn = document.getElementById('btnBackHome');
     if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
+
+    const pagesWrapEl = document.getElementById('pagesWrap');
+    if (pagesWrapEl) {
+        pagesWrapEl.addEventListener('input', markUserEdited);
+        pagesWrapEl.addEventListener('change', markUserEdited);
+    }
 
     initWitnessCells();
     try {
@@ -3607,7 +3739,14 @@ window.addEventListener('load', () => {
     } catch (e) {}
     const raw = localStorage.getItem('perf_form_v5');
     if (raw) {
-        if (confirm('يوجد حفظ سابق. هل تريد استرجاعه؟')) loadData();
+        try {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.version === DEFAULT_CONTENT_VERSION) {
+                showAppConfirm('يوجد حفظ سابق', 'يوجد تعديلات محفوظة مسبقاً في المتصفح. هل تريد استرجاعها؟', () => {
+                    loadData();
+                });
+            }
+        } catch (e) {}
     }
 });
 </script>

@@ -2666,11 +2666,18 @@
    تطبيق المحرر التفاعلي لملف التقارير والبرامج التربوية والأنشطة المدرسية
 ================================================== */
 const STORAGE_KEY = 'edu_reports_v4_26';
+const DEFAULT_CONTENT_VERSION = '2026-11-25-v1';
+const VERSION_STORAGE_KEY = 'edu_reports_version_v1';
+let hasUserEdited = false;
 let activeEditable = null;
 let currentWitnessContainer = null;
 let currentImages = [];
 let currentLinks = [];
 let pendingConfirmCb = null;
+
+function markUserEdited() {
+    hasUserEdited = true;
+}
 
 /* ============ حوار تأكيد داخلي موثوق (لا يتأثر بحظر الإطارات) ============ */
 function showAppConfirm(title, message, onConfirm) {
@@ -2727,6 +2734,7 @@ document.addEventListener('focusout', function() {
 
 function execCmd(cmd, val) {
     document.execCommand(cmd, false, val || null);
+    markUserEdited();
     if (activeEditable) activeEditable.focus();
 }
 
@@ -2748,11 +2756,13 @@ function changeSize(delta) {
             last.replaceWith(span);
         }
     }
+    markUserEdited();
 }
 
 function setExactSize(size) {
     if (!activeEditable) return;
     activeEditable.style.fontSize = size + 'px';
+    markUserEdited();
 }
 
 /* ============ إدارة الصفحات والأقسام (إضافة وحذف) ============ */
@@ -2789,6 +2799,7 @@ function addNewPage(afterEl) {
     }
     initPageControls();
     renderAllWitnesses();
+    markUserEdited();
     page.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setStatus('✅ تمت إضافة صفحة جديدة');
 }
@@ -2852,6 +2863,7 @@ function addNewSection() {
     container.appendChild(report);
     initPageControls();
     renderAllWitnesses();
+    markUserEdited();
     header.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setStatus('✅ تمت إضافة قسم وتقرير جديد');
 }
@@ -2904,6 +2916,7 @@ function deleteBlockConfirm(btn) {
     showAppConfirm('حذف الصفحة / القسم', `هل تريد حذف "${label}" من الملف نهائياً؟`, () => {
         block.remove();
         initPageControls();
+        markUserEdited();
         setStatus('🗑️ تم حذف: ' + label);
     });
 }
@@ -3050,6 +3063,8 @@ function getWitnessSectionNodes(grid) {
 function persistReportsSilent() {
     try {
         localStorage.setItem(STORAGE_KEY, getSerializedContainerHTML());
+        localStorage.setItem(VERSION_STORAGE_KEY, DEFAULT_CONTENT_VERSION);
+        hasUserEdited = false;
     } catch (e) {}
 }
 
@@ -4108,6 +4123,8 @@ function getSerializedContainerHTML() {
 function saveData() {
     try {
         localStorage.setItem(STORAGE_KEY, getSerializedContainerHTML());
+        localStorage.setItem(VERSION_STORAGE_KEY, DEFAULT_CONTENT_VERSION);
+        hasUserEdited = false;
         setStatus('✅ تم الحفظ بنجاح - ' + new Date().toLocaleTimeString('ar-SA'));
     } catch (e) {
         setStatus('❌ فشل الحفظ (قد تكون مساحة المتصفح ممتلئة): ' + e.message);
@@ -4182,8 +4199,9 @@ function loadData() {
 }
 
 function resetAll() {
-    showAppConfirm('إعادة تعيين الملف', 'هل أنت متأكد من حذف جميع التعديلات والعودة للنموذج الأصلي؟', () => {
+    showAppConfirm('إعادة تعيين الملف', 'هل أنت متأكد من حذف جميع التعديلات والعودة للنموذج الأصلي الثابت؟', () => {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(VERSION_STORAGE_KEY);
         location.reload();
     });
 }
@@ -4774,10 +4792,13 @@ function setStatus(msg) {
     setTimeout(() => { el.textContent = 'جاهز للتعديل المباشر'; }, 5000);
 }
 
-/* ============ حفظ تلقائي كل 30 ثانية ============ */
+/* ============ حفظ تلقائي عند وجود تعديل فعلي كل 30 ثانية ============ */
 setInterval(() => {
+    if (!hasUserEdited) return;
     try {
         localStorage.setItem(STORAGE_KEY, getSerializedContainerHTML());
+        localStorage.setItem(VERSION_STORAGE_KEY, DEFAULT_CONTENT_VERSION);
+        hasUserEdited = false;
     } catch (e) {}
 }, 30000);
 
@@ -4787,12 +4808,18 @@ window.addEventListener('load', () => {
     const backBtn = document.getElementById('btnBackHome');
     if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
 
+    const mainContainerEl = document.getElementById('mainContainer');
+    if (mainContainerEl) {
+        mainContainerEl.addEventListener('input', markUserEdited);
+        mainContainerEl.addEventListener('change', markUserEdited);
+    }
+
     captureDefaultWitnessSnapshot();
     initPageControls();
     renderAllWitnesses();
 
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    if (saved && localStorage.getItem(VERSION_STORAGE_KEY) === DEFAULT_CONTENT_VERSION) {
         showAppConfirm('يوجد حفظ سابق', 'يوجد تعديلات محفوظة مسبقاً في المتصفح. هل تريد استرجاعها؟', () => {
             restoreSavedData();
         });

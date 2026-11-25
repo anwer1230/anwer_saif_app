@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
       --primary: #0f4c5c;
@@ -148,6 +150,127 @@
 
     .print-action-btn:hover {
       opacity: 0.94;
+    }
+
+    .print-action-btn.pdf-action-btn {
+      background: #10b981;
+      color: #ffffff;
+    }
+
+    /* ================= شاشة تقدم وإشعار جاهزية PDF ================= */
+    html.pdf-exporting,
+    body.pdf-exporting {
+      background: #ffffff !important;
+      overflow: visible !important;
+      width: 794px !important;
+      min-width: 794px !important;
+    }
+
+    body.pdf-exporting .workspace {
+      padding: 0 !important;
+      margin: 0 !important;
+      width: 794px !important;
+      align-items: flex-start !important;
+    }
+
+    body.pdf-exporting .a4-sheet {
+      width: 794px !important;
+      min-width: 794px !important;
+      max-width: 794px !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+
+    .pdf-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 20000;
+      background: rgba(9, 50, 61, 0.78);
+      backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .pdf-overlay.show {
+      display: flex;
+    }
+
+    .pdf-overlay-box {
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 14px;
+      padding: 24px 28px;
+      max-width: 390px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      border-top: 4px solid var(--primary);
+    }
+
+    .pdf-progress-track {
+      width: 100%;
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 14px 0 8px 0;
+    }
+
+    .pdf-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.2s ease;
+    }
+
+    .pdf-ready-banner {
+      display: none;
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 15000;
+      background: var(--primary-dark);
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      max-width: 94vw;
+    }
+
+    .pdf-ready-banner.show {
+      display: flex;
+    }
+
+    .pdf-ready-banner a,
+    .pdf-ready-banner button {
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .pdf-ready-banner button.open-btn {
+      background: #3b82f6;
+    }
+
+    .pdf-ready-banner button.close-btn {
+      background: #475569;
+      padding: 6px 9px;
     }
 
     /* ================= حاويات الواجهات ================= */
@@ -480,38 +603,42 @@
     }
 
     @media print {
-      body {
-        background: #ffffff;
+      html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
 
       .app-topbar,
-      .sub-filter-bar {
+      .sub-filter-bar,
+      .pdf-overlay,
+      .pdf-ready-banner {
         display: none !important;
       }
 
       .workspace {
-        padding: 0;
-        gap: 0;
+        padding: 0 !important;
+        margin: 0 !important;
+        gap: 0 !important;
+      }
+
+      .view-panel.hidden,
+      .hidden-card {
+        display: none !important;
       }
 
       .a4-sheet {
-        width: 100%;
-        min-height: auto;
-        box-shadow: none;
-        border-radius: 0;
-        margin: 0;
-        padding: 4mm 5mm;
-        page-break-after: always;
-        break-after: page;
+        width: 100% !important;
+        min-height: auto !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 4mm 5mm !important;
       }
 
-      .a4-sheet:last-child {
-        page-break-after: auto;
-        break-after: auto;
-      }
-
-      .hidden-card {
-        display: none !important;
+      .view-panel:not(.hidden) .a4-sheet:not(.hidden-card) ~ .a4-sheet:not(.hidden-card) {
+        page-break-before: always;
+        break-before: page;
       }
     }
 
@@ -542,13 +669,37 @@
           <span>بطاقة تنفيذ نشاط</span>
         </button>
 
-        <button type="button" class="print-action-btn" onclick="window.print()">
+        <button type="button" class="print-action-btn" onclick="printActivities()">
           <span>🖨️</span>
-          <span>طباعة / PDF</span>
+          <span>طباعة</span>
+        </button>
+
+        <button type="button" class="print-action-btn pdf-action-btn" onclick="exportActivitiesPDF()">
+          <span>📄</span>
+          <span>تصدير PDF</span>
         </button>
       </nav>
     </div>
   </header>
+
+  <!-- شاشة تقدم تصدير PDF -->
+  <div class="pdf-overlay" id="pdfProgressOverlay">
+    <div class="pdf-overlay-box">
+      <div style="font-size:28px;margin-bottom:6px;">📄</div>
+      <div style="font-weight:800;font-size:16px;" id="pdfProgressTitle">جاري تجهيز ملف PDF للطباعة...</div>
+      <div style="font-size:13px;color:#526570;margin-top:4px;" id="pdfProgressSub">يرجى الانتظار لحين تحويل الصفحات</div>
+      <div class="pdf-progress-track"><div class="pdf-progress-fill" id="pdfProgressFill"></div></div>
+      <div style="font-size:12px;font-weight:700;color:#0f4c5c;" id="pdfProgressPct">0%</div>
+    </div>
+  </div>
+
+  <!-- شريط جاهزية PDF المباشر -->
+  <div class="pdf-ready-banner" id="pdfReadyBanner">
+    <span id="pdfReadyLabel">✅ الملف جاهز للطباعة والحفظ:</span>
+    <a id="pdfDirectDownloadLink" href="#" download="ملف_الأنشطة_المدرسية.pdf">📥 حفظ PDF</a>
+    <button type="button" class="open-btn" onclick="openLastPdfBlob()">👁️ فتح الملف</button>
+    <button type="button" class="close-btn" onclick="closePdfReadyBanner()">✕</button>
+  </div>
 
   <main class="workspace">
 
@@ -1253,14 +1404,21 @@
       `).join("");
     }
 
+    let currentActiveView = "plan";
+    let currentWeekFilter = "all";
+    let isExportingPdf = false;
+    let lastPdfBlobUrl = null;
+
     /* ================= وظيفة التبديل بين الأيقونتين ================= */
-    function switchView(viewName) {
+    function switchView(viewName, skipScroll) {
       const planView = document.getElementById("planView");
       const cardsView = document.getElementById("cardsView");
       const tabPlanBtn = document.getElementById("tabPlanBtn");
       const tabCardBtn = document.getElementById("tabCardBtn");
 
-      if (viewName === "plan") {
+      currentActiveView = (viewName === "cards") ? "cards" : "plan";
+
+      if (currentActiveView === "plan") {
         planView.classList.remove("hidden");
         cardsView.classList.add("hidden");
         tabPlanBtn.classList.add("active");
@@ -1271,11 +1429,22 @@
         tabPlanBtn.classList.remove("active");
         tabCardBtn.classList.add("active");
       }
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      closePdfReadyBanner();
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "schoolActivitiesViewChanged", view: currentActiveView }, "*");
+        }
+      } catch (e) {}
+
+      if (!skipScroll) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
 
     /* ================= تصفية بطاقات التنفيذ حسب الأسبوع ================= */
     function filterCards(wk, btn) {
+      currentWeekFilter = wk || "all";
       document.querySelectorAll(".wk-btn").forEach(b => b.classList.remove("active"));
       if (btn) btn.classList.add("active");
 
@@ -1288,8 +1457,337 @@
       });
     }
 
+    /* ================= الطباعة وتصدير PDF الموثوق ================= */
+    function getActivePrintableSheets() {
+      if (currentActiveView === "cards") {
+        return Array.from(document.querySelectorAll("#cardsView .exec-card:not(.hidden-card)"));
+      }
+      return Array.from(document.querySelectorAll("#planView .a4-sheet"));
+    }
+
+    function openLastPdfBlob() {
+      if (!lastPdfBlobUrl) return;
+      let w = null;
+      try {
+        w = window.open(lastPdfBlobUrl, "_blank", "noopener,noreferrer");
+      } catch (e) {
+        w = null;
+      }
+      if (!w) {
+        const a = document.getElementById("pdfDirectDownloadLink");
+        if (a) a.click();
+      }
+    }
+
+    function closePdfReadyBanner() {
+      document.getElementById("pdfReadyBanner")?.classList.remove("show");
+    }
+
+    function loadExternalScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = true;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function ensurePdfLibrariesLoaded() {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        await loadExternalScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      }
+      if (typeof window.html2canvas !== "function") {
+        await loadExternalScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+      }
+      if (!window.jspdf || !window.jspdf.jsPDF || typeof window.html2canvas !== "function") {
+        throw new Error("تعذر تحميل مكتبات PDF");
+      }
+    }
+
+    async function ensureExportFontsLoaded() {
+      try {
+        if (document.fonts && typeof document.fonts.load === "function") {
+          await Promise.allSettled([
+            document.fonts.load("400 14px Cairo"),
+            document.fonts.load("600 14px Cairo"),
+            document.fonts.load("700 14px Cairo"),
+            document.fonts.load("800 16px Cairo")
+          ]);
+        }
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+        }
+      } catch (e) {}
+    }
+
+    function appendCanvasProportionalToPdf(pdf, canvas, isFirstPage) {
+      const pageWmm = 210;
+      const pageHmm = 297;
+      const maxAspectRatio = pageHmm / pageWmm;
+      const canvasRatio = canvas.height / Math.max(1, canvas.width);
+
+      if (canvasRatio <= maxAspectRatio + 0.03) {
+        if (!isFirstPage) pdf.addPage("a4", "p");
+        let renderW = pageWmm;
+        let renderH = canvasRatio * pageWmm;
+        if (renderH > pageHmm) {
+          renderH = pageHmm;
+          renderW = pageHmm / canvasRatio;
+        }
+        const offsetX = Math.max(0, (pageWmm - renderW) / 2);
+        const offsetY = Math.max(0, (pageHmm - renderH) / 2);
+        const imgData = canvas.toDataURL("image/jpeg", 0.9);
+        pdf.addImage(imgData, "JPEG", offsetX, offsetY, renderW, renderH, undefined, "FAST");
+        return;
+      }
+
+      const sliceMaxPxH = Math.floor(pageHmm * (canvas.width / pageWmm));
+      let yPx = 0;
+      let firstSlice = true;
+      while (yPx < canvas.height) {
+        const sliceH = Math.min(sliceMaxPxH, canvas.height - yPx);
+        if (sliceH <= 8) break;
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceMaxPxH;
+        const ctx = sliceCanvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, yPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+        if (!isFirstPage || !firstSlice) {
+          pdf.addPage("a4", "p");
+        }
+        const imgData = sliceCanvas.toDataURL("image/jpeg", 0.9);
+        pdf.addImage(imgData, "JPEG", 0, 0, pageWmm, pageHmm, undefined, "FAST");
+        yPx += sliceH;
+        firstSlice = false;
+      }
+    }
+
+    async function exportActivitiesPDF(fromPrintFallback) {
+      if (isExportingPdf) return;
+      isExportingPdf = true;
+
+      const overlay = document.getElementById("pdfProgressOverlay");
+      const titleEl = document.getElementById("pdfProgressTitle");
+      const subEl = document.getElementById("pdfProgressSub");
+      const fillEl = document.getElementById("pdfProgressFill");
+      const pctEl = document.getElementById("pdfProgressPct");
+
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
+      closePdfReadyBanner();
+
+      if (overlay) overlay.classList.add("show");
+      if (titleEl) {
+        titleEl.textContent = fromPrintFallback
+          ? "جاري تجهيز نسخة PDF جاهزة للطباعة..."
+          : (currentActiveView === "cards" ? "جاري تصدير بطاقات تنفيذ النشاط PDF..." : "جاري تصدير ملف الأنشطة المدرسية PDF...");
+      }
+      if (subEl) subEl.textContent = "يرجى الانتظار لحظات حتى تكتمل كل الصفحات";
+      if (fillEl) fillEl.style.width = "5%";
+      if (pctEl) pctEl.textContent = "5%";
+
+      document.documentElement.classList.add("pdf-exporting");
+      document.body.classList.add("pdf-exporting");
+
+      const pruneClone = (clonedDoc) => {
+        clonedDoc.querySelectorAll(".app-topbar, .sub-filter-bar, .pdf-overlay, .pdf-ready-banner").forEach(n => n.remove());
+        const target = clonedDoc.querySelector('[data-h2c-target="1"]');
+        if (target) {
+          target.style.width = "794px";
+          target.style.minWidth = "794px";
+          target.style.maxWidth = "794px";
+          target.style.margin = "0";
+          target.style.boxShadow = "none";
+          target.style.borderRadius = "0";
+        }
+      };
+
+      try {
+        await ensurePdfLibrariesLoaded();
+        await ensureExportFontsLoaded();
+        await new Promise(r => requestAnimationFrame(r));
+
+        const sheets = getActivePrintableSheets();
+        if (!sheets.length) throw new Error("لا توجد صفحات نشطة للتصدير");
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true });
+        let isFirstPdfPage = true;
+
+        for (let i = 0; i < sheets.length; i++) {
+          const sheetEl = sheets[i];
+          const pct = Math.round(((i + 1) / sheets.length) * 94);
+          if (subEl) subEl.textContent = `جاري تجهيز الصفحة ${i + 1} من ${sheets.length}...`;
+          if (fillEl) fillEl.style.width = `${pct}%`;
+          if (pctEl) pctEl.textContent = `${pct}%`;
+
+          await new Promise(r => requestAnimationFrame(r));
+
+          const prevMinHeight = sheetEl.style.minHeight;
+          const prevHeight = sheetEl.style.height;
+          sheetEl.style.setProperty("height", "auto", "important");
+          sheetEl.style.setProperty("min-height", "1123px", "important");
+
+          const captureW = 794;
+          const captureH = Math.max(1123, sheetEl.scrollHeight);
+
+          sheetEl.setAttribute("data-h2c-target", "1");
+          let canvas;
+          try {
+            canvas = await window.html2canvas(sheetEl, {
+              scale: 1.5,
+              useCORS: true,
+              allowTaint: false,
+              backgroundColor: "#ffffff",
+              imageTimeout: 2500,
+              width: captureW,
+              height: captureH,
+              windowWidth: captureW,
+              windowHeight: captureH,
+              scrollX: 0,
+              scrollY: 0,
+              logging: false,
+              onclone: pruneClone
+            });
+          } finally {
+            sheetEl.removeAttribute("data-h2c-target");
+            sheetEl.style.minHeight = prevMinHeight;
+            sheetEl.style.height = prevHeight;
+          }
+
+          appendCanvasProportionalToPdf(pdf, canvas, isFirstPdfPage);
+          isFirstPdfPage = false;
+        }
+
+        if (subEl) subEl.textContent = "جاري حفظ ملف PDF...";
+        if (fillEl) fillEl.style.width = "100%";
+        if (pctEl) pctEl.textContent = "100%";
+
+        let filename = "ملف_الأنشطة_المدرسية.pdf";
+        if (currentActiveView === "cards") {
+          filename = (currentWeekFilter && currentWeekFilter !== "all")
+            ? `بطاقة_تنفيذ_نشاط_الأسبوع_${currentWeekFilter}.pdf`
+            : "بطاقات_تنفيذ_النشاط.pdf";
+        }
+
+        const pdfBlob = pdf.output("blob");
+        if (lastPdfBlobUrl) {
+          try { URL.revokeObjectURL(lastPdfBlobUrl); } catch (e) {}
+        }
+        lastPdfBlobUrl = URL.createObjectURL(pdfBlob);
+
+        const dlLink = document.getElementById("pdfDirectDownloadLink");
+        const readyLabel = document.getElementById("pdfReadyLabel");
+        if (dlLink) {
+          dlLink.href = lastPdfBlobUrl;
+          dlLink.download = filename;
+        }
+        if (readyLabel) {
+          readyLabel.textContent = `✅ جاهز للطباعة والحفظ (${sheets.length} صفحة):`;
+        }
+        document.getElementById("pdfReadyBanner")?.classList.add("show");
+
+        try {
+          pdf.save(filename);
+        } catch (saveErr) {
+          if (dlLink) dlLink.click();
+        }
+      } catch (err) {
+        const readyLabel = document.getElementById("pdfReadyLabel");
+        if (readyLabel) readyLabel.textContent = "❌ تعذر التصدير التلقائي، يرجى فتح الصفحة في تبويب مستقل للطباعة";
+        document.getElementById("pdfReadyBanner")?.classList.add("show");
+      } finally {
+        document.documentElement.classList.remove("pdf-exporting");
+        document.body.classList.remove("pdf-exporting");
+        if (overlay) overlay.classList.remove("show");
+        isExportingPdf = false;
+      }
+    }
+
+    function buildParentPrintPayload() {
+      const styleTags = Array.from(document.querySelectorAll("style"))
+        .map(s => s.outerHTML)
+        .join("\n");
+      const sheets = getActivePrintableSheets();
+      const viewClass = currentActiveView === "cards" ? "cards-print" : "plan-print";
+      const sheetsHtml = sheets.map(el => el.outerHTML).join("\n");
+      return {
+        stylesHtml: styleTags,
+        bodyHtml: `<div class="edu-direct-sheet-wrap ${viewClass}" dir="rtl">${sheetsHtml}</div>`
+      };
+    }
+
+    function printActivities() {
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
+      closePdfReadyBanner();
+
+      let nativePrintTriggered = false;
+      const markTriggered = () => { nativePrintTriggered = true; };
+      window.addEventListener("beforeprint", markTriggered, { once: true });
+
+      let mql = null;
+      const mqlHandler = (ev) => { if (ev.matches) nativePrintTriggered = true; };
+      try {
+        if (window.matchMedia) {
+          mql = window.matchMedia("print");
+          if (mql && typeof mql.addEventListener === "function") {
+            mql.addEventListener("change", mqlHandler);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        window.focus();
+        window.print();
+      } catch (e) {}
+
+      setTimeout(() => {
+        try {
+          window.removeEventListener("beforeprint", markTriggered);
+          if (mql && typeof mql.removeEventListener === "function") {
+            mql.removeEventListener("change", mqlHandler);
+          }
+        } catch (e) {}
+
+        if (nativePrintTriggered) return;
+
+        try {
+          if (window.parent && window.parent !== window && typeof window.parent.printActivitiesViaParent === "function") {
+            const payload = buildParentPrintPayload();
+            window.parent.printActivitiesViaParent(payload.stylesHtml, payload.bodyHtml, () => {
+              exportActivitiesPDF(true);
+            });
+            return;
+          }
+        } catch (e) {}
+
+        exportActivitiesPDF(true);
+      }, 450);
+    }
+
     renderPlanTables();
     renderExecutionCards();
+
+    (function initViewFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const viewParam = params.get("view");
+        if (viewParam === "cards" || viewParam === "plan") {
+          switchView(viewParam, true);
+        }
+        if (params.get("autoprint") === "1") {
+          setTimeout(() => printActivities(), 500);
+        }
+      } catch (e) {}
+    })();
   </script>
 </body>
 </html>

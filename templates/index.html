@@ -5450,6 +5450,34 @@
       </div>
     </div>
     <!-- ===== مودال ملف الأنشطة المدرسية وبطاقة تنفيذ نشاط (مستقل ومنفصل) ===== -->
+    <style>
+      #eduDirectPrintHost { display: none; }
+      @media print {
+        body.edu-direct-printing > *:not(#eduDirectPrintHost) {
+          display: none !important;
+        }
+        body.edu-direct-printing > #eduDirectPrintHost {
+          display: block !important;
+          width: 100% !important;
+          background: #ffffff !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        body.edu-direct-printing .edu-direct-sheet-wrap .a4-sheet {
+          width: 100% !important;
+          min-height: auto !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          margin: 0 !important;
+          padding: 4mm 5mm !important;
+        }
+        body.edu-direct-printing .edu-direct-sheet-wrap .a4-sheet ~ .a4-sheet {
+          page-break-before: always;
+          break-before: page;
+        }
+      }
+    </style>
+    <div id="eduDirectPrintHost" aria-hidden="true"></div>
     <div class="modal fade" id="schoolActivitiesModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
@@ -5459,8 +5487,11 @@
               <button type="button" onclick="printSchoolActivitiesFrame()" class="btn btn-sm btn-warning fw-bold" title="طباعة">
                 <i class="fas fa-print me-1"></i> طباعة
               </button>
-              <a href="/school_activities_cards?standalone=1" target="_blank" rel="noopener noreferrer"
-                 onclick="return openEduStandalone('/school_activities_cards', event)"
+              <button type="button" onclick="exportSchoolActivitiesPDF()" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
+                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
+              </button>
+              <a id="schoolActivitiesStandaloneLink" href="/school_activities_cards?standalone=1&view=plan" target="_blank" rel="noopener noreferrer"
+                 onclick="return openSchoolActivitiesStandalone(event)"
                  class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
                 <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
               </a>
@@ -5538,23 +5569,41 @@
         }
       }
       let _pendingSchoolActivitiesView = 'plan';
-      function openSchoolActivitiesView(viewName, titleHtml) {
+      function syncSchoolActivitiesModalHeader(viewName) {
         _pendingSchoolActivitiesView = (viewName === 'cards') ? 'cards' : 'plan';
+        const titleEl = document.getElementById('schoolActivitiesModalTitle');
+        if (titleEl) {
+          titleEl.innerHTML = (_pendingSchoolActivitiesView === 'cards')
+            ? '<i class="fas fa-clipboard-check me-2"></i>بطاقة تنفيذ نشاط'
+            : '<i class="fas fa-folder-open me-2"></i>ملف الأنشطة المدرسية';
+        }
+        const standaloneLink = document.getElementById('schoolActivitiesStandaloneLink');
+        if (standaloneLink) {
+          standaloneLink.href = '/school_activities_cards?standalone=1&view=' + _pendingSchoolActivitiesView;
+        }
+      }
+      window.addEventListener('message', function (ev) {
+        if (ev && ev.data && ev.data.type === 'schoolActivitiesViewChanged') {
+          syncSchoolActivitiesModalHeader(ev.data.view);
+        }
+      });
+      function openSchoolActivitiesView(viewName, titleHtml) {
+        syncSchoolActivitiesModalHeader(viewName);
+        if (titleHtml) {
+          const titleEl = document.getElementById('schoolActivitiesModalTitle');
+          if (titleEl) titleEl.innerHTML = titleHtml;
+        }
         const eduEl = document.getElementById('eduServicesModal');
         if (eduEl && window.bootstrap) {
           const eduModal = bootstrap.Modal.getInstance(eduEl);
           if (eduModal) eduModal.hide();
-        }
-        const titleEl = document.getElementById('schoolActivitiesModalTitle');
-        if (titleEl && titleHtml) {
-          titleEl.innerHTML = titleHtml;
         }
         const frame = document.getElementById('schoolActivitiesFrame');
         if (frame) {
           const applyView = function () {
             try {
               if (frame.contentWindow && typeof frame.contentWindow.switchView === 'function') {
-                frame.contentWindow.switchView(_pendingSchoolActivitiesView);
+                frame.contentWindow.switchView(_pendingSchoolActivitiesView, true);
               }
             } catch (e) {}
           };
@@ -5563,7 +5612,7 @@
             frame.onload = function () {
               applyView();
             };
-            frame.src = '/school_activities_cards';
+            frame.src = '/school_activities_cards?view=' + _pendingSchoolActivitiesView;
           } else {
             applyView();
           }
@@ -5579,13 +5628,69 @@
       function openSchoolActivitiesCards() {
         openSchoolActivitiesView('cards', '<i class="fas fa-clipboard-check me-2"></i>بطاقة تنفيذ نشاط');
       }
+      function openSchoolActivitiesStandalone(evt) {
+        return openEduStandalone('/school_activities_cards?view=' + _pendingSchoolActivitiesView, evt);
+      }
+      function printActivitiesViaParent(stylesHtml, bodyHtml, onUnavailable) {
+        const host = document.getElementById('eduDirectPrintHost');
+        if (!host) {
+          if (typeof onUnavailable === 'function') onUnavailable();
+          return;
+        }
+        const scopedStyles = String(stylesHtml || '')
+          .replace(/:root\b/g, '#eduDirectPrintHost')
+          .replace(/html\s*,\s*body/g, '#eduDirectPrintHost')
+          .replace(/\bbody\b/g, '#eduDirectPrintHost')
+          .replace(/(^|\n)\s*\*\s*\{/g, '$1#eduDirectPrintHost, #eduDirectPrintHost * {');
+        host.innerHTML = scopedStyles + String(bodyHtml || '');
+        document.body.classList.add('edu-direct-printing');
+
+        let topBeforePrintFired = false;
+        let safetyTimer = null;
+        const cleanup = function () {
+          if (safetyTimer) {
+            clearTimeout(safetyTimer);
+            safetyTimer = null;
+          }
+          document.body.classList.remove('edu-direct-printing');
+          host.innerHTML = '';
+          try { window.removeEventListener('beforeprint', onTopBeforePrint); } catch (e) {}
+          try { window.removeEventListener('afterprint', cleanup); } catch (e) {}
+        };
+        const onTopBeforePrint = function () {
+          topBeforePrintFired = true;
+        };
+        window.addEventListener('beforeprint', onTopBeforePrint, { once: true });
+        window.addEventListener('afterprint', cleanup, { once: true });
+
+        try {
+          window.focus();
+          window.print();
+        } catch (e) {}
+
+        setTimeout(function () {
+          if (!topBeforePrintFired) {
+            cleanup();
+            if (typeof onUnavailable === 'function') onUnavailable();
+          } else {
+            safetyTimer = setTimeout(cleanup, 60000);
+          }
+        }, 450);
+      }
       function printSchoolActivitiesFrame() {
         const frame = document.getElementById('schoolActivitiesFrame');
         if (!frame || !frame.contentWindow) return;
         try {
+          if (typeof frame.contentWindow.printActivities === 'function') {
+            frame.contentWindow.printActivities();
+            return;
+          }
           frame.contentWindow.focus();
           frame.contentWindow.print();
         } catch (e) {}
+      }
+      function exportSchoolActivitiesPDF() {
+        callEduFrameAction('schoolActivitiesFrame', 'exportActivitiesPDF');
       }
       function callEduFrameAction(frameId, fnName) {
         const frame = document.getElementById(frameId);

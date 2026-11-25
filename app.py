@@ -14171,6 +14171,20 @@ def school_reports_page():
     return resp
 
 
+@app.route("/school_activities_cards")
+@app.route("/school_activities_cards/")
+def school_activities_cards_page():
+    """ملف الأنشطة المدرسية وبطاقة تنفيذ نشاط"""
+    resp = make_response(
+        send_file(
+            os.path.join(app.root_path, 'templates', 'school_activities_cards.html'),
+            mimetype='text/html; charset=utf-8',
+        )
+    )
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    return resp
+
+
 @app.route("/exam_editor")
 def exam_editor_redirect():
     qs = request.query_string.decode('utf-8')

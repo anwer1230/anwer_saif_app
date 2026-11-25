@@ -1543,6 +1543,22 @@
                                     <span class="fw-bold small text-dark">محرر الاختبارات أنور الصبري</span>
                                 </button>
                             </div>
+                            <div class="col-6">
+                                <button type="button" onclick="openSchoolActivitiesPlan()" class="btn bg-white w-100 h-100 p-3 rounded-3 shadow-sm border d-flex flex-column align-items-center justify-content-center text-center" style="border-color:#0f4c5c !important;">
+                                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2" style="width:44px;height:44px;background:rgba(15,76,92,0.12);color:#0f4c5c;">
+                                        <i class="fas fa-folder-open fa-lg"></i>
+                                    </span>
+                                    <span class="fw-bold small text-dark">ملف الأنشطة المدرسية</span>
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" onclick="openSchoolActivitiesCards()" class="btn bg-white w-100 h-100 p-3 rounded-3 shadow-sm border d-flex flex-column align-items-center justify-content-center text-center" style="border-color:#c89b3c !important;">
+                                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2" style="width:44px;height:44px;background:rgba(200,155,60,0.16);color:#8a6617;">
+                                        <i class="fas fa-clipboard-check fa-lg"></i>
+                                    </span>
+                                    <span class="fw-bold small text-dark">بطاقة تنفيذ نشاط</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -5286,6 +5302,32 @@
                   <span class="text-muted small">إنشاء وتحرير الاختبارات المدرسية بالقوالب الجاهزة وتحليل النتائج وتصدير PDF</span>
                 </button>
               </div>
+              <div class="col-12 col-md-6">
+                <button type="button" id="btnOpenSchoolActivitiesPlan"
+                        onclick="openSchoolActivitiesPlan()"
+                        class="btn bg-white w-100 h-100 p-4 rounded-3 shadow-sm border d-flex flex-column align-items-center justify-content-center text-center"
+                        style="border-color:#0f4c5c !important;transition:transform 0.2s ease;">
+                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                        style="width:56px;height:56px;background:rgba(15,76,92,0.12);color:#0f4c5c;">
+                    <i class="fas fa-folder-open fa-2x"></i>
+                  </span>
+                  <span class="fw-bold fs-6 text-dark mb-1">ملف الأنشطة المدرسية</span>
+                  <span class="text-muted small">خطة النشاط الطلابي والتكامل المنهجي لمادة الدراسات الاجتماعية (الأسابيع 1–19)</span>
+                </button>
+              </div>
+              <div class="col-12 col-md-6">
+                <button type="button" id="btnOpenSchoolActivitiesCards"
+                        onclick="openSchoolActivitiesCards()"
+                        class="btn bg-white w-100 h-100 p-4 rounded-3 shadow-sm border d-flex flex-column align-items-center justify-content-center text-center"
+                        style="border-color:#c89b3c !important;transition:transform 0.2s ease;">
+                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                        style="width:56px;height:56px;background:rgba(200,155,60,0.16);color:#8a6617;">
+                    <i class="fas fa-clipboard-check fa-2x"></i>
+                  </span>
+                  <span class="fw-bold fs-6 text-dark mb-1">بطاقة تنفيذ نشاط</span>
+                  <span class="text-muted small">بطاقات تنفيذ برامج النشاط الطلابي الرسمية (الأسابيع 9–19) جاهزة للطباعة</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -5407,6 +5449,33 @@
         </div>
       </div>
     </div>
+    <!-- ===== مودال ملف الأنشطة المدرسية وبطاقة تنفيذ نشاط (مستقل ومنفصل) ===== -->
+    <div class="modal fade" id="schoolActivitiesModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content" style="display:flex;flex-direction:column;">
+          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#09323d,#0f4c5c);">
+            <h5 class="modal-title mb-0" id="schoolActivitiesModalTitle"><i class="fas fa-folder-open me-2"></i>ملف الأنشطة المدرسية</h5>
+            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+              <button type="button" onclick="printSchoolActivitiesFrame()" class="btn btn-sm btn-warning fw-bold" title="طباعة">
+                <i class="fas fa-print me-1"></i> طباعة
+              </button>
+              <a href="/school_activities_cards?standalone=1" target="_blank" rel="noopener noreferrer"
+                 onclick="return openEduStandalone('/school_activities_cards', event)"
+                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
+                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
+              </a>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+          </div>
+          <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
+            <iframe id="schoolActivitiesFrame" src="about:blank"
+              allow="fullscreen"
+              style="width:100%;height:100%;border:none;display:block;"
+              title="ملف الأنشطة المدرسية وبطاقة تنفيذ نشاط"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
     <script>
       function openPerformancePortfolio() {
         const eduEl = document.getElementById('eduServicesModal');
@@ -5467,6 +5536,56 @@
         if (examEl && window.bootstrap) {
           bootstrap.Modal.getOrCreateInstance(examEl).show();
         }
+      }
+      let _pendingSchoolActivitiesView = 'plan';
+      function openSchoolActivitiesView(viewName, titleHtml) {
+        _pendingSchoolActivitiesView = (viewName === 'cards') ? 'cards' : 'plan';
+        const eduEl = document.getElementById('eduServicesModal');
+        if (eduEl && window.bootstrap) {
+          const eduModal = bootstrap.Modal.getInstance(eduEl);
+          if (eduModal) eduModal.hide();
+        }
+        const titleEl = document.getElementById('schoolActivitiesModalTitle');
+        if (titleEl && titleHtml) {
+          titleEl.innerHTML = titleHtml;
+        }
+        const frame = document.getElementById('schoolActivitiesFrame');
+        if (frame) {
+          const applyView = function () {
+            try {
+              if (frame.contentWindow && typeof frame.contentWindow.switchView === 'function') {
+                frame.contentWindow.switchView(_pendingSchoolActivitiesView);
+              }
+            } catch (e) {}
+          };
+          const currentSrc = frame.getAttribute('src') || '';
+          if (!currentSrc || currentSrc === 'about:blank') {
+            frame.onload = function () {
+              applyView();
+            };
+            frame.src = '/school_activities_cards';
+          } else {
+            applyView();
+          }
+        }
+        const actEl = document.getElementById('schoolActivitiesModal');
+        if (actEl && window.bootstrap) {
+          bootstrap.Modal.getOrCreateInstance(actEl).show();
+        }
+      }
+      function openSchoolActivitiesPlan() {
+        openSchoolActivitiesView('plan', '<i class="fas fa-folder-open me-2"></i>ملف الأنشطة المدرسية');
+      }
+      function openSchoolActivitiesCards() {
+        openSchoolActivitiesView('cards', '<i class="fas fa-clipboard-check me-2"></i>بطاقة تنفيذ نشاط');
+      }
+      function printSchoolActivitiesFrame() {
+        const frame = document.getElementById('schoolActivitiesFrame');
+        if (!frame || !frame.contentWindow) return;
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+        } catch (e) {}
       }
       function callEduFrameAction(frameId, fnName) {
         const frame = document.getElementById(frameId);

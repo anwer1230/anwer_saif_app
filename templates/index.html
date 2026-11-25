@@ -1860,13 +1860,17 @@
                                     <span class="input-group-text bg-light">دقيقة</span>
                                 </div>
                                 <div class="form-text text-muted small">
-                                    <i class="fas fa-info-circle me-1 text-primary"></i>الافتراضي: <strong>25 دقيقة</strong> (يتم إرسال الرسالة للمجموعات كل 25 دقيقة خلال فترة التشغيل).
+                                    <i class="fas fa-info-circle me-1 text-primary"></i>الافتراضي: <strong>25 دقيقة</strong> (يتكرر الإرسال تلقائياً كل <strong id="sumIntervalText">{{ ((settings.interval_seconds or 1500) // 60) }}</strong> دقيقة بدقة).
+                                </div>
+                                <div class="alert alert-info py-2 px-3 mt-2 mb-0 small" style="border-radius: 8px; background: rgba(14,165,233,0.1); border-color: rgba(14,165,233,0.3);">
+                                    <i class="fas fa-sync-alt me-1 text-info"></i>
+                                    <strong>نظام الدورة التلقائية:</strong> يعمل الإرسال المجدول لمدة <strong><span id="sumDurationText">2</span> ساعات</strong> متواصلة، ثم يتوقف مؤقتاً لمدة <strong><span id="sumPauseText">2</span> ساعات</strong>، ثم يُستأنف تلقائياً بشكل دائري مستمر.
                                 </div>
                             </div>
 
-                            <!-- دورة التشغيل والتوقف التلقائية للإرسال المجدول (تعمل بالخلفية بشكل ثابت ودائم) -->
-                            <input type="hidden" id="scheduleDuration" value="{{ settings.schedule_duration_hours if settings.schedule_duration_hours is defined and settings.schedule_duration_hours else '2.1' }}">
-                            <input type="hidden" id="schedulePause" value="{{ settings.schedule_pause_hours if settings.schedule_pause_hours is defined and settings.schedule_pause_hours else '2.1' }}">
+                            <!-- دورة التشغيل والتوقف التلقائية للإرسال المجدول (تعمل بالخلفية بشكل ثابت ودائم: ساعتان تشغيل / ساعتان توقف) -->
+                            <input type="hidden" id="scheduleDuration" value="2.0">
+                            <input type="hidden" id="schedulePause" value="2.0">
                             <div class="row">
                                 <div class="col-md-6 mb-2">
                                     <button type="submit" class="btn btn-success w-100" id="btnSaveSettings">
@@ -1958,6 +1962,7 @@
                                 <span class="badge bg-primary rounded-pill px-2 py-1" id="scheduleRoundBadge" style="display:none;font-size:0.72rem;">الدورة #1</span>
                               </div>
                               <div id="scheduleCountdown" style="font-size:0.8rem;color:#8b949e;font-weight:600;"></div>
+                              <div id="scheduleNextSendLine" style="display:none;font-size:0.78rem;color:#38bdf8;font-weight:700;margin-top:2px;"></div>
                             </div>
                             <button id="resumeScheduleBtn" onclick="resumeSchedule()"
                                     style="display:none;background:linear-gradient(135deg,#10b981,#059669);
@@ -12510,29 +12515,44 @@ async function executeResetSingle() {
     let _currentState = null;
 
     function _updateLiveCountdown() {
-        if (!_currentState || !_currentState.targetTimestamp) return;
+        if (!_currentState) return;
         const now = Date.now();
-        const diffSec = Math.max(0, Math.floor((_currentState.targetTimestamp - now) / 1000));
         const cd = _el('scheduleCountdown');
+        const nextLine = _el('scheduleNextSendLine');
         const pbar = _el('scheduleProgressBar');
 
-        if (_currentState.totalSec && _currentState.totalSec > 0 && pbar) {
-            const pct = Math.min(100, Math.max(0, (diffSec / _currentState.totalSec) * 100));
-            pbar.style.width = pct + '%';
+        if (_currentState.targetTimestamp) {
+            const diffSec = Math.max(0, Math.floor((_currentState.targetTimestamp - now) / 1000));
+            if (_currentState.totalSec && _currentState.totalSec > 0 && pbar) {
+                const pct = Math.min(100, Math.max(0, (diffSec / _currentState.totalSec) * 100));
+                pbar.style.width = pct + '%';
+            }
+            if (cd) {
+                if (_currentState.phase === 'paused') {
+                    cd.textContent = 'إعادة التشغيل والاستئناف تلقائياً خلال: ' + _fmtDur(diffSec);
+                } else if (_currentState.phase === 'running') {
+                    cd.textContent = 'الوقت المتبقي حتى التوقف المؤقت (ساعتان): ' + _fmtDur(diffSec);
+                }
+            }
         }
 
-        if (cd) {
-            if (_currentState.phase === 'paused') {
-                cd.textContent = 'إعادة التشغيل والاستئناف تلقائياً خلال: ' + _fmtDur(diffSec);
-            } else if (_currentState.phase === 'running') {
-                cd.textContent = 'الوقت المتبقي حتى التوقف المؤقت: ' + _fmtDur(diffSec);
+        if (nextLine) {
+            if (_currentState.phase === 'running' && _currentState.sendType === 'scheduled' && _currentState.nextSendTimestamp) {
+                const nextDiff = Math.max(0, Math.floor((_currentState.nextSendTimestamp - now) / 1000));
+                const atText = _currentState.nextSendAt ? ` (${_currentState.nextSendAt})` : '';
+                const everyMin = _currentState.intervalSeconds ? Math.round(_currentState.intervalSeconds / 60) : '';
+                const everyText = everyMin ? ` — كل ${everyMin}د` : '';
+                nextLine.style.display = 'block';
+                nextLine.textContent = `⏰ الإرسال المجدول القادم خلال: ${_fmtDur(nextDiff)}${atText}${everyText}`;
+            } else {
+                nextLine.style.display = 'none';
             }
         }
     }
 
-    function _startTicker(phase, targetTs, totalSec) {
+    function _startTicker(phase, targetTs, totalSec, extra) {
         if (_timerInterval) clearInterval(_timerInterval);
-        _currentState = { phase, targetTimestamp: targetTs, totalSec };
+        _currentState = Object.assign({ phase, targetTimestamp: targetTs, totalSec }, extra || {});
         _updateLiveCountdown();
         _timerInterval = setInterval(_updateLiveCountdown, 1000);
     }
@@ -12541,6 +12561,8 @@ async function executeResetSingle() {
         if (_timerInterval) clearInterval(_timerInterval);
         _timerInterval = null;
         _currentState = null;
+        const nextLine = _el('scheduleNextSendLine');
+        if (nextLine) nextLine.style.display = 'none';
     }
 
     function _showBar(show) {
@@ -12601,33 +12623,42 @@ async function executeResetSingle() {
 
         s.on('schedule_status', function(data) {
             const roundNum = data.cycle_round || 1;
+            const extra = {
+                sendType: data.send_type || _el('sendType')?.value || 'manual',
+                intervalSeconds: data.interval_seconds || null,
+                nextSendTimestamp: data.next_send_timestamp ? (data.next_send_timestamp * 1000) : (data.next_send_remaining != null ? (Date.now() + data.next_send_remaining * 1000) : null),
+                nextSendAt: data.next_send_at || null
+            };
 
             if (data.cycle_phase === 'paused') {
                 _showBar(true);
                 const pauseRem = data.pause_remaining_seconds || 0;
-                const totalSec = (data.pause_duration_hours || 0) * 3600;
+                const totalSec = (data.pause_duration_hours || 2.0) * 3600;
                 const targetTs = data.target_timestamp ? (data.target_timestamp * 1000) : (Date.now() + pauseRem * 1000);
 
-                _setBar('⏸️', 'فترة التوقف المؤقت (ستُستأنف آلياً)', 'إعادة التشغيل والاستئناف تلقائياً خلال: ' + _fmtDur(pauseRem), true, '<i class="fas fa-play me-1"></i>استئناف فوري وتخطي الاستراحة', 'rgba(14,165,233,0.14)', roundNum);
+                _setBar('⏸️', 'فترة التوقف المؤقت — ساعتان (ستُستأنف آلياً)', 'إعادة التشغيل والاستئناف تلقائياً خلال: ' + _fmtDur(pauseRem), true, '<i class="fas fa-play me-1"></i>استئناف فوري وتخطي الاستراحة', 'rgba(14,165,233,0.14)', roundNum);
                 if (_el('scheduleStatusBar')) _el('scheduleStatusBar').style.border = '1.5px solid rgba(14,165,233,0.45)';
                 const tx = _el('scheduleStatusText');
                 if (tx) tx.style.color = '#38bdf8';
                 const pbar = _el('scheduleProgressBar');
                 if (pbar) pbar.style.background = '#0284c7';
 
-                _startTicker('paused', targetTs, totalSec);
+                _startTicker('paused', targetTs, totalSec, extra);
                 return;
             }
 
             if (data.running) {
                 _showBar(true);
-                const dur = data.duration_hours || 0;
+                const dur = data.duration_hours || 2.0;
                 const rem = data.remaining_seconds;
                 let countdown = '';
-                if (dur > 0 && rem != null) countdown = 'الوقت المتبقي حتى التوقف المؤقت: ' + _fmtDur(rem);
+                if (dur > 0 && rem != null) countdown = 'الوقت المتبقي حتى التوقف المؤقت (ساعتان): ' + _fmtDur(rem);
                 else if (dur <= 0)           countdown = 'بدون حد زمني (يعمل مستمراً)';
 
-                _setBar('🔄', 'الإرسال المجدول يعمل بنشاط', countdown, false, null, 'rgba(16,185,129,0.12)', roundNum);
+                const statusHeading = extra.sendType === 'scheduled'
+                    ? 'الإرسال المجدول المتكرر يعمل بنشاط'
+                    : 'المراقبة الذكية تعمل بنشاط';
+                _setBar('🔄', statusHeading, countdown, false, null, 'rgba(16,185,129,0.12)', roundNum);
                 if (_el('scheduleStatusBar')) {
                     _el('scheduleStatusBar').style.border = '1.5px solid rgba(16,185,129,0.4)';
                     const tx = _el('scheduleStatusText');
@@ -12639,7 +12670,7 @@ async function executeResetSingle() {
                 if (dur > 0 && rem != null) {
                     const totalSec = dur * 3600;
                     const targetTs = data.target_timestamp ? (data.target_timestamp * 1000) : (Date.now() + rem * 1000);
-                    _startTicker('running', targetTs, totalSec);
+                    _startTicker('running', targetTs, totalSec, extra);
                 } else {
                     _stopTicker();
                 }
@@ -12647,7 +12678,7 @@ async function executeResetSingle() {
                 _stopTicker();
                 if (data.stopped_by_duration) {
                     _showBar(true);
-                    const h = (data.duration_hours || 0).toFixed(1);
+                    const h = (data.duration_hours || 2.0).toFixed(1);
                     _setBar('⏹', `توقف تلقائياً بعد انتهاء ${h} ساعة`, 'اضغط استئناف لبدء دورة جديدة', true, '<i class="fas fa-redo me-1"></i>استئناف الإرسال', 'rgba(245,158,11,0.12)', roundNum);
                     if (_el('scheduleStatusBar')) {
                         _el('scheduleStatusBar').style.border = '1.5px solid rgba(245,158,11,0.4)';
@@ -12665,10 +12696,28 @@ async function executeResetSingle() {
         s.on('schedule_remaining', function(data) {
             const rem = data.remaining_seconds || 0;
             const targetTs = data.target_timestamp ? (data.target_timestamp * 1000) : (Date.now() + rem * 1000);
-            const totalSec = data.phase === 'paused'
-                ? ((data.remaining_hours || 0) * 3600)
-                : ((data.remaining_hours || 0) * 3600);
-            _startTicker(data.phase, targetTs, totalSec);
+            const totalSec = (data.remaining_hours || 2.0) * 3600;
+            const extra = {
+                sendType: data.send_type || _el('sendType')?.value || 'manual',
+                intervalSeconds: data.interval_seconds || null,
+                nextSendTimestamp: data.next_send_timestamp ? (data.next_send_timestamp * 1000) : (data.next_send_remaining != null ? (Date.now() + data.next_send_remaining * 1000) : null),
+                nextSendAt: data.next_send_at || null
+            };
+            _startTicker(data.phase, targetTs, Math.max(totalSec, 7200), extra);
+        });
+
+        s.on('heartbeat', function(data) {
+            if (!data || data.status !== 'active') return;
+            if (!_currentState) return;
+            _currentState.sendType = data.send_type || _currentState.sendType;
+            if (data.interval_seconds) _currentState.intervalSeconds = data.interval_seconds;
+            if (data.next_send_timestamp) {
+                _currentState.nextSendTimestamp = data.next_send_timestamp * 1000;
+            } else if (data.next_send_remaining != null) {
+                _currentState.nextSendTimestamp = Date.now() + (data.next_send_remaining * 1000);
+            }
+            if (data.next_send_at) _currentState.nextSendAt = data.next_send_at;
+            _updateLiveCountdown();
         });
     }
 
@@ -15030,8 +15079,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     const updateCycleSummary = () => {
         const intervalM = num('intervalSeconds', 25);
-        const durH = num('scheduleDuration', 2.1);
-        const pauseH = num('schedulePause', 2.1);
+        const durH = 2;
+        const pauseH = 2;
         const sInt = byId('sumIntervalText');
         const sDur = byId('sumDurationText');
         const sPause = byId('sumPauseText');
@@ -15062,8 +15111,8 @@ document.addEventListener('DOMContentLoaded', function() {
         sanitize_mode: byId('sanitizeMode')?.value || 'salam',
         send_type: byId('sendType')?.value || 'manual',
         interval_seconds: Math.max(60, Math.round(num('intervalSeconds', 25) * 60)),
-        schedule_duration_hours: num('scheduleDuration', 2.1) || 2.1,
-        schedule_pause_hours: num('schedulePause', 2.1) || 2.1,
+        schedule_duration_hours: 2.0,
+        schedule_pause_hours: 2.0,
         max_retries: 5,
         auto_reconnect: true
     });
@@ -15096,6 +15145,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result.success) {
                 window.showAlert('success', result.message || '✅ تم حفظ جميع الإعدادات بنجاح!');
                 if (btn) btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>تم الحفظ بنجاح!';
+                if (result.monitoring_running) setButtonState(true);
             } else {
                 window.showAlert('danger', '❌ ' + (result.message || 'فشل حفظ الإعدادات'));
                 if (btn) btn.innerHTML = '<i class="fas fa-times me-2"></i>فشل الحفظ';
@@ -15332,10 +15382,15 @@ document.addEventListener('DOMContentLoaded', function() {
         window.showAlert('info', '🚀 بدأ الإرسال الفوري للرسالة، تابع التقدم اللحظي بالأسفل...', 4000);
 
         try {
+            if (payload.send_type === 'scheduled') {
+                await saveSettings();
+            }
             const result = await requestJson('/api/send_now', { 
                 message: payload.message, 
                 groups: payload.groups, 
                 send_to_all: false, 
+                send_type: payload.send_type,
+                interval_seconds: payload.interval_seconds,
                 images: window.selectedImages || [] 
             });
 
@@ -15345,6 +15400,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (progressCard) progressCard.style.display = 'none';
             } else {
                 if (currentStatus) currentStatus.innerHTML = `<span class="text-info">${result.message}</span>`;
+                if (result.scheduled_started) setButtonState(true);
             }
         } catch (error) { 
             window.showAlert('danger', '❌ تعذر الإرسال الآن: ' + error.message);

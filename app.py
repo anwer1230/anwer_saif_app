@@ -5024,6 +5024,7 @@ class TelegramManager:
         self.client_managers = {}
         self.login_managers = {}
         self._smart_running = set()   # لمنع تشغيل عمليتين لنفس المجموعة: {user_id_group_id}
+        self._smart_running_ts = {}   # طوابع زمنية لمنع تعليق المفتاح للأبد
 
     def get_client_manager(self, user_id):
         if user_id not in self.client_managers:
@@ -5959,10 +5960,18 @@ class TelegramManager:
                 )
                 group_id = getattr(entity_obj, 'id', None) or hash(str(entity))
                 key = f"{user_id}_{group_id}"
+                stale_limit = max(180, int(getattr(_cfg, 'SMART_SALAM_WAIT_SECONDS', 90) or 90) + 45)
                 if key in self._smart_running:
-                    return {"success": True, "skipped": False, "smart": True,
-                            "message": "⚠️ دورة ذكية قيد التشغيل لهذه المجموعة، ستُكمل عند انتهائها"}
+                    started_ts = self._smart_running_ts.get(key, 0)
+                    if started_ts and (time.time() - started_ts) > stale_limit:
+                        logger.warning(f"[Smart] تحرير قفل عالق قديم لـ {entity} (key={key})")
+                        self._smart_running.discard(key)
+                        self._smart_running_ts.pop(key, None)
+                    else:
+                        return {"success": True, "skipped": False, "smart": True,
+                                "message": "⚠️ دورة ذكية قيد التشغيل لهذه المجموعة، ستُكمل عند انتهائها"}
                 self._smart_running.add(key)
+                self._smart_running_ts[key] = time.time()
                 t = _OSThread(
                     target=self._run_smart_protected_send,
                     args=(user_id, client_manager, entity_obj, entity, final_message, key, cancel_event),
@@ -6682,6 +6691,7 @@ class TelegramManager:
             }, to=user_id)
         finally:
             self._smart_running.discard(key)
+            self._smart_running_ts.pop(key, None)
             socketio.emit('log_update', {
                 "message": f"⏹ [Smart] توقفت الدورة الذكية لـ {entity_label}"
             }, to=user_id)
@@ -6918,8 +6928,28 @@ telegram_manager = TelegramManager()
 # =========================== 
 # نظام المراقبة المحسن مع Event Handlers
 # ===========================
+def _normalize_cycle_hours(val, default_hours=2.0):
+    try:
+        h = float(val)
+    except (TypeError, ValueError):
+        return float(default_hours)
+    if h <= 0 or abs(h - 2.1) < 0.015:
+        return float(default_hours)
+    return h
+
+
+def _persist_schedule_runtime(user_id, **fields):
+    try:
+        st = load_settings(user_id) or {}
+        st.update(fields)
+        save_settings(user_id, st)
+    except Exception as _se:
+        logger.error(f"Failed to persist schedule runtime for {user_id}: {_se}")
+
+
 def monitoring_worker(user_id):
     logger.info(f"Starting enhanced monitoring worker with event handlers for user {user_id}")
+    _stopped_by_duration = False
 
     try:
         with USERS_LOCK:
@@ -6928,6 +6958,7 @@ def monitoring_worker(user_id):
                 return
 
             USERS[user_id]['monitoring_active'] = True
+            USERS[user_id]['scheduled_send_busy'] = False
             client_manager = USERS[user_id].get('client_manager')
             settings = USERS[user_id]['settings']
 
@@ -6950,43 +6981,102 @@ def monitoring_worker(user_id):
                 "message": f"🚀 بدأت المراقبة الشاملة لكامل الرسائل في الحساب | الإرسال لـ {len(send_groups)} مجموعة"
             }, to=user_id)
 
-        _persisted = load_settings(user_id)
-        _saved_last_send = _persisted.get('last_scheduled_send', 0)
-        if _saved_last_send == 0:
-            _saved_last_send = time.time()
+        _persisted = load_settings(user_id) or {}
+        _now_init = time.time()
+        _interval_init = max(60, int(_persisted.get('interval_seconds', settings.get('interval_seconds', 1500)) or 1500))
+
+        # ── دورة التشغيل/التوقف التلقائية: ساعتان تشغيل (7200ث) + ساعتان توقف (7200ث) ──
+        _dur_h = _normalize_cycle_hours(_persisted.get('schedule_duration_hours', settings.get('schedule_duration_hours', 2.0)), 2.0)
+        _sched_dur = max(60, int(round(_dur_h * 3600)))
+        _pause_h = _normalize_cycle_hours(_persisted.get('schedule_pause_hours', settings.get('schedule_pause_hours', 2.0)), 2.0)
+        _pause_dur = max(60, int(round(_pause_h * 3600)))
+
+        # استعادة حالة الدورة الدائرية بدقة عبر إعادة التشغيل
+        _saved_phase = _persisted.get('schedule_cycle_phase')
+        _saved_round = int(_persisted.get('schedule_cycle_round') or 1)
+        _saved_sched_start = float(_persisted.get('schedule_sched_start') or 0)
+        _saved_pause_start = float(_persisted.get('schedule_pause_start') or 0)
+        _cycle_len = _sched_dur + _pause_dur
+
+        _cycle_phase = 'running'
+        _cycle_round = max(1, _saved_round)
+        _sched_start = _now_init
+        _pause_start = None
+
+        if _saved_phase == 'paused' and _saved_pause_start > 0 and (_now_init - _saved_pause_start) < (7 * 86400):
+            elapsed_pause = _now_init - _saved_pause_start
+            if elapsed_pause < _pause_dur:
+                _cycle_phase = 'paused'
+                _pause_start = _saved_pause_start
+                _sched_start = _saved_sched_start or (_saved_pause_start - _sched_dur)
+            else:
+                after_pause = elapsed_pause - _pause_dur
+                extra_cycles = int(after_pause // _cycle_len)
+                rem_in_cycle = after_pause % _cycle_len
+                _cycle_round += 1 + extra_cycles
+                if rem_in_cycle < _sched_dur:
+                    _cycle_phase = 'running'
+                    _sched_start = _now_init - rem_in_cycle
+                    _pause_start = None
+                else:
+                    _cycle_phase = 'paused'
+                    _pause_start = _now_init - (rem_in_cycle - _sched_dur)
+                    _sched_start = _pause_start - _sched_dur
+        elif _saved_phase == 'running' and _saved_sched_start > 0 and (_now_init - _saved_sched_start) < (7 * 86400):
+            elapsed_run = _now_init - _saved_sched_start
+            if elapsed_run < _sched_dur:
+                _cycle_phase = 'running'
+                _sched_start = _saved_sched_start
+                _pause_start = None
+            else:
+                extra_cycles = int(elapsed_run // _cycle_len)
+                rem_in_cycle = elapsed_run % _cycle_len
+                _cycle_round += extra_cycles
+                if rem_in_cycle < _sched_dur:
+                    _cycle_phase = 'running'
+                    _sched_start = _now_init - rem_in_cycle
+                    _pause_start = None
+                else:
+                    _cycle_phase = 'paused'
+                    _pause_start = _now_init - (rem_in_cycle - _sched_dur)
+                    _sched_start = _pause_start - _sched_dur
+
+        # استعادة موعد الإرسال المجدول بدقة
+        _saved_last_send = float(_persisted.get('last_scheduled_send') or 0)
+        _saved_next_send = float(_persisted.get('next_scheduled_send') or 0)
+        if _saved_next_send > 0:
+            _next_send_ts = _saved_next_send
+        elif _saved_last_send > 0:
+            _next_send_ts = _saved_last_send + _interval_init
+        else:
+            # أول تشغيل في الوضع المجدول: يبدأ الإرسال الأول فوراً ثم يلتزم بالفترة بدقة
+            _next_send_ts = _now_init
+
         with USERS_LOCK:
             if user_id in USERS:
                 USERS[user_id]['last_scheduled_send'] = _saved_last_send
-
-        # ── دورة التشغيل/التوقف التلقائية للإرسال المجدول (الدورة الدائرية المستمرة) ───
-        # الافتراضي الثابت والفعال دائماً: ساعتان تشغيل (7200 ثانية) + ساعتان توقف (7200 ثانية) أو ما يعادله مثل 2.1 ساعة
-        try:
-            _dur_h = float(settings.get('schedule_duration_hours', 2.1) or 2.1)
-            _sched_dur = max(60, int(_dur_h * 3600))
-        except (TypeError, ValueError):
-            _sched_dur = int(settings.get('schedule_duration', 0) or 7560)
-
-        try:
-            _pause_h = float(settings.get('schedule_pause_hours', 2.1) or 2.1)
-            _pause_dur = max(60, int(_pause_h * 3600))
-        except (TypeError, ValueError):
-            _pause_dur = int(settings.get('schedule_pause_duration', 0) or 7560)
-
-        _sched_start = time.time()
-        _pause_start = None
-        _cycle_phase = 'running'
-        _cycle_round = 1
-        _stopped_by_duration = False
-
-        with USERS_LOCK:
-            if user_id in USERS:
-                USERS[user_id]['cycle_phase'] = 'running'
+                USERS[user_id]['next_scheduled_send'] = _next_send_ts
+                USERS[user_id]['cycle_phase'] = _cycle_phase
                 USERS[user_id]['cycle_round'] = _cycle_round
                 USERS[user_id]['sched_dur'] = _sched_dur
                 USERS[user_id]['pause_dur'] = _pause_dur
                 USERS[user_id]['sched_start'] = _sched_start
-                USERS[user_id]['pause_start'] = None
+                USERS[user_id]['pause_start'] = _pause_start
                 USERS[user_id]['skip_pause_requested'] = False
+                USERS[user_id]['sched_resync_requested'] = False
+
+        _persist_schedule_runtime(
+            user_id,
+            schedule_duration_hours=_dur_h,
+            schedule_duration=_sched_dur,
+            schedule_pause_hours=_pause_h,
+            schedule_pause_duration=_pause_dur,
+            schedule_cycle_phase=_cycle_phase,
+            schedule_cycle_round=_cycle_round,
+            schedule_sched_start=_sched_start,
+            schedule_pause_start=_pause_start,
+            next_scheduled_send=_next_send_ts,
+        )
 
         if _sched_dur > 0:
             _h = _sched_dur // 3600
@@ -6999,20 +7089,31 @@ def monitoring_worker(user_id):
             else:
                 _cycle_message += " ثم يتوقف تلقائياً"
             socketio.emit('log_update', {"message": _cycle_message}, to=user_id)
+
+        _init_send_type = settings.get('send_type', 'manual')
+        _init_next_rem = max(0, int(_next_send_ts - _now_init)) if (_init_send_type == 'scheduled' and _cycle_phase == 'running') else None
+        _init_next_at = time.strftime('%H:%M:%S', time.localtime(_next_send_ts)) if _init_next_rem is not None else None
+        _init_rem = max(0, int(_sched_dur - (_now_init - _sched_start))) if _cycle_phase == 'running' else None
+        _init_p_rem = max(0, int(_pause_dur - (_now_init - (_pause_start or _now_init)))) if _cycle_phase == 'paused' else None
         socketio.emit('schedule_status', {
             "running": True,
-            "cycle_phase": "running",
+            "cycle_phase": _cycle_phase,
             "cycle_round": _cycle_round,
+            "send_type": _init_send_type,
+            "interval_seconds": _interval_init,
             "duration_hours": _sched_dur / 3600,
             "pause_duration_hours": _pause_dur / 3600,
-            "remaining_seconds": _sched_dur if _sched_dur > 0 else None,
-            "pause_remaining_seconds": None,
+            "remaining_seconds": _init_rem,
+            "pause_remaining_seconds": _init_p_rem,
+            "next_send_remaining": _init_next_rem,
+            "next_send_timestamp": _next_send_ts if _init_next_rem is not None else None,
+            "next_send_at": _init_next_at,
             "auto_resume": _pause_dur > 0,
-            "target_timestamp": (_sched_start + _sched_dur) if _sched_dur > 0 else None
+            "target_timestamp": ((_pause_start + _pause_dur) if _cycle_phase == 'paused' and _pause_start else (_sched_start + _sched_dur))
         }, to=user_id)
 
         if _DB_READY:
-            _app_db.record_schedule_event(user_id, "running", {
+            _app_db.record_schedule_event(user_id, _cycle_phase, {
                 "duration_hours": _sched_dur / 3600,
                 "pause_duration_hours": _pause_dur / 3600,
                 "cycle_round": _cycle_round
@@ -7021,6 +7122,7 @@ def monitoring_worker(user_id):
         consecutive_errors = 0
         max_consecutive_errors = 5
         _last_remain_emit = 0
+        _last_heartbeat_emit = 0
 
         while True:
             with USERS_LOCK:
@@ -7028,10 +7130,27 @@ def monitoring_worker(user_id):
                     logger.info(f"Stopping monitoring for user {user_id} as is_running is False")
                     break
 
+                if USERS[user_id].get('sched_resync_requested'):
+                    USERS[user_id]['sched_resync_requested'] = False
+                    _st_mem = USERS[user_id].get('settings', {}) or {}
+                    _dur_h = _normalize_cycle_hours(_st_mem.get('schedule_duration_hours', 2.0), 2.0)
+                    _sched_dur = max(60, int(round(_dur_h * 3600)))
+                    _pause_h = _normalize_cycle_hours(_st_mem.get('schedule_pause_hours', 2.0), 2.0)
+                    _pause_dur = max(60, int(round(_pause_h * 3600)))
+                    if USERS[user_id].get('sched_start'):
+                        _sched_start = float(USERS[user_id]['sched_start'])
+                    if USERS[user_id].get('cycle_phase') in ('running', 'paused'):
+                        _cycle_phase = USERS[user_id]['cycle_phase']
+                    if USERS[user_id].get('pause_start'):
+                        _pause_start = float(USERS[user_id]['pause_start'])
+                    if USERS[user_id].get('next_scheduled_send') is not None:
+                        _next_send_ts = float(USERS[user_id]['next_scheduled_send'])
+                    _last_remain_emit = 0
+                    _last_heartbeat_emit = 0
+
                 user_data = USERS[user_id].copy()
                 USERS[user_id]['monitoring_active'] = True
 
-            # ── إدارة دورة التشغيل والتوقف التلقائية ───────────────────────
             _now = time.time()
             skip_pause = False
             with USERS_LOCK:
@@ -7039,6 +7158,11 @@ def monitoring_worker(user_id):
                     skip_pause = True
                     USERS[user_id]['skip_pause_requested'] = False
 
+            settings = user_data.get('settings', {})
+            send_type = settings.get('send_type', 'manual')
+            interval_seconds = max(60, int(settings.get('interval_seconds', 1500) or 1500))
+
+            # ── طور التوقف المؤقت (ساعتان راحة) ──
             if _cycle_phase == 'paused':
                 _pause_remaining = _pause_dur - (_now - (_pause_start or _now))
                 if _pause_remaining <= 0 or skip_pause:
@@ -7046,18 +7170,26 @@ def monitoring_worker(user_id):
                     _cycle_round += 1
                     _sched_start = _now
                     _pause_start = None
+                    _next_send_ts = _now  # إرسال الجولة الأولى فوراً فور انتهاء الاستراحة
                     with USERS_LOCK:
                         if user_id in USERS:
                             USERS[user_id]['cycle_phase'] = 'running'
                             USERS[user_id]['cycle_round'] = _cycle_round
                             USERS[user_id]['sched_start'] = _sched_start
                             USERS[user_id]['pause_start'] = None
-                            _interval_after_pause = max(60, int(USERS[user_id].get('settings', {}).get('interval_seconds', 3600)))
-                            USERS[user_id]['last_scheduled_send'] = _now - _interval_after_pause
+                            USERS[user_id]['next_scheduled_send'] = _next_send_ts
+                    _persist_schedule_runtime(
+                        user_id,
+                        schedule_cycle_phase='running',
+                        schedule_cycle_round=_cycle_round,
+                        schedule_sched_start=_sched_start,
+                        schedule_pause_start=None,
+                        next_scheduled_send=_next_send_ts,
+                    )
                     if skip_pause:
                         _resume_msg = f"⏩ تم استئناف الإرسال فوراً بطلب المستخدم (الدورة #{_cycle_round})"
                     else:
-                        _resume_msg = f"▶️ انتهت مدة التوقف — استؤنف الإرسال المجدول تلقائياً (الدورة #{_cycle_round})"
+                        _resume_msg = f"▶️ انتهت مدة التوقف (ساعتان) — استؤنف الإرسال المجدول تلقائياً (الدورة #{_cycle_round})"
                     socketio.emit('log_update', {"message": _resume_msg}, to=user_id)
                     if _DB_READY:
                         _app_db.record_schedule_event(user_id, "resumed", {
@@ -7068,30 +7200,57 @@ def monitoring_worker(user_id):
                         "running": True,
                         "cycle_phase": "running",
                         "cycle_round": _cycle_round,
+                        "send_type": send_type,
+                        "interval_seconds": interval_seconds,
                         "duration_hours": _sched_dur / 3600,
                         "pause_duration_hours": _pause_dur / 3600,
                         "remaining_seconds": _sched_dur if _sched_dur > 0 else None,
                         "pause_remaining_seconds": None,
+                        "next_send_remaining": 0 if send_type == 'scheduled' else None,
+                        "next_send_timestamp": _next_send_ts if send_type == 'scheduled' else None,
+                        "next_send_at": time.strftime('%H:%M:%S', time.localtime(_next_send_ts)) if send_type == 'scheduled' else None,
                         "auto_resume": True,
                         "target_timestamp": (_sched_start + _sched_dur) if _sched_dur > 0 else None
                     }, to=user_id)
+                    _last_remain_emit = _now
+                    _last_heartbeat_emit = 0
                 else:
-                    if time.time() - _last_remain_emit >= 5:
-                        _last_remain_emit = time.time()
+                    if _now - _last_remain_emit >= 5:
+                        _last_remain_emit = _now
                         socketio.emit('schedule_remaining', {
                             "phase": "paused",
                             "cycle_round": _cycle_round,
+                            "send_type": send_type,
+                            "interval_seconds": interval_seconds,
                             "remaining_seconds": int(_pause_remaining),
                             "remaining_minutes": int(_pause_remaining // 60),
                             "remaining_hours": _pause_remaining / 3600,
-                            "target_timestamp": (_pause_start or _now) + _pause_dur
+                            "target_timestamp": (_pause_start or _now) + _pause_dur,
+                            "next_send_remaining": None,
+                            "next_send_timestamp": None,
                         }, to=user_id)
-                    for _ in range(5):
-                        if not USERS.get(user_id, {}).get('is_running', False) or USERS.get(user_id, {}).get('skip_pause_requested', False):
-                            break
-                        time.sleep(1)
+                        socketio.emit('heartbeat', {
+                            'timestamp': time.strftime('%H:%M:%S'),
+                            'status': 'active',
+                            'type': 'event_driven_monitoring',
+                            'keywords_active': bool(watch_words),
+                            'event_handlers': True,
+                            'send_type': send_type,
+                            'interval_seconds': interval_seconds,
+                            'next_send_remaining': None,
+                            'next_send_timestamp': None,
+                            'next_send_at': None,
+                            'schedule_remaining': 0,
+                            'schedule_duration_hours': _sched_dur / 3600,
+                            'cycle_phase': 'paused',
+                            'cycle_round': _cycle_round,
+                            'pause_remaining_seconds': max(0, int(_pause_remaining)),
+                            'pause_duration_hours': _pause_dur / 3600
+                        }, to=user_id)
+                    time.sleep(min(1.0, max(0.2, _pause_remaining)))
                     continue
 
+            # ── فحص انتهاء مدة التشغيل (ساعتان تشغيل) ──
             if _cycle_phase == 'running' and _sched_dur > 0:
                 _remain = _sched_dur - (_now - _sched_start)
                 if _remain <= 0:
@@ -7103,11 +7262,18 @@ def monitoring_worker(user_id):
                         with USERS_LOCK:
                             if user_id in USERS:
                                 USERS[user_id]['cycle_phase'] = 'paused'
-                                USERS[user_id]['pause_start'] = _now
-                        _pause_h = _pause_dur // 3600
-                        _pause_m = (_pause_dur % 3600) // 60
+                                USERS[user_id]['pause_start'] = _pause_start
+                        _persist_schedule_runtime(
+                            user_id,
+                            schedule_cycle_phase='paused',
+                            schedule_cycle_round=_cycle_round,
+                            schedule_sched_start=_sched_start,
+                            schedule_pause_start=_pause_start,
+                        )
+                        _pause_h_int = _pause_dur // 3600
+                        _pause_m_int = (_pause_dur % 3600) // 60
                         socketio.emit('log_update', {
-                            "message": f"⏸️ انتهت مدة التشغيل لدورة #{_cycle_round} — توقف الإرسال لمدة {_pause_h}س {_pause_m}د ثم يستأنف تلقائياً"
+                            "message": f"⏸️ انتهت مدة التشغيل (ساعتان) للدورة #{_cycle_round} — توقف الإرسال لمدة {_pause_h_int}س {_pause_m_int}د ثم يُستأنف تلقائياً"
                         }, to=user_id)
                         if _DB_READY:
                             _app_db.record_schedule_event(user_id, "paused", {
@@ -7119,20 +7285,24 @@ def monitoring_worker(user_id):
                             "running": True,
                             "cycle_phase": "paused",
                             "cycle_round": _cycle_round,
+                            "send_type": send_type,
+                            "interval_seconds": interval_seconds,
                             "stopped_by_duration": False,
                             "duration_hours": _sched_dur / 3600,
                             "pause_duration_hours": _pause_dur / 3600,
                             "pause_remaining_seconds": _pause_dur,
+                            "next_send_remaining": None,
+                            "next_send_timestamp": None,
                             "auto_resume": True,
-                            "target_timestamp": _now + _pause_dur
+                            "target_timestamp": _pause_start + _pause_dur
                         }, to=user_id)
                         send_push_notification(
                             user_id,
                             f"⏸️ توقف مؤقت للإرسال (الدورة #{_cycle_round})",
-                            f"انتهت مدة التشغيل ({_sched_dur//3600}س). سيُستأنف الإرسال تلقائياً بعد {_pause_h}س {_pause_m}د.",
+                            f"انتهت مدة التشغيل ({_sched_dur//3600}س). سيُستأنف الإرسال تلقائياً بعد {_pause_h_int}س {_pause_m_int}د.",
                             data={"type": "schedule_paused", "pause_remaining_seconds": _pause_dur}
                         )
-                        time.sleep(1)
+                        time.sleep(0.5)
                         continue
 
                     socketio.emit('log_update', {
@@ -7161,83 +7331,113 @@ def monitoring_worker(user_id):
                         data={"type": "schedule_expired", "duration_hours": _sched_dur / 3600}
                     )
                     break
-                elif time.time() - _last_remain_emit >= 5:
-                    _last_remain_emit = time.time()
-                    socketio.emit('schedule_remaining', {
-                        "phase": "running",
-                        "cycle_round": _cycle_round,
-                        "remaining_seconds": int(_remain),
-                        "remaining_minutes": int(_remain // 60),
-                        "remaining_hours": _remain / 3600,
-                        "target_timestamp": _sched_start + _sched_dur
-                    }, to=user_id)
 
             try:
-                settings = user_data.get('settings', {})
-                send_type = settings.get('send_type', 'manual')
                 current_time = time.time()
 
                 if send_type == 'scheduled':
-                    interval_seconds = int(settings.get('interval_seconds', 3600))
-                    last_send = user_data.get('last_scheduled_send', 0)
-                    remaining = interval_seconds - (current_time - last_send)
+                    if _next_send_ts <= 0:
+                        _next_send_ts = current_time
 
+                    remaining = _next_send_ts - current_time
                     if remaining <= 0:
-                        logger.info(f"Executing scheduled send for user {user_id} (interval={interval_seconds}s)")
-                        socketio.emit('log_update', {
-                            "message": f"📅 حان موعد الإرسال المجدول — جاري الإرسال إلى {len(settings.get('groups', []))} مجموعة..."
-                        }, to=user_id)
-                        execute_scheduled_messages(user_id, settings)
-
                         with USERS_LOCK:
-                            if user_id in USERS:
-                                USERS[user_id]['last_scheduled_send'] = current_time
-                        try:
-                            _s = load_settings(user_id)
-                            _s['last_scheduled_send'] = current_time
-                            save_settings(user_id, _s)
-                        except Exception as _se:
-                            logger.error(f"Failed to persist last_scheduled_send: {_se}")
+                            is_busy = bool(USERS.get(user_id, {}).get('scheduled_send_busy', False))
 
-                        next_send_at = time.strftime('%H:%M:%S', time.localtime(current_time + interval_seconds))
-                        socketio.emit('log_update', {
-                            "message": f"⏰ الإرسال التالي في: {next_send_at} (بعد {interval_seconds // 60} دقيقة)"
-                        }, to=user_id)
-                    else:
-                        logger.debug(f"Scheduled send for {user_id}: {int(remaining)}s remaining")
+                        if is_busy:
+                            # إذا ما زالت الجولة السابقة قيد الإرسال، نؤجل قليلاً دون تداخل
+                            logger.info(f"⏳ الجولة المجدولة السابقة لـ {user_id} ما زالت جارية — انتظار انتهائها")
+                            _next_send_ts = current_time + 5
+                        else:
+                            # تثبيت المرسى الزمني الدقيق للجولة القادمة قبل البدء لمنع أي انحراف (drift)
+                            trigger_anchor = _next_send_ts if (current_time - _next_send_ts) < max(60, interval_seconds * 0.5) else current_time
+                            _next_send_ts = trigger_anchor + interval_seconds
+                            last_sent_at = current_time
+
+                            with USERS_LOCK:
+                                if user_id in USERS:
+                                    USERS[user_id]['scheduled_send_busy'] = True
+                                    USERS[user_id]['last_scheduled_send'] = last_sent_at
+                                    USERS[user_id]['next_scheduled_send'] = _next_send_ts
+
+                            _persist_schedule_runtime(
+                                user_id,
+                                last_scheduled_send=last_sent_at,
+                                next_scheduled_send=_next_send_ts,
+                                schedule_cycle_phase=_cycle_phase,
+                                schedule_cycle_round=_cycle_round,
+                                schedule_sched_start=_sched_start,
+                            )
+
+                            next_send_at = time.strftime('%H:%M:%S', time.localtime(_next_send_ts))
+                            logger.info(f"Executing scheduled send for user {user_id} (interval={interval_seconds}s, next={next_send_at})")
+                            socketio.emit('log_update', {
+                                "message": f"📅 حان موعد الإرسال المجدول — جاري الإرسال إلى {len(settings.get('groups', []))} مجموعة | القادم في {next_send_at} (كل {interval_seconds // 60}د)"
+                            }, to=user_id)
+
+                            settings_snapshot = dict(settings)
+
+                            def _run_scheduled_round(uid=user_id, st_snap=settings_snapshot):
+                                try:
+                                    execute_scheduled_messages(uid, st_snap)
+                                finally:
+                                    with USERS_LOCK:
+                                        if uid in USERS:
+                                            USERS[uid]['scheduled_send_busy'] = False
+
+                            _OSThread(target=_run_scheduled_round, daemon=True, name=f"SchedSend-{user_id}").start()
+                            _last_remain_emit = 0
+                            _last_heartbeat_emit = 0
 
                 consecutive_errors = 0
 
+                now_after = time.time()
                 next_send_remaining = None
                 next_send_at_str = None
                 if send_type == 'scheduled':
-                    interval_seconds = int(settings.get('interval_seconds', 3600))
-                    last_send = user_data.get('last_scheduled_send', 0)
-                    remaining = interval_seconds - (current_time - last_send)
-                    next_send_remaining = max(0, int(remaining))
-                    next_send_at_str = time.strftime('%H:%M:%S', time.localtime(current_time + next_send_remaining))
+                    next_send_remaining = max(0, int(round(_next_send_ts - now_after)))
+                    next_send_at_str = time.strftime('%H:%M:%S', time.localtime(_next_send_ts))
 
-                _dur_remain = None
-                if _sched_dur > 0:
-                    _dur_remain = max(0, int(_sched_dur - (time.time() - _sched_start)))
+                _dur_remain = max(0, int(_sched_dur - (now_after - _sched_start))) if _sched_dur > 0 else None
 
-                status_info = {
-                    'timestamp': time.strftime('%H:%M:%S'),
-                    'status': 'active',
-                    'type': 'event_driven_monitoring',
-                    'keywords_active': bool(watch_words),
-                    'event_handlers': True,
-                    'send_type': send_type,
-                    'next_send_remaining': next_send_remaining,
-                    'next_send_at': next_send_at_str,
-                    'schedule_remaining': _dur_remain,
-                    'schedule_duration_hours': _sched_dur / 3600 if _sched_dur > 0 else 0,
-                    'cycle_phase': _cycle_phase,
-                    'pause_remaining_seconds': (max(0, int(_pause_dur - (time.time() - (_pause_start or time.time())))) if _cycle_phase == 'paused' else None),
-                    'pause_duration_hours': _pause_dur / 3600
-                }
+                if now_after - _last_remain_emit >= 5:
+                    _last_remain_emit = now_after
+                    if _sched_dur > 0 and _dur_remain is not None:
+                        socketio.emit('schedule_remaining', {
+                            "phase": "running",
+                            "cycle_round": _cycle_round,
+                            "send_type": send_type,
+                            "interval_seconds": interval_seconds,
+                            "remaining_seconds": _dur_remain,
+                            "remaining_minutes": int(_dur_remain // 60),
+                            "remaining_hours": _dur_remain / 3600,
+                            "target_timestamp": _sched_start + _sched_dur,
+                            "next_send_remaining": next_send_remaining,
+                            "next_send_timestamp": _next_send_ts if send_type == 'scheduled' else None,
+                            "next_send_at": next_send_at_str,
+                        }, to=user_id)
 
-                socketio.emit('heartbeat', status_info, to=user_id)
+                if now_after - _last_heartbeat_emit >= 5:
+                    _last_heartbeat_emit = now_after
+                    status_info = {
+                        'timestamp': time.strftime('%H:%M:%S'),
+                        'status': 'active',
+                        'type': 'event_driven_monitoring',
+                        'keywords_active': bool(watch_words),
+                        'event_handlers': True,
+                        'send_type': send_type,
+                        'interval_seconds': interval_seconds,
+                        'next_send_remaining': next_send_remaining,
+                        'next_send_timestamp': _next_send_ts if send_type == 'scheduled' else None,
+                        'next_send_at': next_send_at_str,
+                        'schedule_remaining': _dur_remain,
+                        'schedule_duration_hours': _sched_dur / 3600 if _sched_dur > 0 else 0,
+                        'cycle_phase': _cycle_phase,
+                        'cycle_round': _cycle_round,
+                        'pause_remaining_seconds': None,
+                        'pause_duration_hours': _pause_dur / 3600
+                    }
+                    socketio.emit('heartbeat', status_info, to=user_id)
 
             except Exception as e:
                 consecutive_errors += 1
@@ -7255,7 +7455,14 @@ def monitoring_worker(user_id):
                             USERS[user_id]['is_running'] = False
                     break
 
-            time.sleep(10)
+            # نوم ذكي دقيق للاستيقاظ عند الثانية المحددة بدون انحراف
+            _sleep_candidates = [2.0]
+            _now_sleep = time.time()
+            if send_type == 'scheduled' and _next_send_ts > 0:
+                _sleep_candidates.append(max(0.2, _next_send_ts - _now_sleep))
+            if _sched_dur > 0:
+                _sleep_candidates.append(max(0.2, (_sched_start + _sched_dur) - _now_sleep))
+            time.sleep(min(_sleep_candidates))
 
     except Exception as e:
         logger.error(f"Monitoring worker top-level error for {user_id}: {str(e)}")
@@ -7264,6 +7471,7 @@ def monitoring_worker(user_id):
             if user_id in USERS:
                 USERS[user_id]['is_running'] = False
                 USERS[user_id]['monitoring_active'] = False
+                USERS[user_id]['scheduled_send_busy'] = False
                 USERS[user_id]['thread'] = None
 
         socketio.emit('log_update', {
@@ -7294,24 +7502,40 @@ def api_resume_scheduled():
         if user_id not in USERS:
             return jsonify({"success": False, "message": "❌ المستخدم غير موجود"}), 404
 
-        if USERS[user_id].get('is_running', False):
+        cur_thread = USERS[user_id].get('thread')
+        thread_alive = bool(cur_thread and cur_thread.is_alive())
+
+        if USERS[user_id].get('is_running', False) and thread_alive:
             if USERS[user_id].get('cycle_phase') == 'paused':
                 USERS[user_id]['skip_pause_requested'] = True
                 return jsonify({"success": True, "message": "⏩ تم تخطي فترة التوقف واستئناف الإرسال فوراً"})
             return jsonify({"success": False, "message": "⚠️ الإرسال المجدول يعمل بالفعل"})
 
-        settings = USERS[user_id].get('settings', {})
+        settings = USERS[user_id].get('settings', {}) or load_settings(user_id) or {}
         if not settings.get('groups') or not settings.get('message'):
             return jsonify({"success": False, "message": "❌ الإعدادات غير مكتملة (المجموعات أو الرسالة)"})
 
-        _sched_dur = int(settings.get('schedule_duration', 0))
+        _dur_h = _normalize_cycle_hours(settings.get('schedule_duration_hours', 2.0), 2.0)
+        _sched_dur = max(60, int(round(_dur_h * 3600)))
         _h = _sched_dur // 3600
         _m = (_sched_dur % 3600) // 60
+        _now_res = time.time()
         USERS[user_id]['is_running'] = True
         USERS[user_id]['cycle_phase'] = 'running'
+        USERS[user_id]['sched_start'] = _now_res
+        USERS[user_id]['pause_start'] = None
+        USERS[user_id]['next_scheduled_send'] = _now_res
 
-    import threading as _thr
-    t = _thr.Thread(target=monitoring_worker, args=(user_id,), daemon=True)
+    _persist_schedule_runtime(
+        user_id,
+        monitoring_persistent=True,
+        schedule_cycle_phase='running',
+        schedule_sched_start=time.time(),
+        schedule_pause_start=None,
+        next_scheduled_send=time.time(),
+    )
+
+    t = _OSThread(target=monitoring_worker, args=(user_id,), daemon=True)
     t.start()
     with USERS_LOCK:
         if user_id in USERS:
@@ -7323,7 +7547,7 @@ def api_resume_scheduled():
 
 
 def ensure_monitoring_started(user_id):
-    """تشغيل وظيفة المراقبة دائماً كوضع افتراضي دائم وحقيقي"""
+    """تشغيل وظيفة المراقبة والإرسال المجدول مع التحقق الحقيقي من حيوية الخيط"""
     try:
         with USERS_LOCK:
             if user_id not in USERS:
@@ -7331,9 +7555,13 @@ def ensure_monitoring_started(user_id):
             user_data = USERS[user_id]
             if not user_data.get('authenticated'):
                 return False
-            if user_data.get('is_running', False) or user_data.get('monitoring_active', False):
+            existing_thread = user_data.get('thread')
+            thread_alive = bool(existing_thread and existing_thread.is_alive())
+            if thread_alive and user_data.get('is_running', False):
                 return True
+            # إذا مات الخيط أو لم يبدأ فعلياً، نُعيد التشغيل بشكل نظيف
             user_data['is_running'] = True
+            user_data['monitoring_active'] = True
 
         t = _OSThread(target=monitoring_worker, args=(user_id,), daemon=True)
         t.start()
@@ -7358,11 +7586,19 @@ def ensure_monitoring_started(user_id):
 
 
 def execute_scheduled_messages(user_id, settings):
-    groups = settings.get('groups', [])
-    message = settings.get('message', '')
+    # قراءة أحدث إعدادات المستخدم لضمان إرسال أحدث نص ومجموعات
+    fresh_settings = load_settings(user_id) or {}
+    groups = fresh_settings.get('groups') or settings.get('groups', [])
+    message = fresh_settings.get('message') or settings.get('message', '')
 
     if not groups or not message:
         return
+
+    # التأكد من أن عميل التليجرام متصل ونشط قبل بدء الجولة المجدولة
+    try:
+        telegram_manager.ensure_client_active(user_id)
+    except Exception as _ce:
+        logger.warning(f"ensure_client_active in scheduled send for {user_id}: {_ce}")
 
     try:
         socketio.emit('log_update', {
@@ -7373,35 +7609,24 @@ def execute_scheduled_messages(user_id, settings):
         failed = 0
 
         for i, group in enumerate(groups, 1):
-            try:
-                curr_message = message
-                try:
-                    with USERS_LOCK:
-                        cm = USERS.get(user_id, {}).get('client_manager')
-                    if cm and cm.client:
-                        ent_obj = telegram_manager._resolve_entity(cm, group)
-                        ai_check = telegram_manager.scan_and_analyze_group_with_ai(
-                            user_id, cm, ent_obj, group, sample_message=message, send_report_to_me=True
-                        )
-                        if ai_check.get('should_skip'):
-                            socketio.emit('log_update', {
-                                "message": f"⏭️ [{i}/{len(groups)}] تخطي آلي لـ {group}: {ai_check.get('skip_reason', 'رُصد حظر قطعي للأعضاء')}"
-                            }, to=user_id)
-                            continue
-                        if ai_check.get('adapted_message'):
-                            curr_message = ai_check.get('adapted_message')
-                        if ai_check.get('actions_taken'):
-                            socketio.emit('log_update', {
-                                "message": f"🛡️ [{i}/{len(groups)}] تلافي أخطاء الآخرين في {group}: {', '.join(ai_check['actions_taken'][:2])}"
-                            }, to=user_id)
-                except Exception as _ai_ex:
-                    logger.debug(f"AI inspection fallback in scheduled send: {_ai_ex}")
+            with USERS_LOCK:
+                still_running = USERS.get(user_id, {}).get('is_running', False)
+                cur_phase = USERS.get(user_id, {}).get('cycle_phase', 'running')
+            if not still_running or cur_phase == 'paused':
+                socketio.emit('log_update', {
+                    "message": "⏹ تم إيقاف الجولة المجدولة الجارية لانتهاء وقت التشغيل أو إيقاف المراقبة"
+                }, to=user_id)
+                break
 
-                result = telegram_manager.send_message_async(user_id, group, curr_message)
+            try:
+                result = telegram_manager.send_message_async(
+                    user_id, group, message, log_source="scheduled"
+                )
 
                 if isinstance(result, dict) and result.get('skipped'):
+                    reason = result.get('message', 'تم التخطي')
                     socketio.emit('log_update', {
-                        "message": f"⏭️ [{i}/{len(groups)}] تم تخطي: {group} (الرسالة لم تُرسَل)"
+                        "message": f"⏭️ [{i}/{len(groups)}] تم تخطي {group}: {reason}"
                     }, to=user_id)
                     failed += 1
                     with USERS_LOCK:
@@ -7424,7 +7649,7 @@ def execute_scheduled_messages(user_id, settings):
                 logger.error(f"Scheduled send error to {group}: {error_msg}")
 
                 socketio.emit('log_update', {
-                    "message": f"❌ [{i}/{len(groups)}] إرسال مجدول فشل إلى {group}"
+                    "message": f"❌ [{i}/{len(groups)}] إرسال مجدول فشل إلى {group}: {error_msg[:80]}"
                 }, to=user_id)
 
                 failed += 1
@@ -7485,6 +7710,10 @@ def handle_connect():
             pause_dur = u_mem.get('pause_dur', 0)
             sched_start = u_mem.get('sched_start')
             pause_start = u_mem.get('pause_start')
+            next_send_ts = u_mem.get('next_scheduled_send')
+            cur_settings = u_mem.get('settings') or load_settings(user_id) or {}
+            cur_send_type = cur_settings.get('send_type', 'manual')
+            cur_interval = max(60, int(cur_settings.get('interval_seconds', 1500) or 1500))
 
         emit('monitoring_status', {
             'is_running': is_run,
@@ -7500,15 +7729,22 @@ def handle_connect():
                 target_ts = sched_start + sched_dur
             elif cycle_phase == 'paused' and pause_start and pause_dur > 0:
                 target_ts = pause_start + pause_dur
+            next_rem = max(0, int(next_send_ts - _now)) if (cur_send_type == 'scheduled' and cycle_phase == 'running' and next_send_ts) else None
+            next_at = time.strftime('%H:%M:%S', time.localtime(next_send_ts)) if next_rem is not None else None
 
             emit('schedule_status', {
                 "running": True,
                 "cycle_phase": cycle_phase,
                 "cycle_round": cycle_round,
+                "send_type": cur_send_type,
+                "interval_seconds": cur_interval,
                 "duration_hours": sched_dur / 3600,
                 "pause_duration_hours": pause_dur / 3600,
                 "remaining_seconds": rem,
                 "pause_remaining_seconds": p_rem,
+                "next_send_remaining": next_rem,
+                "next_send_timestamp": next_send_ts if next_rem is not None else None,
+                "next_send_at": next_at,
                 "auto_resume": pause_dur > 0,
                 "target_timestamp": target_ts
             })
@@ -8420,37 +8656,65 @@ def api_save_settings():
                 "message": f"⏹ تم إيقاف {len(keys_to_remove)} دورة ذكية بسبب تغيير وضع الإرسال"
             }, to=user_id)
 
-    try:
-        raw_dur = data.get('schedule_duration_hours')
-        _sched_dur_h = float(raw_dur) if raw_dur is not None and str(raw_dur).strip() != '' else 2.0
-    except (TypeError, ValueError):
-        _sched_dur_h = 2.0
-    try:
-        raw_pause = data.get('schedule_pause_hours')
-        _pause_dur_h = float(raw_pause) if raw_pause is not None and str(raw_pause).strip() != '' else 2.0
-    except (TypeError, ValueError):
-        _pause_dur_h = 2.0
+    _sched_dur_h = _normalize_cycle_hours(data.get('schedule_duration_hours'), 2.0)
+    _pause_dur_h = _normalize_cycle_hours(data.get('schedule_pause_hours'), 2.0)
 
-    if data.get('send_type') == 'scheduled':
+    new_send_type = data.get('send_type', 'manual')
+    old_send_type = current_settings.get('send_type', 'manual')
+    old_interval = int(current_settings.get('interval_seconds', 1500) or 1500)
+
+    if new_send_type == 'scheduled':
         if _sched_dur_h <= 0:
             _sched_dur_h = 2.0
         if _pause_dur_h <= 0:
             _pause_dur_h = 2.0
     try:
-        _interval_seconds = max(60, int(data.get('interval_seconds', 3600) or 3600))
+        _interval_seconds = max(60, int(data.get('interval_seconds', 1500) or 1500))
     except (TypeError, ValueError):
-        _interval_seconds = 3600
+        _interval_seconds = 1500
+
+    _now_save = time.time()
+    _next_send_val = float(current_settings.get('next_scheduled_send') or 0)
+    _last_send_val = float(current_settings.get('last_scheduled_send') or 0)
+    _cycle_phase_val = current_settings.get('schedule_cycle_phase') or 'running'
+    _sched_start_val = float(current_settings.get('schedule_sched_start') or _now_save)
+    _pause_start_val = current_settings.get('schedule_pause_start')
+    _cycle_round_val = int(current_settings.get('schedule_cycle_round') or 1)
+
+    if new_send_type == 'scheduled':
+        if old_send_type != 'scheduled':
+            # تفعيل جديد للوضع المجدول: بدء دورة ساعتان تشغيل / ساعتان توقف وإرسال فوري عند الموعد
+            _cycle_phase_val = 'running'
+            _sched_start_val = _now_save
+            _pause_start_val = None
+            _cycle_round_val = 1
+            _next_send_val = _now_save
+        elif old_interval != _interval_seconds:
+            # تعديل الفترة الزمنية أثناء التفعيل: إعادة احتساب الموعد القادم بدقة
+            if _last_send_val > 0:
+                _next_send_val = _last_send_val + _interval_seconds
+                if _next_send_val < _now_save:
+                    _next_send_val = _now_save
+            else:
+                _next_send_val = _now_save
+
     current_settings.update({
         'message': data.get('message', ''),
         'groups': dedupe_groups(data.get('groups', '')),
         'interval_seconds': _interval_seconds,
         'watch_words': [w.strip() for w in data.get('watch_words', '').split('\n') if w.strip()],
-        'send_type': data.get('send_type', 'manual'),
+        'send_type': new_send_type,
         'schedule_duration_hours': _sched_dur_h,
-        'schedule_duration': int(_sched_dur_h * 3600),
+        'schedule_duration': int(round(_sched_dur_h * 3600)),
         'schedule_pause_hours': _pause_dur_h,
-        'schedule_pause_duration': int(_pause_dur_h * 3600),
-        'schedule_start_time': None,   # يُعاد ضبطه عند بدء التشغيل
+        'schedule_pause_duration': int(round(_pause_dur_h * 3600)),
+        'schedule_start_time': None,
+        'schedule_cycle_phase': _cycle_phase_val,
+        'schedule_cycle_round': _cycle_round_val,
+        'schedule_sched_start': _sched_start_val,
+        'schedule_pause_start': _pause_start_val,
+        'next_scheduled_send': _next_send_val,
+        'monitoring_persistent': True if new_send_type == 'scheduled' else current_settings.get('monitoring_persistent', True),
         'max_retries': int(data.get('max_retries', 5)),
         'auto_reconnect': data.get('auto_reconnect', False),
         'sanitize_mode': new_mode,
@@ -8467,6 +8731,11 @@ def api_save_settings():
         with USERS_LOCK:
             if user_id in USERS:
                 USERS[user_id]['settings'] = current_settings
+                USERS[user_id]['next_scheduled_send'] = _next_send_val
+                USERS[user_id]['cycle_phase'] = _cycle_phase_val
+                USERS[user_id]['sched_start'] = _sched_start_val
+                USERS[user_id]['pause_start'] = _pause_start_val
+                USERS[user_id]['sched_resync_requested'] = True
                 client_manager = USERS[user_id].get('client_manager')
                 if client_manager and hasattr(client_manager, 'update_monitoring_settings'):
                     client_manager.update_monitoring_settings(
@@ -8474,17 +8743,32 @@ def api_save_settings():
                         current_settings.get('groups', [])
                     )
 
+        monitoring_running = False
+        if new_send_type == 'scheduled':
+            monitoring_running = ensure_monitoring_started(user_id)
+        else:
+            with USERS_LOCK:
+                monitoring_running = bool(USERS.get(user_id, {}).get('is_running', False))
+
+        msg_saved = "✅ تم حفظ الإعدادات بنجاح"
+        if new_send_type == 'scheduled' and monitoring_running:
+            msg_saved = f"✅ تم حفظ الإعدادات وتفعيل الإرسال المجدول المتكرر كل {_interval_seconds // 60} دقيقة (ساعتان تشغيل / ساعتان توقف)"
+
         socketio.emit('log_update', {
-            "message": "✅ تم حفظ الإعدادات بنجاح"
+            "message": msg_saved
         }, to=user_id)
 
         return jsonify({
-            "success": True, 
-            "message": "✅ تم حفظ الإعدادات"
+            "success": True,
+            "message": msg_saved,
+            "monitoring_running": monitoring_running,
+            "send_type": new_send_type,
+            "interval_seconds": _interval_seconds,
+            "next_scheduled_send": _next_send_val,
         })
     else:
         return jsonify({
-            "success": False, 
+            "success": False,
             "message": "❌ فشل في حفظ الإعدادات"
         })
 
@@ -10368,9 +10652,51 @@ def api_send_now():
     state["worker_thread"] = wt
     wt.start()
 
+    # إذا كان الوضع مجدولاً: فعّل التكرار التلقائي في الخلفية وحدّث الموعد القادم بدقة
+    scheduled_started = False
+    try:
+        st_cur = load_settings(user_id) or {}
+        req_send_type = data.get('send_type') or st_cur.get('send_type', 'manual')
+        if req_send_type == 'scheduled':
+            now_sched = time.time()
+            interval_s = max(60, int(data.get('interval_seconds') or st_cur.get('interval_seconds', 1500) or 1500))
+            next_ts = now_sched + interval_s
+            st_cur['send_type'] = 'scheduled'
+            st_cur['interval_seconds'] = interval_s
+            st_cur['schedule_duration_hours'] = 2.0
+            st_cur['schedule_duration'] = 7200
+            st_cur['schedule_pause_hours'] = 2.0
+            st_cur['schedule_pause_duration'] = 7200
+            st_cur['monitoring_persistent'] = True
+            st_cur['last_scheduled_send'] = now_sched
+            st_cur['next_scheduled_send'] = next_ts
+            if not st_cur.get('schedule_sched_start') or st_cur.get('schedule_cycle_phase') != 'running':
+                st_cur['schedule_cycle_phase'] = 'running'
+                st_cur['schedule_cycle_round'] = 1
+                st_cur['schedule_sched_start'] = now_sched
+                st_cur['schedule_pause_start'] = None
+            save_settings(user_id, st_cur)
+            with USERS_LOCK:
+                if user_id in USERS:
+                    USERS[user_id]['settings'] = st_cur
+                    USERS[user_id]['last_scheduled_send'] = now_sched
+                    USERS[user_id]['next_scheduled_send'] = next_ts
+                    USERS[user_id]['cycle_phase'] = 'running'
+                    USERS[user_id]['sched_start'] = st_cur['schedule_sched_start']
+                    USERS[user_id]['pause_start'] = None
+                    USERS[user_id]['sched_resync_requested'] = True
+            scheduled_started = ensure_monitoring_started(user_id)
+            next_at_str = time.strftime('%H:%M:%S', time.localtime(next_ts))
+            socketio.emit('log_update', {
+                "message": f"🔁 تم تفعيل التكرار المجدول التلقائي — الإرسال القادم في {next_at_str} (كل {interval_s // 60} دقيقة | ساعتان تشغيل / ساعتان توقف)"
+            }, to=user_id)
+    except Exception as _sched_e:
+        logger.error(f"Failed to chain scheduled monitoring after send_now: {_sched_e}")
+
     return jsonify({
-        "success": True, 
-        "message": f"🚀 بدأ إرسال {content_type} لـ {len(groups_list)} مجموعة"
+        "success": True,
+        "scheduled_started": scheduled_started,
+        "message": f"🚀 بدأ إرسال {content_type} لـ {len(groups_list)} مجموعة" + (" (مع تفعيل التكرار المجدول تلقائياً)" if scheduled_started else "")
     })
 
 
@@ -15983,27 +16309,63 @@ def api_auto_join_history():
 # ════════════════════════════════════════════════════════════
 def _start_keepalive():
     """
-    يُرسل ping لنفسه كل 4 دقائق لمنع السكون (خاصة على Render Free).
-    يعمل كخيط daemon لا يمنع إيقاف التطبيق يدوياً.
+    مراقب الاستمرارية وصحة خيوط الجدولة:
+    - يتحقق دورياً من حيوية خيوط monitoring_worker للحسابات المفعّلة في الوضع المجدول ويعيد تشغيلها إن توقفت.
+    - يُرسل نبضاً دورياً لمنع السكون قدر الإمكان دون تعديل timeout العام للمقابس.
     """
     import time as _time
     import socket as _socket
 
     def _ping_self():
-        _time.sleep(30)  # انتظر حتى يكتمل الإقلاع
+        _time.sleep(20)  # انتظر حتى يكتمل الإقلاع
         _port = int(os.environ.get('PORT', 5000))
+        _ext_url = (os.environ.get('RENDER_EXTERNAL_URL') or '').strip().rstrip('/')
+        _tick = 0
         while True:
+            # 1) فحص حيوية خيوط الإرسال المجدول والمراقبة كل 60 ثانية
             try:
-                _socket.setdefaulttimeout(10)
-                conn = _socket.create_connection(('127.0.0.1', _port), timeout=5)
-                conn.close()
+                with USERS_LOCK:
+                    uids = list(USERS.keys())
+                for uid in uids:
+                    try:
+                        with USERS_LOCK:
+                            ud = USERS.get(uid) or {}
+                            is_auth = bool(ud.get('authenticated'))
+                            t = ud.get('thread')
+                            alive = bool(t and t.is_alive())
+                            st = ud.get('settings') or {}
+                        if not is_auth:
+                            continue
+                        if not st:
+                            st = load_settings(uid) or {}
+                        want_mon = bool(st.get('monitoring_persistent', True))
+                        is_sched = (st.get('send_type') == 'scheduled')
+                        if (want_mon or is_sched) and not alive:
+                            logger.warning(f"🛟 [Watchdog] إعادة تشغيل monitoring_worker المتوقف للمستخدم {uid}")
+                            ensure_monitoring_started(uid)
+                    except Exception:
+                        pass
             except Exception:
                 pass
-            _time.sleep(240)  # كل 4 دقائق
 
-    t = _OSThread(target=_ping_self, daemon=True, name='KeepAlive')
+            # 2) نبض KeepAlive كل 4 دقائق (كل 4 دورات × 60 ثانية)
+            if _tick % 4 == 0:
+                try:
+                    conn = _socket.create_connection(('127.0.0.1', _port), timeout=5)
+                    conn.close()
+                except Exception:
+                    pass
+                if _ext_url:
+                    try:
+                        requests.get(f"{_ext_url}/keepalive", timeout=8)
+                    except Exception:
+                        pass
+            _tick += 1
+            _time.sleep(60)
+
+    t = _OSThread(target=_ping_self, daemon=True, name='KeepAliveWatchdog')
     t.start()
-    logger.info("🔄 نظام الاستمرارية الدائم مُفعّل (ping كل 4 دقائق)")
+    logger.info("🔄 نظام الاستمرارية والمراقبة الدائم مُفعّل (فحص كل 60ث)")
 
 _start_keepalive()
 

@@ -5438,6 +5438,31 @@
       .edu-tb-btn.tb-canva { background: linear-gradient(135deg, #00c4cc, #7d2ae8); border: none; }
       .edu-tb-btn.tb-print { background: #0284c7; border-color: #0369a1; }
       .edu-tb-btn.tb-danger { background: #dc2626; border-color: #b91c1c; }
+      .edu-model-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: rgba(15, 23, 42, 0.45);
+        border: 1px solid rgba(255,255,255,0.22);
+        border-radius: 7px;
+        padding: 2px;
+      }
+      .edu-model-btn {
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.82);
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+        line-height: 1.35;
+      }
+      .edu-model-btn.is-active {
+        background: #0f766e;
+        color: #fff;
+      }
       @media (max-width: 576px) {
         .edu-unified-header { padding: 6px 8px 7px; gap: 5px; }
         .edu-uh-status { display: none; }
@@ -5445,6 +5470,7 @@
         .edu-uh-standalone { padding: 3px 7px; font-size: 0.69rem; }
         .edu-uh-actions { gap: 4px; padding-top: 5px; }
         .edu-tb-btn { padding: 4px 7px; font-size: 0.71rem; }
+        .edu-model-btn { padding: 3px 6px; font-size: 0.69rem; }
       }
     </style>
 
@@ -5468,6 +5494,10 @@
               </div>
             </div>
             <div class="edu-uh-actions">
+              <div class="edu-model-switch" role="group" aria-label="اختيار النسخة">
+                <button type="button" id="btnEduModel_portfolio_primary" onclick="callEduFrameAction('performancePortfolioFrame','switchPortfolioModel','primary')" class="edu-model-btn is-active">النسخة الأولى</button>
+                <button type="button" id="btnEduModel_portfolio_secondary" onclick="callEduFrameAction('performancePortfolioFrame','switchPortfolioModel','secondary')" class="edu-model-btn">النسخة الثانية</button>
+              </div>
               <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','saveData')" class="edu-tb-btn tb-save">💾 حفظ</button>
               <button type="button" id="eduPreviewBtn_portfolio" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="edu-tb-btn tb-preview">👁️ معاينة قبل الطباعة</button>
               <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','exportPDF')" class="edu-tb-btn tb-pdf">📄 تصدير PDF</button>
@@ -5548,6 +5578,10 @@
               </div>
             </div>
             <div class="edu-uh-actions">
+              <div class="edu-model-switch" role="group" aria-label="اختيار النسخة">
+                <button type="button" id="btnEduModel_reports_primary" onclick="callEduFrameAction('schoolReportsFrame','switchReportsModel','primary')" class="edu-model-btn is-active">النسخة الأولى</button>
+                <button type="button" id="btnEduModel_reports_secondary" onclick="callEduFrameAction('schoolReportsFrame','switchReportsModel','secondary')" class="edu-model-btn">النسخة الثانية</button>
+              </div>
               <button type="button" onclick="callEduFrameAction('schoolReportsFrame','saveData')" class="edu-tb-btn tb-save">💾 حفظ</button>
               <button type="button" id="eduPreviewBtn_reports" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="edu-tb-btn tb-preview">👁️ معاينة قبل الطباعة</button>
               <button type="button" onclick="callEduFrameAction('schoolReportsFrame','exportPDF')" class="edu-tb-btn tb-pdf">📄 تصدير PDF</button>
@@ -5742,6 +5776,13 @@
         btn.classList.toggle('is-active', Boolean(isActive));
         btn.innerHTML = isActive ? '✏️ العودة للتعديل' : '👁️ معاينة قبل الطباعة';
       }
+      function updateEduModelSwitcherState(target, model) {
+        const activeModel = (model === 'secondary') ? 'secondary' : 'primary';
+        const pBtn = document.getElementById('btnEduModel_' + target + '_primary');
+        const sBtn = document.getElementById('btnEduModel_' + target + '_secondary');
+        if (pBtn) pBtn.classList.toggle('is-active', activeModel === 'primary');
+        if (sBtn) sBtn.classList.toggle('is-active', activeModel === 'secondary');
+      }
       window.addEventListener('message', function (ev) {
         if (!ev || !ev.data || typeof ev.data !== 'object') return;
         if (ev.data.type === 'schoolActivitiesViewChanged') {
@@ -5751,6 +5792,8 @@
           if (statusEl && ev.data.msg) statusEl.textContent = ev.data.msg;
         } else if (ev.data.type === 'eduPreviewState' && ev.data.target) {
           updateEduPreviewButtonState(ev.data.target, ev.data.active);
+        } else if (ev.data.type === 'eduModelChanged' && ev.data.target) {
+          updateEduModelSwitcherState(ev.data.target, ev.data.model);
         }
       });
       function openSchoolActivitiesView(viewName, titleHtml) {
@@ -5797,7 +5840,7 @@
       function openSchoolActivitiesStandalone(evt) {
         return openEduStandalone('/school_activities_cards?view=' + _pendingSchoolActivitiesView, evt);
       }
-      function printActivitiesViaParent(stylesHtml, bodyHtml, onUnavailable) {
+      function printActivitiesViaParent(stylesHtml, bodyHtml, onUnavailable, opts) {
         const host = document.getElementById('eduDirectPrintHost');
         if (!host) {
           if (typeof onUnavailable === 'function') onUnavailable();
@@ -5808,6 +5851,7 @@
           .replace(/html\s*,\s*body/g, '#eduDirectPrintHost')
           .replace(/\bbody\b/g, '#eduDirectPrintHost')
           .replace(/(^|\n)\s*\*\s*\{/g, '$1#eduDirectPrintHost, #eduDirectPrintHost * {');
+        host.style.cssText = (opts && opts.rootCssText) ? String(opts.rootCssText) : '';
         host.innerHTML = scopedStyles + String(bodyHtml || '');
         document.body.classList.add('edu-direct-printing');
 
@@ -5819,6 +5863,7 @@
             safetyTimer = null;
           }
           document.body.classList.remove('edu-direct-printing');
+          host.style.cssText = '';
           host.innerHTML = '';
           try { window.removeEventListener('beforeprint', onTopBeforePrint); } catch (e) {}
           try { window.removeEventListener('afterprint', cleanup); } catch (e) {}

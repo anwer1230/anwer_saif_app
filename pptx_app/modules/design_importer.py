@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import urllib.parse
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
@@ -1438,9 +1439,8 @@ def _extract_palette_from_image_bytes(raw_bytes: bytes) -> Optional[Dict[str, st
         return None
 
 
-def _build_edu_canva_thumb_data_url(tpl: Dict[str, Any]) -> str:
-    """إنشاء معاينة SVG احتياطية فقط عند تعذر تحميل الصورة الأصلية من كانفا."""
-    import base64
+def _build_edu_canva_thumb_svg(tpl: Dict[str, Any]) -> str:
+    """توليد كود SVG مصغر احتياطي متوافق مع ألوان القالب عند تعذر جلب الصورة الأصلية."""
     from html import escape as _esc
 
     c = tpl.get("colors") or {}
@@ -1474,7 +1474,7 @@ def _build_edu_canva_thumb_data_url(tpl: Dict[str, Any]) -> str:
         else ""
     )
 
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="400" height="260">
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="400" height="260">
   <defs>
     <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="{p}"/>
@@ -1491,8 +1491,81 @@ def _build_edu_canva_thumb_data_url(tpl: Dict[str, Any]) -> str:
   <circle cx="78" cy="242" r="6" fill="{s}"/>
   <circle cx="94" cy="242" r="6" fill="{a}"/>
 </svg>'''
+
+
+def _build_edu_canva_thumb_data_url(tpl: Dict[str, Any]) -> str:
+    """إنشاء معاينة SVG احتياطية فقط عند تعذر تحميل الصورة الأصلية من كانفا."""
+    import base64
+    svg = _build_edu_canva_thumb_svg(tpl)
     encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
     return f"data:image/svg+xml;base64,{encoded}"
+
+
+def _is_allowed_canva_img_url(img_url: str) -> bool:
+    u = (img_url or "").strip()
+    if not u.startswith(("https://", "http://")):
+        return False
+    parsed = urllib.parse.urlparse(u)
+    host = (parsed.hostname or "").lower()
+    return (
+        host.endswith("canva.com")
+        or host.endswith("canva-static.com")
+        or host.endswith("canva-cdn.com")
+        or host.endswith("googleusercontent.com")
+        or (host.endswith("web.archive.org") and "im_" in (parsed.path or ""))
+    )
+
+
+def resolve_edu_canva_thumb(tid: str = "", img_url: str = "") -> tuple[bytes, str, bool]:
+    """جلب صورة المعاينة الحقيقية من الكاش/الويب أو إرجاع معاينة SVG بديلة نظيفة دائماً."""
+    tid_clean = (tid or "").strip()
+    url_clean = (img_url or "").strip()
+
+    matched_tpl = None
+    for src_list in (
+        _load_json(EDU_CANVA_FETCHED_FILE, []),
+        _load_json(EDU_CANVA_BROWSE_CACHE_FILE, []),
+        _load_json(EDU_CANVA_LIVE_CACHE_FILE, []),
+        _load_json(CANVA_CACHE_FILE, []),
+        EDU_CANVA_TEMPLATES,
+        CURATED_CANVA_MARKETPLACE_TEMPLATES,
+        CANVA_TEMPLATES,
+    ):
+        if not isinstance(src_list, list):
+            continue
+        for item in src_list:
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get("id") or "")
+            item_img = str(item.get("preview_image") or "").strip()
+            if (tid_clean and item_id == tid_clean) or (url_clean and item_img == url_clean):
+                matched_tpl = item
+                break
+        if matched_tpl:
+            break
+
+    candidate_url = url_clean or (str(matched_tpl.get("preview_image") or "").strip() if matched_tpl else "")
+    if candidate_url and _is_allowed_canva_img_url(candidate_url):
+        raw_bytes, ctype = fetch_canva_image_bytes_cached(candidate_url, timeout=(2.0, 4.5))
+        if raw_bytes:
+            return raw_bytes, (ctype or "image/jpeg").split(";")[0], True
+
+    fallback_tpl = matched_tpl or {
+        "name": "قالب كانفا",
+        "badge_text": "Canva",
+        "category": "تصميم تعليمي",
+        "colors": {
+            "primary": "#0f766e",
+            "secondary": "#09323d",
+            "accent": "#c89b3c",
+            "bg": "#f8fafc",
+            "card_bg": "#ffffff",
+            "text_dark": "#0f172a",
+            "text_light": "#ffffff",
+        },
+    }
+    svg_str = _build_edu_canva_thumb_svg(fallback_tpl)
+    return svg_str.encode("utf-8"), "image/svg+xml; charset=utf-8", False
 
 
 def _translate_canva_query_keywords(query: str, category: str = "all") -> List[str]:
@@ -1852,6 +1925,10 @@ def _normalize_edu_template(raw: Dict[str, Any]) -> Dict[str, Any]:
         if cid:
             norm["canva_embed_url"] = f"https://www.canva.com/design/{cid}/view?embed"
     norm["fallback_preview_data_url"] = _build_edu_canva_thumb_data_url(norm)
+    if preview_image:
+        norm["thumb_url"] = f"/api/edu/canva/proxy_img?tid={urllib.parse.quote(norm['id'])}&url={urllib.parse.quote(preview_image)}"
+    else:
+        norm["thumb_url"] = f"/api/edu/canva/thumb/{urllib.parse.quote(norm['id'])}"
     return norm
 
 

@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="/static/js/edu_html_exporter.js"></script>
 <style id="canvaDynamicThemeCss"></style>
 <style>
     :root {
@@ -956,7 +957,7 @@
     }
     .canva-panel {
         background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;
-        box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+        box-shadow: 0 2px 8px rgba(15,23,42,0.04); flex-shrink: 0;
     }
     .canva-cat-chip {
         background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;
@@ -975,12 +976,15 @@
     .canva-tpl-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
     .canva-tpl-card.checked { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.18); }
     .canva-tpl-card.applied { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.22); }
-    .canva-tpl-thumb { height: 112px; padding: 10px; position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+    .canva-tpl-card.previewing { border-color: #5b21b6; box-shadow: 0 0 0 3px rgba(91,33,182,0.24); }
+    .canva-tpl-thumb { height: 196px; padding: 0; position: relative; display: block; overflow: hidden; background: #f1f5f9; border-bottom: 2px solid #e2e8f0; cursor: pointer; }
+    .canva-tpl-img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; transition: transform 0.25s ease; }
+    .canva-tpl-card:hover .canva-tpl-img { transform: scale(1.03); }
     .canva-tpl-check {
         position: absolute; top: 8px; right: 8px; z-index: 4;
-        background: rgba(255,255,255,0.95); padding: 3px 8px; border-radius: 999px;
+        background: rgba(255,255,255,0.96); padding: 3px 9px; border-radius: 999px;
         font-size: 11px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 5px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
     }
     .canva-tpl-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: space-between; }
     .canva-active-banner {
@@ -988,6 +992,20 @@
         padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; align-items: center; gap: 6px;
     }
     .canva-active-banner.show { display: inline-flex; }
+    .canva-live-preview-stage {
+        background: linear-gradient(135deg, #f8fafc, #eef2ff);
+        border: 2px solid #cbd5e1; border-radius: 12px; padding: 14px;
+        display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;
+    }
+    .canva-live-sheets {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 14px; align-items: stretch;
+    }
+    .canva-mini-a4 {
+        background: #fff; border-radius: 10px; padding: 14px; min-height: 230px;
+        box-shadow: 0 6px 18px rgba(15,23,42,0.1); display: flex; flex-direction: column;
+        justify-content: space-between; position: relative; overflow: hidden;
+    }
 
     /* ===== الخاتمة ===== */
     .conclusion-page {
@@ -1280,17 +1298,16 @@
                     </div>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
-                    <input type="text" id="canvaSearchInput" placeholder="ابحث داخل كانفا (مثال: شواهد، تعليمي، رسمي، فاخر...)" style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px;" onkeydown="if(event.key==='Enter') fetchCanvaInsideUI()">
-                    <button type="button" id="btnFetchCanvaInside" onclick="fetchCanvaInsideUI()" style="background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;">🌐 فتح كانفا وجلب القوالب داخل الواجهة</button>
+                    <input type="text" id="canvaSearchInput" placeholder="ابحث داخل كانفا (مثال: شواهد، تقارير، شهادات، أزرق، ذهبي...)" style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px;" oninput="renderFetchedCanvaTemplates()" onkeydown="if(event.key==='Enter') fetchCanvaInsideUI()">
+                    <button type="button" id="btnFetchCanvaInside" onclick="fetchCanvaInsideUI()" style="background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;">🌐 تحديث وجلب قوالب كانفا</button>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="canvaCategoryChips">
                     <button type="button" class="canva-cat-chip active" onclick="filterCanvaCategory('all', this)">الكل</button>
-                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('شواهد وتقارير', this)">شواهد وتقارير</button>
-                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تعليمي', this)">تعليمي</button>
-                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('فاخر', this)">فاخر وملكي</button>
-                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('أعمال', this)">أعمال وتنفيذي</button>
-                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('إبداعي', this)">إبداعي</button>
-                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تصاميمي', this)">تصاميمي من كانفا</button>
+                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('ملفات أداء وإنجاز', this)">ملفات أداء وإنجاز</button>
+                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('شواهد وتوثيق', this)">شواهد وتوثيق</button>
+                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تقارير مدرسية', this)">تقارير مدرسية</button>
+                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('شهادات وتكريم', this)">شهادات وتكريم</button>
+                    <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تصاميمي المجلوبة', this)">تصاميمي من كانفا</button>
                 </div>
                 <details style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;padding:8px 12px;font-size:12px;">
                     <summary style="cursor:pointer;font-weight:800;color:#475569;">🔗 خيار إضافي: جلب قالب من رابط كانفا أو مزامنة حسابك عبر API Token (داخل الواجهة)</summary>
@@ -1305,6 +1322,23 @@
                     </div>
                 </details>
                 <div id="canvaHubStatus" style="margin-top:8px;font-size:12px;font-weight:700;color:#0f766e;"></div>
+            </div>
+
+            <!-- منصة المعاينة الحية المباشرة للقالب قبل التطبيق الكامل -->
+            <div class="canva-live-preview-stage" id="canvaLivePreviewStage" style="display:none;">
+                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="font-size:14px;font-weight:900;color:#1e1b4b;">👁️ المعاينة الحية المباشرة للقالب بمحتوى سجل الشواهد</div>
+                        <div id="canvaLivePreviewMeta" style="font-size:12px;color:#475569;margin-top:2px;"></div>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+                        <button type="button" id="btnLiveCollectTpl" style="background:#0f766e;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">📥 حفظ في القوالب المحددة</button>
+                        <button type="button" id="btnLiveApplyTpl" style="background:#5b21b6;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">✨ تطبيق على الملف ومعاينة A4</button>
+                        <button type="button" id="btnLivePrintTpl" style="background:#1e3a8a;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">🖨️ تطبيق وطباعة</button>
+                        <button type="button" onclick="closeCanvaLivePreview()" style="background:#e2e8f0;color:#0f172a;border:none;padding:7px 10px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">إغلاق المعاينة</button>
+                    </div>
+                </div>
+                <div class="canva-live-sheets" id="canvaLivePreviewBody"></div>
             </div>
 
             <!-- شريط التحديد وجلب القوالب المحددة -->
@@ -3015,7 +3049,82 @@ window.addEventListener('resize', () => {
     if (isPrintPreview) applyPreviewZoom();
 });
 
-/* ============ طباعة مباشرة ============ */
+/* ============ طباعة مباشرة وتصدير HTML ============ */
+async function exportHTML() {
+    const pagesWrap = document.getElementById('pagesWrap');
+    if (!pagesWrap || !window.EduHtmlExporter) {
+        setStatus('❌ أداة تصدير HTML غير متوفرة حالياً');
+        return;
+    }
+    setStatus('⏳ جاري تجهيز ملف HTML للشواهد مع الباركود والتصميم...');
+    try {
+        renderAllWitnesses();
+        await new Promise(r => setTimeout(r, 80));
+        await window.EduHtmlExporter.exportHtmlDocument({
+            title: 'سجل_شواهد_الأداء_الوظيفي',
+            canvaName: activeCanvaTemplate && activeCanvaTemplate.name ? activeCanvaTemplate.name : '',
+            targetEl: pagesWrap,
+            extraCss: `
+                body { padding: 18px 0 32px 0 !important; }
+                .pages-wrap { margin-top: 0 !important; }
+                @media print {
+                    body { padding: 0 !important; background: #ffffff !important; }
+                    .pages-wrap { margin-top: 0 !important; }
+                }
+            `,
+            onAfterClone: (clone) => {
+                clone.querySelectorAll('.page').forEach(p => {
+                    p.style.transform = '';
+                    p.style.marginBottom = '';
+                });
+            },
+            onStatus: (msg) => setStatus(msg)
+        });
+    } catch (e) {
+        setStatus('❌ تعذر تصدير HTML: ' + (e && e.message ? e.message : e));
+    }
+}
+window.exportHTML = exportHTML;
+
+function buildWitnessesParentPrintPayload() {
+    const styleTags = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+        .map(s => s.outerHTML)
+        .join('\n');
+    const pagesWrap = document.getElementById('pagesWrap');
+    if (!pagesWrap) return { stylesHtml: styleTags, bodyHtml: '' };
+    const srcCanvases = Array.from(pagesWrap.querySelectorAll('.witness-qr canvas'));
+    const clone = pagesWrap.cloneNode(true);
+    const dstCanvases = Array.from(clone.querySelectorAll('.witness-qr canvas'));
+    srcCanvases.forEach((srcCanvas, idx) => {
+        const dstCanvas = dstCanvases[idx];
+        if (!dstCanvas || !dstCanvas.parentNode) return;
+        try {
+            const dataUrl = srcCanvas.toDataURL('image/png');
+            if (dataUrl && dataUrl.startsWith('data:image')) {
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                img.alt = 'QR Code';
+                img.style.width = '68px';
+                img.style.height = '68px';
+                dstCanvas.parentNode.replaceChild(img, dstCanvas);
+            }
+        } catch (e) {}
+    });
+    clone.querySelectorAll('.edit-only, .table-controls, .row-del-btn, td.action-cell, .add-page-bar, .fmt-bar, .witness-actions, .witness-quick-bar, .witness-modal, .witness-below-hint, .witness-thumb .remove-thumb, .witness-info .link-count, .preview-page-badge, .canva-hub-modal').forEach(n => n.remove());
+    clone.querySelectorAll('.page').forEach(p => {
+        p.style.transform = '';
+        p.style.marginBottom = '';
+    });
+    clone.querySelectorAll('.editable-area, .cell-content').forEach(el => {
+        el.removeAttribute('contenteditable');
+    });
+    return {
+        stylesHtml: styleTags,
+        bodyHtml: clone.outerHTML,
+        rootCssText: document.documentElement.style.cssText || ''
+    };
+}
+
 function printDocument() {
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
@@ -3027,15 +3136,54 @@ function printDocument() {
         p.style.marginBottom = '';
     });
     setStatus('جارٍ إرسال السجل للطباعة...');
+
+    let nativePrintTriggered = false;
+    const markTriggered = () => { nativePrintTriggered = true; };
+    window.addEventListener('beforeprint', markTriggered, { once: true });
+
+    let mql = null;
+    const mqlHandler = (ev) => { if (ev.matches) nativePrintTriggered = true; };
+    try {
+        if (window.matchMedia) {
+            mql = window.matchMedia('print');
+            if (mql && typeof mql.addEventListener === 'function') {
+                mql.addEventListener('change', mqlHandler);
+            }
+        }
+    } catch (e) {}
+
     setTimeout(() => {
         try {
             window.focus();
             window.print();
         } catch (e) {}
         setTimeout(() => {
+            try {
+                window.removeEventListener('beforeprint', markTriggered);
+                if (mql && typeof mql.removeEventListener === 'function') {
+                    mql.removeEventListener('change', mqlHandler);
+                }
+            } catch (e) {}
+
             if (isPrintPreview) applyPreviewZoom();
-        }, 250);
-        setStatus('💡 إذا لم تظهر نافذة الطباعة استخدم زر "📄 تصدير PDF"');
+
+            if (nativePrintTriggered) return;
+
+            try {
+                if (window.parent && window.parent !== window && typeof window.parent.printActivitiesViaParent === 'function') {
+                    const payload = buildWitnessesParentPrintPayload();
+                    window.parent.printActivitiesViaParent(
+                        payload.stylesHtml,
+                        payload.bodyHtml,
+                        () => { exportPDF(); },
+                        { rootCssText: payload.rootCssText }
+                    );
+                    return;
+                }
+            } catch (e) {}
+
+            setStatus('💡 إذا لم تظهر نافذة الطباعة استخدم زر "📄 تصدير PDF"');
+        }, 450);
     }, 40);
 }
 
@@ -3282,11 +3430,13 @@ async function exportPDF() {
 /* ============ مركز قوالب كانفا داخل واجهة ملف الشواهد ============ */
 const CANVA_SELECTED_STORAGE_KEY = 'edu_canva_selected_witnesses_v1';
 const CANVA_ACTIVE_STORAGE_KEY = 'edu_canva_active_witnesses_v1';
+const CANVA_CATALOG_CACHE_KEY = 'edu_canva_catalog_cache_v2';
 let canvaFetchedTemplates = [];
 let canvaSelectedCategory = 'all';
 let canvaCheckedIds = new Set();
 let canvaCollectedTemplates = [];
 let activeCanvaTemplate = null;
+let livePreviewCanvaId = null;
 
 try {
     const savedCol = JSON.parse(localStorage.getItem(CANVA_SELECTED_STORAGE_KEY) || '[]');
@@ -3295,6 +3445,23 @@ try {
 
 function escCanvaHtml(str) {
     return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function getWitnessesSnapshotForPreview() {
+    const cover = document.querySelector('#pagesWrap .cover-page');
+    const ministryEdits = cover ? cover.querySelectorAll('.ministry-info .editable-area') : [];
+    const region = (ministryEdits[0]?.textContent || 'نجران').trim();
+    const school = (ministryEdits[2]?.textContent || 'أمنة بنت عفان').trim();
+    const titles = cover ? Array.from(cover.querySelectorAll('.cover-main-title')).map(el => el.textContent.trim()).filter(Boolean) : [];
+    const bannerTitle = titles.join(' — ') || 'سجل توثيق شواهد الأداء الوظيفي';
+    const teacherEdits = cover ? cover.querySelectorAll('.cover-teacher-name') : [];
+    const teacher = (teacherEdits[0]?.textContent || 'أ/ أسماء ياسين الخيري').trim();
+    const principal = (teacherEdits[1]?.textContent || 'أ. البتول ال دويس').trim();
+    const firstTableTitle = (document.querySelector('#pagesWrap .witness-title')?.textContent || '١- أداء الواجبات الوظيفية').trim();
+    const firstRows = Array.from(document.querySelectorAll('#pagesWrap .witness-table tbody tr')).slice(0, 3).map(tr => {
+        return (tr.querySelector('.col-witness .cell-content')?.textContent || tr.textContent || '').trim();
+    }).filter(Boolean);
+    return { region, school, bannerTitle, teacher, principal, firstTableTitle, firstRows };
 }
 
 async function fetchCanvaJson(url, options = {}, timeoutMs = 15000) {
@@ -3327,9 +3494,24 @@ function openCanvaHubModal() {
     document.getElementById('canvaTemplatesModal')?.classList.add('show');
     renderCollectedCanvaTemplates();
     if (!canvaFetchedTemplates.length) {
-        fetchCanvaInsideUI(false);
+        try {
+            const cached = JSON.parse(localStorage.getItem(CANVA_CATALOG_CACHE_KEY) || 'null');
+            if (cached && Array.isArray(cached.templates) && cached.templates.length && cached.templates.some(t => t.preview_image || t.thumb_url)) {
+                canvaFetchedTemplates = cached.templates;
+                renderFetchedCanvaTemplates();
+                if (!livePreviewCanvaId && canvaFetchedTemplates[0]) {
+                    previewCanvaTemplateInsideModal(canvaFetchedTemplates[0].id, false);
+                }
+                fetchCanvaInsideUI(false, true);
+                return;
+            }
+        } catch (e) {}
+        fetchCanvaInsideUI(false, false);
     } else {
         renderFetchedCanvaTemplates();
+        if (!livePreviewCanvaId && canvaFetchedTemplates[0]) {
+            previewCanvaTemplateInsideModal(canvaFetchedTemplates[0].id, false);
+        }
     }
 }
 
@@ -3343,51 +3525,62 @@ function filterCanvaCategory(cat, btnEl) {
     renderFetchedCanvaTemplates();
 }
 
-async function fetchCanvaInsideUI(forceLive = true) {
+async function fetchCanvaInsideUI(forceLive = true, silent = false) {
     const btn = document.getElementById('btnFetchCanvaInside');
     const statusEl = document.getElementById('canvaHubStatus');
     const q = (document.getElementById('canvaSearchInput')?.value || '').trim();
     const isLive = Boolean(forceLive);
     const orig = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = isLive ? '⏳ جاري جلب قوالب كانفا...' : '⏳ جاري تحميل القوالب...'; }
-    if (statusEl) statusEl.textContent = isLive ? '⏳ جاري الاتصال بكانفا وجلب القوالب داخل الواجهة...' : '⏳ جاري تحميل مكتبة قوالب كانفا السريعة...';
+    if (!silent) {
+        if (btn) { btn.disabled = true; btn.innerHTML = isLive ? '⏳ جاري التحديث...' : '⏳ جاري التحميل...'; }
+        if (statusEl) statusEl.textContent = isLive ? '⏳ جاري تحديث قوالب كانفا داخل الواجهة...' : '⏳ جاري تحميل مكتبة قوالب كانفا السريعة...';
+    }
     try {
         const { res, data: d } = await fetchCanvaJson('/api/edu/canva/browse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: isLive ? 'live' : 'cached' })
+            body: JSON.stringify({ q, query: q, category: isLive ? canvaSelectedCategory : 'all', source: isLive ? 'live' : 'cached' })
         }, isLive ? 15000 : 10000);
         if (!res.ok || d.error) throw new Error(d.error || 'تعذر جلب القوالب');
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
+        if (canvaCollectedTemplates.length && canvaFetchedTemplates.length) {
+            const byId = new Map(canvaFetchedTemplates.map(x => [x.id, x]));
+            let changed = false;
+            canvaCollectedTemplates = canvaCollectedTemplates.map(c => {
+                const fresh = byId.get(c.id);
+                if (fresh && (!c.preview_image || !c.thumb_url)) { changed = true; return { ...c, ...fresh }; }
+                return c;
+            });
+            if (changed) {
+                try { localStorage.setItem(CANVA_SELECTED_STORAGE_KEY, JSON.stringify(canvaCollectedTemplates)); } catch (e) {}
+                renderCollectedCanvaTemplates();
+            }
+        }
+        if (!q && (!isLive || canvaSelectedCategory === 'all')) {
+            try {
+                const slim = canvaFetchedTemplates.slice(0, 40).map(item => ({
+                    ...item,
+                    safe_preview_data_url: (item.safe_preview_data_url && /^data:image\/(jpeg|jpg|png|webp|gif)/i.test(item.safe_preview_data_url)) ? item.safe_preview_data_url : '',
+                    fallback_preview_data_url: ''
+                }));
+                localStorage.setItem(CANVA_CATALOG_CACHE_KEY, JSON.stringify({ ts: Date.now(), templates: slim }));
+            } catch (e) {}
+        }
         const badge = document.getElementById('canvaGoogleActiveBadge');
         if (badge && d.accounts) {
             badge.textContent = d.accounts.active_email ? `حساب Google: ${d.accounts.active_email}` : 'حساب Google: متصل تلقائياً';
         }
         renderFetchedCanvaTemplates();
+        if (canvaFetchedTemplates.length && !livePreviewCanvaId) {
+            previewCanvaTemplateInsideModal(canvaFetchedTemplates[0].id, false);
+        }
         if (statusEl) {
-            statusEl.textContent = d.live_warning
-                ? `✅ تم عرض ${canvaFetchedTemplates.length} قالب جاهز من المكتبة الموثقة (تعذر الاتصال اللحظي الآن)`
-                : `✅ تم تحميل ${canvaFetchedTemplates.length} قالب من كانفا داخل الواجهة (${d.source_note || 'جاهز للتحديد'})`;
+            statusEl.textContent = `✅ جاهز: ${canvaFetchedTemplates.length} قالب كانفا فعلي بالمعاينة المباشرة — اضغط على أي تصميم للمعاينة الكاملة أو حدده للتطبيق`;
         }
     } catch (e) {
-        if (isLive) {
-            try {
-                const fb = await fetchCanvaJson('/api/edu/canva/browse', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: 'cached' })
-                }, 8000);
-                if (fb.res.ok && fb.data && !fb.data.error) {
-                    canvaFetchedTemplates = Array.isArray(fb.data.templates) ? fb.data.templates : [];
-                    renderFetchedCanvaTemplates();
-                    if (statusEl) statusEl.textContent = `⚠️ استغرق الاتصال المباشر وقتاً أطول — تم عرض ${canvaFetchedTemplates.length} قالب محفوظ وموثق فوراً.`;
-                    return;
-                }
-            } catch (_) {}
-        }
-        if (statusEl) statusEl.textContent = '⚠️ ' + e.message;
+        if (!silent && statusEl) statusEl.textContent = '⚠️ ' + e.message;
     } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        if (!silent && btn) { btn.disabled = false; btn.innerHTML = orig; }
     }
 }
 
@@ -3401,12 +3594,13 @@ async function importCanvaLinkInsideUI() {
         const { res, data: d } = await fetchCanvaJson('/api/edu/canva/browse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ canva_url: url, name, category: 'شواهد وتقارير', source: 'cached' })
+            body: JSON.stringify({ canva_url: url, name, category: 'تصاميمي المجلوبة', source: 'cached' })
         }, 18000);
         if (!res.ok || d.error) throw new Error(d.error || 'فشل جلب الرابط');
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
         if (d.imported_template && d.imported_template.id) {
             canvaCheckedIds.add(d.imported_template.id);
+            previewCanvaTemplateInsideModal(d.imported_template.id, true);
         }
         document.getElementById('canvaImportUrlInput').value = '';
         document.getElementById('canvaImportNameInput').value = '';
@@ -3426,12 +3620,16 @@ async function syncCanvaTokenInsideUI() {
         const { res, data: d } = await fetchCanvaJson('/api/edu/canva/browse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: token, source: 'cached' })
+            body: JSON.stringify({ access_token: token, source: 'live' })
         }, 18000);
         if (!res.ok || d.error) throw new Error(d.error || 'تعذر المزامنة');
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
         renderFetchedCanvaTemplates();
-        if (statusEl) statusEl.textContent = '✅ تمت مزامنة تصاميم كانفا الخاصة بك داخل الواجهة.';
+        if (d.api_error) {
+            if (statusEl) statusEl.textContent = '⚠️ ' + d.api_error;
+        } else {
+            if (statusEl) statusEl.textContent = `✅ تمت مزامنة ${d.live_count || ''} من تصاميم كانفا الخاصة بك داخل الواجهة.`;
+        }
     } catch (e) {
         if (statusEl) statusEl.textContent = '❌ ' + e.message;
     }
@@ -3440,9 +3638,17 @@ async function syncCanvaTokenInsideUI() {
 function getFilteredFetchedCanva() {
     const q = (document.getElementById('canvaSearchInput')?.value || '').trim().toLowerCase();
     return canvaFetchedTemplates.filter(t => {
-        if (canvaSelectedCategory !== 'all' && t.category !== canvaSelectedCategory) return false;
+        if (canvaSelectedCategory && canvaSelectedCategory !== 'all' && canvaSelectedCategory !== 'الكل') {
+            if (canvaSelectedCategory === 'تصاميمي المجلوبة' || canvaSelectedCategory === 'تصاميمي') {
+                const isMine = (t.category && t.category.includes('تصاميمي')) ||
+                    (t.source && (t.source.includes('مستورد') || t.source.includes('المتصل') || t.source.includes('مرفوع')));
+                if (!isMine) return false;
+            } else if (t.category !== canvaSelectedCategory && !(t.category || '').includes(canvaSelectedCategory)) {
+                return false;
+            }
+        }
         if (q) {
-            const hay = `${t.name || ''} ${t.category || ''} ${t.description || ''} ${t.source || ''}`.toLowerCase();
+            const hay = `${t.name || ''} ${t.category || ''} ${t.description || ''} ${t.badge_text || ''} ${t.source || ''}`.toLowerCase();
             if (!hay.includes(q)) return false;
         }
         return true;
@@ -3464,15 +3670,28 @@ function selectAllFetchedCanva(flag) {
     renderFetchedCanvaTemplates();
 }
 
+function buildLocalCanvaFallbackSvg(t) {
+    const c = (t && t.colors) || {};
+    const p = c.primary || '#1e3a8a';
+    const s = c.secondary || '#0f172a';
+    const a = c.accent || '#f59e0b';
+    const bg = c.bg || '#f8fafc';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260"><rect width="400" height="260" fill="${bg}"/><rect x="14" y="14" width="372" height="232" rx="10" fill="none" stroke="${p}" stroke-width="3"/><rect x="30" y="28" width="340" height="58" rx="10" fill="${p}"/><circle cx="62" cy="57" r="14" fill="${a}"/><rect x="40" y="106" width="320" height="14" rx="4" fill="${s}" opacity="0.16"/><rect x="40" y="132" width="240" height="12" rx="4" fill="${p}" opacity="0.12"/></svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
 function getSafeCanvaThumbUrl(t) {
     if (!t) return '';
     if (t.safe_preview_data_url && /^data:image\/(jpeg|jpg|png|webp|gif)/i.test(t.safe_preview_data_url)) {
         return t.safe_preview_data_url;
     }
+    if (t.thumb_url) return t.thumb_url;
     if (t.preview_image && /^https?:\/\//i.test(t.preview_image)) {
-        return '/api/edu/canva/proxy_img?url=' + encodeURIComponent(t.preview_image);
+        const tidPart = t.id ? '&tid=' + encodeURIComponent(t.id) : '';
+        return '/api/edu/canva/proxy_img?url=' + encodeURIComponent(t.preview_image) + tidPart;
     }
-    return t.fallback_preview_data_url || '';
+    if (t.id) return '/api/edu/canva/thumb/' + encodeURIComponent(t.id);
+    return t.fallback_preview_data_url || t.safe_preview_data_url || buildLocalCanvaFallbackSvg(t);
 }
 
 function buildCanvaCardThumbHTML(t) {
@@ -3482,24 +3701,130 @@ function buildCanvaCardThumbHTML(t) {
     const a = c.accent || '#f59e0b';
     const bg = c.bg || '#f8fafc';
     const srcUrl = getSafeCanvaThumbUrl(t);
-    const fbUrl = t.fallback_preview_data_url || '';
-    const previewImg = srcUrl ? `<img src="${escCanvaHtml(srcUrl)}" data-fb="${escCanvaHtml(fbUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}else{this.style.display='none';}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.25;">` : '';
-    return `<div class="canva-tpl-thumb" style="background:${bg};border-bottom:2px solid ${p};">
+    const fbUrl = t.fallback_preview_data_url || buildLocalCanvaFallbackSvg(t);
+    const previewImg = srcUrl
+        ? `<img class="canva-tpl-img" decoding="async" src="${escCanvaHtml(srcUrl)}" data-fb="${escCanvaHtml(fbUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}" alt="${escCanvaHtml(t.name)}">`
+        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,${p},${s});color:#fff;font-weight:900;font-size:13px;padding:12px;text-align:center;">${escCanvaHtml(t.name)}</div>`;
+    return `<div class="canva-tpl-thumb" style="background:${bg};border-bottom:2px solid ${p};" onclick="event.stopPropagation(); previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)">
         ${previewImg}
-        <div style="position:relative;z-index:2;height:26px;background:linear-gradient(135deg,${p},${s});border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
-            <span style="width:48%;height:6px;background:#fff;border-radius:4px;opacity:0.9;"></span>
-            <span style="width:14px;height:14px;background:${a};border-radius:50%;"></span>
+        <span style="position:absolute;top:8px;left:8px;z-index:3;background:rgba(15,23,42,0.82);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:800;backdrop-filter:blur(4px);">${escCanvaHtml(t.badge_text || t.category || 'Canva')}</span>
+        <div style="position:absolute;bottom:6px;right:8px;left:8px;z-index:3;display:flex;align-items:center;justify-content:space-between;pointer-events:none;">
+            <span style="background:rgba(255,255,255,0.92);color:#0f172a;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.18);">👁️ اضغط للمعاينة</span>
+            <span style="display:inline-flex;gap:3px;background:rgba(255,255,255,0.92);padding:3px 6px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+                <i style="width:9px;height:9px;border-radius:50%;background:${p};display:block;"></i>
+                <i style="width:9px;height:9px;border-radius:50%;background:${s};display:block;"></i>
+                <i style="width:9px;height:9px;border-radius:50%;background:${a};display:block;"></i>
+            </span>
         </div>
-        <div style="position:relative;z-index:2;display:flex;gap:8px;align-items:center;margin-top:6px;">
-            <div style="width:7px;height:38px;background:${a};border-radius:4px;"></div>
-            <div style="flex:1;">
-                <div style="width:82%;height:6px;background:${p};opacity:0.55;border-radius:3px;margin-bottom:5px;"></div>
-                <div style="width:65%;height:5px;background:${s};opacity:0.35;border-radius:3px;margin-bottom:5px;"></div>
-                <div style="width:50%;height:5px;background:${p};opacity:0.25;border-radius:3px;"></div>
+    </div>`;
+}
+
+function previewCanvaTemplateInsideModal(tid, scrollIntoView = true) {
+    const tpl = canvaFetchedTemplates.find(x => x.id === tid) || canvaCollectedTemplates.find(x => x.id === tid);
+    if (!tpl) return;
+    livePreviewCanvaId = tpl.id;
+    const stage = document.getElementById('canvaLivePreviewStage');
+    const body = document.getElementById('canvaLivePreviewBody');
+    const meta = document.getElementById('canvaLivePreviewMeta');
+    const btnCollect = document.getElementById('btnLiveCollectTpl');
+    const btnApply = document.getElementById('btnLiveApplyTpl');
+    const btnPrint = document.getElementById('btnLivePrintTpl');
+    if (!stage || !body) return;
+
+    const c = tpl.colors || {};
+    const p = c.primary || '#8b7cb5';
+    const s = c.secondary || '#2c2c54';
+    const a = c.accent || '#c9a86a';
+    const bg = c.bg || '#f8fafc';
+    const snap = getWitnessesSnapshotForPreview();
+    const realImgUrl = getSafeCanvaThumbUrl(tpl);
+    const fbImgUrl = tpl.fallback_preview_data_url || buildLocalCanvaFallbackSvg(tpl);
+
+    if (meta) {
+        const externalLink = tpl.canva_url
+            ? ` <a href="${escCanvaHtml(tpl.canva_url)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;background:#00c4cc;color:#0f172a;text-decoration:none;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:800;margin-right:6px;">🔗 فتح القالب في كانفا</a>`
+            : '';
+        meta.innerHTML = `<strong>${escCanvaHtml(tpl.name)}</strong> — <span style="color:#5b21b6;font-weight:800;">${escCanvaHtml(tpl.category || 'Canva')}</span> | الألوان: <span style="display:inline-flex;gap:4px;vertical-align:middle;"><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${p};border:1px solid #fff;"></i><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${s};border:1px solid #fff;"></i><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${a};border:1px solid #fff;"></i></span>${externalLink}`;
+    }
+
+    const rowsHtml = (snap.firstRows.length ? snap.firstRows : ['التقييد بالدوام الرسمي', 'تأدية الحصص الدراسية وفق الجدول', 'المشاركة في الإشراف والمناسبات']).map(r => `
+        <tr>
+            <td style="border:1px solid ${p}66;padding:4px 6px;font-size:10px;text-align:right;font-weight:700;color:#1e293b;">${escCanvaHtml(r)}</td>
+            <td style="border:1px solid ${p}66;padding:4px 6px;font-size:10px;text-align:center;color:${p};font-weight:800;">مرفق شاهد</td>
+        </tr>
+    `).join('');
+
+    body.innerHTML = `
+        <div class="canva-mini-a4" style="border:2px solid #cbd5e1;background:#f8fafc;padding:10px;gap:8px;align-items:center;justify-content:center;">
+            <div style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:900;color:#0f172a;">
+                <span>🖼️ التصميم الفعلي للقالب من كانفا</span>
+                <span style="color:${p};">${escCanvaHtml(tpl.canva_id || 'A4')}</span>
+            </div>
+            ${realImgUrl ? `<img src="${escCanvaHtml(realImgUrl)}" decoding="async" data-fb="${escCanvaHtml(fbImgUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}" alt="${escCanvaHtml(tpl.name)}" style="width:100%;max-height:360px;object-fit:contain;border-radius:8px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.12);">` : ''}
+            <div style="width:100%;font-size:10.5px;color:#475569;text-align:center;font-weight:700;">${escCanvaHtml(tpl.description || '')}</div>
+        </div>
+        <div class="canva-mini-a4" style="border:2px solid ${p};background:linear-gradient(160deg,${bg} 0%,#ffffff 60%,${p}14 100%);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid ${p}33;padding-bottom:6px;">
+                <div style="font-size:10px;font-weight:900;color:${p};text-align:center;">وزارة التعليم<br><span style="font-size:8px;color:#64748b;">MOE</span></div>
+                <div style="font-size:10px;font-weight:800;color:#1e293b;text-align:center;line-height:1.4;">
+                    المملكة العربية السعودية<br>
+                    إدارة التعليم: <span style="color:${p};">${escCanvaHtml(snap.region)}</span><br>
+                    مدرسة: <span style="color:${p};">${escCanvaHtml(snap.school)}</span>
+                </div>
+            </div>
+            <div style="background:linear-gradient(135deg,${p},${s});color:#fff;text-align:center;padding:12px 10px;border-radius:8px;border-top:3px solid ${a};border-bottom:3px solid ${a};font-size:15px;font-weight:900;margin:10px 0;">
+                ${escCanvaHtml(snap.bannerTitle)}
+            </div>
+            <div style="text-align:center;font-size:11px;line-height:1.7;">
+                <div style="color:${s};font-weight:900;">إعداد المعلمة: <span style="color:${p};">${escCanvaHtml(snap.teacher)}</span></div>
+                <div style="color:${s};font-weight:900;">مدير المدرسة: <span style="color:${p};">${escCanvaHtml(snap.principal)}</span></div>
             </div>
         </div>
-        <span style="position:relative;z-index:2;align-self:flex-start;background:${p};color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:800;">${escCanvaHtml(t.category || 'Canva')}</span>
-    </div>`;
+        <div class="canva-mini-a4" style="border:2px solid ${p};background:linear-gradient(180deg,${bg} 0%,#ffffff 35%,#ffffff 100%);border-top:6px solid ${p};border-bottom:5px solid ${a};">
+            <div style="font-size:13px;font-weight:900;color:${p};border-bottom:2px solid ${a}88;padding-bottom:6px;margin-bottom:8px;">
+                ${escCanvaHtml(snap.firstTableTitle)}
+            </div>
+            <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+                <thead>
+                    <tr>
+                        <th style="background:linear-gradient(135deg,${p},${s});color:#fff;font-size:10px;padding:5px;border:1px solid ${p};text-align:right;">الفقرة</th>
+                        <th style="background:linear-gradient(135deg,${p},${s});color:#fff;font-size:10px;padding:5px;border:1px solid ${p};width:28%;">الشاهد</th>
+                    </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+            <div style="background:${p}14;border:1px solid ${p}55;border-radius:8px;padding:7px 10px;font-size:10px;font-weight:800;color:${s};display:flex;justify-content:space-between;align-items:center;">
+                <span>🎨 معاينة تطبيق ألوان وهوية كانفا على صفحات سجل الشواهد</span>
+                <span style="color:${p};">A4</span>
+            </div>
+        </div>
+    `;
+
+    if (btnCollect) btnCollect.onclick = () => {
+        if (!canvaCollectedTemplates.some(x => x.id === tpl.id)) {
+            canvaCollectedTemplates.unshift(tpl);
+            try { localStorage.setItem(CANVA_SELECTED_STORAGE_KEY, JSON.stringify(canvaCollectedTemplates)); } catch (e) {}
+            renderCollectedCanvaTemplates();
+        }
+        setStatus(`✅ تم حفظ قالب "${tpl.name}" في القوالب المحددة`);
+    };
+    if (btnApply) btnApply.onclick = () => quickCollectAndPreview(tpl.id);
+    if (btnPrint) btnPrint.onclick = () => applyCollectedCanvaById(tpl.id, true, true);
+
+    stage.style.display = 'flex';
+    renderFetchedCanvaTemplates();
+    if (scrollIntoView) {
+        const hubBody = stage.closest('.canva-hub-body');
+        if (hubBody) hubBody.scrollTo({ top: 0, behavior: 'smooth' });
+        stage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function closeCanvaLivePreview() {
+    livePreviewCanvaId = null;
+    const stage = document.getElementById('canvaLivePreviewStage');
+    if (stage) stage.style.display = 'none';
+    renderFetchedCanvaTemplates();
 }
 
 function renderFetchedCanvaTemplates() {
@@ -3509,12 +3834,13 @@ function renderFetchedCanvaTemplates() {
     if (!grid) return;
     const list = getFilteredFetchedCanva();
     if (!list.length) {
-        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:22px;font-size:13px;">لا توجد قوالب مطابقة — اضغط "فتح كانفا وجلب القوالب" أو غيّر كلمة البحث.</div>';
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:22px;font-size:13px;">لا توجد قوالب مطابقة لهذا التصنيف أو البحث — <button type="button" onclick="document.getElementById(\'canvaSearchInput\').value=\'\';filterCanvaCategory(\'all\', document.querySelector(\'#canvaCategoryChips .canva-cat-chip\'));" style="background:#5b21b6;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;">عرض جميع القوالب</button></div>';
         return;
     }
     grid.innerHTML = list.map(t => {
         const isChecked = canvaCheckedIds.has(t.id);
-        return `<div class="canva-tpl-card ${isChecked ? 'checked' : ''}" onclick="toggleCheckCanvaCard('${escCanvaHtml(t.id)}')">
+        const isPreviewing = livePreviewCanvaId === t.id;
+        return `<div class="canva-tpl-card ${isChecked ? 'checked' : ''} ${isPreviewing ? 'previewing' : ''}" onclick="toggleCheckCanvaCard('${escCanvaHtml(t.id)}')">
             <label class="canva-tpl-check" onclick="event.stopPropagation()">
                 <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCheckCanvaCard('${escCanvaHtml(t.id)}')">
                 <span>${isChecked ? 'محدد ✓' : 'تحديد'}</span>
@@ -3525,8 +3851,9 @@ function renderFetchedCanvaTemplates() {
                     <div style="font-size:13px;font-weight:800;color:#0f172a;">${escCanvaHtml(t.name)}</div>
                     <div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.45;">${escCanvaHtml(t.description || '')}</div>
                 </div>
-                <div style="display:flex;gap:6px;margin-top:6px;">
-                    <button type="button" onclick="event.stopPropagation(); quickCollectAndPreview('${escCanvaHtml(t.id)}')" style="flex:1;background:#5b21b6;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">✨ جلب وتطبيق ومعاينة</button>
+                <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">
+                    <button type="button" onclick="event.stopPropagation(); previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)" style="background:#0f766e;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">👁️ معاينة حية</button>
+                    <button type="button" onclick="event.stopPropagation(); quickCollectAndPreview('${escCanvaHtml(t.id)}')" style="flex:1;background:#5b21b6;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">✨ جلب وتطبيق</button>
                 </div>
             </div>
         </div>`;
@@ -3585,7 +3912,8 @@ function renderCollectedCanvaTemplates() {
                     <div style="font-size:11px;color:#64748b;margin-top:2px;">${escCanvaHtml(t.description || '')}</div>
                 </div>
                 <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">
-                    <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, false)" style="flex:1;background:#0f766e;color:#fff;border:none;padding:7px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">👁️ تطبيق ومعاينة</button>
+                    <button type="button" onclick="previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)" style="background:#5b21b6;color:#fff;border:none;padding:7px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">👁️ حية</button>
+                    <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, false)" style="flex:1;background:#0f766e;color:#fff;border:none;padding:7px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">✨ تطبيق ومعاينة</button>
                     <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, true)" style="background:#1e3a8a;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">🖨️ طباعة</button>
                 </div>
             </div>

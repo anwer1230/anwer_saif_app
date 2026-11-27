@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="/static/js/edu_html_exporter.js"></script>
   <style id="canvaDynamicThemeCss"></style>
   <style>
     :root {
@@ -382,6 +383,7 @@
       border-radius: 12px;
       padding: 14px;
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      flex-shrink: 0;
     }
     .canva-cat-chip {
       background: #f1f5f9;
@@ -416,7 +418,9 @@
     .canva-tpl-card.checked { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18); }
     .canva-tpl-card.applied { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.22); }
     .canva-tpl-card.previewing { border-color: #5b21b6; box-shadow: 0 0 0 3px rgba(91, 33, 182, 0.24); }
-    .canva-tpl-thumb { height: 112px; padding: 10px; position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+    .canva-tpl-thumb { height: 196px; padding: 0; position: relative; display: block; overflow: hidden; background: #f1f5f9; border-bottom: 2px solid #e2e8f0; cursor: pointer; }
+    .canva-tpl-img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; transition: transform 0.25s ease; }
+    .canva-tpl-card:hover .canva-tpl-img { transform: scale(1.03); }
     .canva-tpl-check {
       position: absolute;
       top: 8px;
@@ -454,6 +458,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      flex-shrink: 0;
     }
     .canva-live-sheets {
       display: grid;
@@ -1109,17 +1114,16 @@
             </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
-            <input type="text" id="canvaSearchInput" placeholder="ابحث داخل كانفا (مثال: أنشطة، بطاقات، تعليمي، رسمي...)" style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px;" onkeydown="if(event.key==='Enter') fetchCanvaInsideUI()">
-            <button type="button" id="btnFetchCanvaInside" onclick="fetchCanvaInsideUI()" style="background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;">🌐 فتح كانفا وجلب القوالب</button>
+            <input type="text" id="canvaSearchInput" placeholder="ابحث داخل كانفا (مثال: أنشطة، بطاقات، تقارير، أزرق، ذهبي...)" style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px;" oninput="renderFetchedCanvaTemplates()" onkeydown="if(event.key==='Enter') fetchCanvaInsideUI()">
+            <button type="button" id="btnFetchCanvaInside" onclick="fetchCanvaInsideUI()" style="background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;">🌐 تحديث وجلب قوالب كانفا</button>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="canvaCategoryChips">
             <button type="button" class="canva-cat-chip active" onclick="filterCanvaCategory('all', this)">الكل</button>
-            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('شواهد وتقارير', this)">أنشطة وشواهد</button>
-            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تعليمي', this)">تعليمي</button>
-            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('فاخر', this)">فاخر وملكي</button>
-            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('أعمال', this)">أعمال وتنفيذي</button>
-            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('إبداعي', this)">إبداعي</button>
-            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تصاميمي', this)">تصاميمي من كانفا</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('ملفات أداء وإنجاز', this)">ملفات أداء وإنجاز</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('شواهد وتوثيق', this)">شواهد وتوثيق</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تقارير مدرسية', this)">تقارير مدرسية</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('شهادات وتكريم', this)">شهادات وتكريم</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تصاميمي المجلوبة', this)">تصاميمي من كانفا</button>
           </div>
           <details style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;padding:8px 12px;font-size:12px;">
             <summary style="cursor:pointer;font-weight:800;color:#475569;">🔗 خيار إضافي: جلب قالب من رابط كانفا أو API Token</summary>
@@ -2348,6 +2352,7 @@
     });
 
     /* ================= مركز قوالب كانفا المدمج ================= */
+    const CANVA_CATALOG_CACHE_KEY = "edu_canva_catalog_cache_v2";
     let canvaFetchedTemplates = [];
     let canvaSelectedCategory = "all";
     let canvaCheckedIds = new Set();
@@ -2361,7 +2366,18 @@
     } catch (e) {}
 
     function escCanvaHtml(str) {
-      return String(str || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+      return String(str == null ? "" : str).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function getActivitiesSnapshotForPreview() {
+      const sheets = getActivePrintableSheets();
+      const firstTitle = (sheets[0]?.querySelector(".official-title-box")?.textContent || "ملف الأنشطة المدرسية وبطاقات التنفيذ").trim();
+      const subMeta = (sheets[0]?.querySelector(".cover-hero h1")?.textContent || "التكامل المنهجي للأنشطة الصفية والإثرائية").trim();
+      const firstRows = Array.from(document.querySelectorAll("#planPart1Body tr")).slice(0, 3).map(tr => {
+        const tds = tr.querySelectorAll("td");
+        return tds[1] ? tds[1].textContent.trim().slice(0, 60) : tr.textContent.trim().slice(0, 60);
+      }).filter(Boolean);
+      return { firstTitle, subMeta, firstRows };
     }
 
     async function fetchCanvaJson(url, options = {}, timeoutMs = 15000) {
@@ -2371,7 +2387,7 @@
         const res = await fetch(url, { ...options, signal: ctrl ? ctrl.signal : options.signal });
         const text = await res.text();
         let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch (e) { throw new Error("استجابة غير متوقعة من الخادم"); }
+        try { data = text ? JSON.parse(text) : {}; } catch (e) { throw new Error(res.ok ? "استجابة غير متوقعة من الخادم" : `خطأ من الخادم (${res.status})`); }
         return { res, data };
       } catch (err) {
         if (err && err.name === "AbortError") throw new Error("انتهت مهلة الاتصال بكانفا — يرجى المحاولة مرة أخرى");
@@ -2385,9 +2401,24 @@
       document.getElementById("canvaTemplatesModal")?.classList.add("show");
       renderCollectedCanvaTemplates();
       if (!canvaFetchedTemplates.length) {
-        fetchCanvaInsideUI(false);
+        try {
+          const cached = JSON.parse(localStorage.getItem(CANVA_CATALOG_CACHE_KEY) || "null");
+          if (cached && Array.isArray(cached.templates) && cached.templates.length && cached.templates.some(t => t.preview_image || t.thumb_url)) {
+            canvaFetchedTemplates = cached.templates;
+            renderFetchedCanvaTemplates();
+            if (!livePreviewCanvaId && canvaFetchedTemplates[0]) {
+              previewCanvaTemplateInsideModal(canvaFetchedTemplates[0].id, false);
+            }
+            fetchCanvaInsideUI(false, true);
+            return;
+          }
+        } catch (e) {}
+        fetchCanvaInsideUI(false, false);
       } else {
         renderFetchedCanvaTemplates();
+        if (!livePreviewCanvaId && canvaFetchedTemplates[0]) {
+          previewCanvaTemplateInsideModal(canvaFetchedTemplates[0].id, false);
+        }
       }
     }
 
@@ -2401,22 +2432,47 @@
       renderFetchedCanvaTemplates();
     }
 
-    async function fetchCanvaInsideUI(forceLive = true) {
+    async function fetchCanvaInsideUI(forceLive = true, silent = false) {
       const btn = document.getElementById("btnFetchCanvaInside");
       const statusEl = document.getElementById("canvaHubStatus");
       const q = (document.getElementById("canvaSearchInput")?.value || "").trim();
       const isLive = Boolean(forceLive);
       const orig = btn ? btn.innerHTML : "";
-      if (btn) { btn.disabled = true; btn.innerHTML = isLive ? "⏳ جاري جلب قوالب كانفا..." : "⏳ جاري تحميل القوالب..."; }
-      if (statusEl) statusEl.textContent = "⏳ جاري تحميل قوالب كانفا داخل الواجهة...";
+      if (!silent) {
+        if (btn) { btn.disabled = true; btn.innerHTML = isLive ? "⏳ جاري التحديث..." : "⏳ جاري التحميل..."; }
+        if (statusEl) statusEl.textContent = isLive ? "⏳ جاري تحديث قوالب كانفا داخل الواجهة..." : "⏳ جاري تحميل مكتبة قوالب كانفا السريعة...";
+      }
       try {
         const { res, data: d } = await fetchCanvaJson("/api/edu/canva/browse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: isLive ? "live" : "cached" })
+          body: JSON.stringify({ q, query: q, category: isLive ? canvaSelectedCategory : "all", source: isLive ? "live" : "cached" })
         }, isLive ? 15000 : 10000);
         if (!res.ok || d.error) throw new Error(d.error || "تعذر جلب القوالب");
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
+        if (canvaCollectedTemplates.length && canvaFetchedTemplates.length) {
+          const byId = new Map(canvaFetchedTemplates.map(x => [x.id, x]));
+          let changed = false;
+          canvaCollectedTemplates = canvaCollectedTemplates.map(c => {
+            const fresh = byId.get(c.id);
+            if (fresh && (!c.preview_image || !c.thumb_url)) { changed = true; return { ...c, ...fresh }; }
+            return c;
+          });
+          if (changed) {
+            try { localStorage.setItem(CANVA_SELECTED_STORAGE_KEY, JSON.stringify(canvaCollectedTemplates)); } catch (e) {}
+            renderCollectedCanvaTemplates();
+          }
+        }
+        if (!q && (!isLive || canvaSelectedCategory === "all")) {
+          try {
+            const slim = canvaFetchedTemplates.slice(0, 40).map(item => ({
+              ...item,
+              safe_preview_data_url: (item.safe_preview_data_url && /^data:image\/(jpeg|jpg|png|webp|gif)/i.test(item.safe_preview_data_url)) ? item.safe_preview_data_url : "",
+              fallback_preview_data_url: ""
+            }));
+            localStorage.setItem(CANVA_CATALOG_CACHE_KEY, JSON.stringify({ ts: Date.now(), templates: slim }));
+          } catch (e) {}
+        }
         const badge = document.getElementById("canvaGoogleActiveBadge");
         if (badge && d.accounts) {
           badge.textContent = d.accounts.active_email ? `حساب Google: ${d.accounts.active_email}` : "حساب Google: متصل تلقائياً";
@@ -2425,26 +2481,13 @@
         if (canvaFetchedTemplates.length && !livePreviewCanvaId) {
           previewCanvaTemplateInsideModal(canvaFetchedTemplates[0].id, false);
         }
-        if (statusEl) statusEl.textContent = `✅ تم عرض ${canvaFetchedTemplates.length} قالب جاهز للمعاينة والتطبيق`;
-      } catch (e) {
-        if (isLive) {
-          try {
-            const fb = await fetchCanvaJson("/api/edu/canva/browse", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: "cached" })
-            }, 8000);
-            if (fb.res.ok && fb.data && !fb.data.error) {
-              canvaFetchedTemplates = Array.isArray(fb.data.templates) ? fb.data.templates : [];
-              renderFetchedCanvaTemplates();
-              if (statusEl) statusEl.textContent = `✅ تم عرض ${canvaFetchedTemplates.length} قالب محفوظ`;
-              return;
-            }
-          } catch (_) {}
+        if (statusEl) {
+          statusEl.textContent = `✅ جاهز: ${canvaFetchedTemplates.length} قالب كانفا فعلي بالمعاينة المباشرة — اضغط على أي تصميم للمعاينة الكاملة أو حدده للتطبيق`;
         }
-        if (statusEl) statusEl.textContent = "⚠️ " + e.message;
+      } catch (e) {
+        if (!silent && statusEl) statusEl.textContent = "⚠️ " + e.message;
       } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        if (!silent && btn) { btn.disabled = false; btn.innerHTML = orig; }
       }
     }
 
@@ -2453,12 +2496,12 @@
       const name = (document.getElementById("canvaImportNameInput")?.value || "").trim();
       const statusEl = document.getElementById("canvaHubStatus");
       if (!url) { if (statusEl) statusEl.textContent = "⚠️ الصق رابط قالب أو تصميم من كانفا أولاً."; return; }
-      if (statusEl) statusEl.textContent = "⏳ جاري جلب القالب من الرابط...";
+      if (statusEl) statusEl.textContent = "⏳ جاري جلب القالب من الرابط داخل الواجهة...";
       try {
         const { res, data: d } = await fetchCanvaJson("/api/edu/canva/browse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ canva_url: url, name, category: "شواهد وتقارير", source: "cached" })
+          body: JSON.stringify({ canva_url: url, name, category: "تصاميمي المجلوبة", source: "cached" })
         }, 18000);
         if (!res.ok || d.error) throw new Error(d.error || "فشل جلب الرابط");
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
@@ -2469,7 +2512,7 @@
         document.getElementById("canvaImportUrlInput").value = "";
         document.getElementById("canvaImportNameInput").value = "";
         renderFetchedCanvaTemplates();
-        if (statusEl) statusEl.textContent = "✅ تم جلب قالب كانفا وتحديده.";
+        if (statusEl) statusEl.textContent = "✅ تم جلب قالب كانفا وتحديده في القائمة أدناه.";
       } catch (e) {
         if (statusEl) statusEl.textContent = "❌ " + e.message;
       }
@@ -2484,12 +2527,16 @@
         const { res, data: d } = await fetchCanvaJson("/api/edu/canva/browse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ access_token: token, source: "cached" })
+          body: JSON.stringify({ access_token: token, source: "live" })
         }, 18000);
         if (!res.ok || d.error) throw new Error(d.error || "تعذر المزامنة");
         canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
         renderFetchedCanvaTemplates();
-        if (statusEl) statusEl.textContent = "✅ تمت مزامنة تصاميم كانفا الخاصة بك.";
+        if (d.api_error) {
+          if (statusEl) statusEl.textContent = "⚠️ " + d.api_error;
+        } else {
+          if (statusEl) statusEl.textContent = `✅ تمت مزامنة ${d.live_count || ""} من تصاميم كانفا الخاصة بك داخل الواجهة.`;
+        }
       } catch (e) {
         if (statusEl) statusEl.textContent = "❌ " + e.message;
       }
@@ -2498,9 +2545,17 @@
     function getFilteredFetchedCanva() {
       const q = (document.getElementById("canvaSearchInput")?.value || "").trim().toLowerCase();
       return canvaFetchedTemplates.filter(t => {
-        if (canvaSelectedCategory !== "all" && t.category !== canvaSelectedCategory) return false;
+        if (canvaSelectedCategory && canvaSelectedCategory !== "all" && canvaSelectedCategory !== "الكل") {
+          if (canvaSelectedCategory === "تصاميمي المجلوبة" || canvaSelectedCategory === "تصاميمي") {
+            const isMine = (t.category && t.category.includes("تصاميمي")) ||
+              (t.source && (t.source.includes("مستورد") || t.source.includes("المتصل") || t.source.includes("مرفوع")));
+            if (!isMine) return false;
+          } else if (t.category !== canvaSelectedCategory && !(t.category || "").includes(canvaSelectedCategory)) {
+            return false;
+          }
+        }
         if (q) {
-          const hay = `${t.name || ""} ${t.category || ""} ${t.description || ""} ${t.source || ""}`.toLowerCase();
+          const hay = `${t.name || ""} ${t.category || ""} ${t.description || ""} ${t.badge_text || ""} ${t.source || ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -2521,11 +2576,26 @@
       renderFetchedCanvaTemplates();
     }
 
+    function buildLocalCanvaFallbackSvg(t) {
+      const c = (t && t.colors) || {};
+      const p = c.primary || "#0f4c5c";
+      const s = c.secondary || "#09323d";
+      const a = c.accent || "#c89b3c";
+      const bg = c.bg || "#f8fafc";
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260"><rect width="400" height="260" fill="${bg}"/><rect x="14" y="14" width="372" height="232" rx="10" fill="none" stroke="${p}" stroke-width="3"/><rect x="30" y="28" width="340" height="58" rx="10" fill="${p}"/><circle cx="62" cy="57" r="14" fill="${a}"/><rect x="40" y="106" width="320" height="14" rx="4" fill="${s}" opacity="0.16"/><rect x="40" y="132" width="240" height="12" rx="4" fill="${p}" opacity="0.12"/></svg>`;
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
     function getSafeCanvaThumbUrl(t) {
       if (!t) return "";
       if (t.safe_preview_data_url && /^data:image\/(jpeg|jpg|png|webp|gif)/i.test(t.safe_preview_data_url)) return t.safe_preview_data_url;
-      if (t.preview_image && /^https?:\/\//i.test(t.preview_image)) return "/api/edu/canva/proxy_img?url=" + encodeURIComponent(t.preview_image);
-      return t.fallback_preview_data_url || "";
+      if (t.thumb_url) return t.thumb_url;
+      if (t.preview_image && /^https?:\/\//i.test(t.preview_image)) {
+        const tidPart = t.id ? "&tid=" + encodeURIComponent(t.id) : "";
+        return "/api/edu/canva/proxy_img?url=" + encodeURIComponent(t.preview_image) + tidPart;
+      }
+      if (t.id) return "/api/edu/canva/thumb/" + encodeURIComponent(t.id);
+      return t.fallback_preview_data_url || t.safe_preview_data_url || buildLocalCanvaFallbackSvg(t);
     }
 
     function buildCanvaCardThumbHTML(t) {
@@ -2535,15 +2605,21 @@
       const a = c.accent || "#c89b3c";
       const bg = c.bg || "#f8fafc";
       const srcUrl = getSafeCanvaThumbUrl(t);
-      const fbUrl = t.fallback_preview_data_url || "";
-      const previewImg = srcUrl ? `<img src="${escCanvaHtml(srcUrl)}" data-fb="${escCanvaHtml(fbUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}else{this.style.display='none';}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.25;">` : "";
-      return `<div class="canva-tpl-thumb" style="background:${bg};border-bottom:2px solid ${p};">
+      const fbUrl = t.fallback_preview_data_url || buildLocalCanvaFallbackSvg(t);
+      const previewImg = srcUrl
+        ? `<img class="canva-tpl-img" decoding="async" src="${escCanvaHtml(srcUrl)}" data-fb="${escCanvaHtml(fbUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}" alt="${escCanvaHtml(t.name)}">`
+        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,${p},${s});color:#fff;font-weight:900;font-size:13px;padding:12px;text-align:center;">${escCanvaHtml(t.name)}</div>`;
+      return `<div class="canva-tpl-thumb" style="background:${bg};border-bottom:2px solid ${p};" onclick="event.stopPropagation(); previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)">
         ${previewImg}
-        <div style="position:relative;z-index:2;height:26px;background:linear-gradient(135deg,${p},${s});border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
-          <span style="width:48%;height:6px;background:#fff;border-radius:4px;opacity:0.9;"></span>
-          <span style="width:14px;height:14px;background:${a};border-radius:50%;"></span>
+        <span style="position:absolute;top:8px;left:8px;z-index:3;background:rgba(15,23,42,0.82);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:800;backdrop-filter:blur(4px);">${escCanvaHtml(t.badge_text || t.category || "Canva")}</span>
+        <div style="position:absolute;bottom:6px;right:8px;left:8px;z-index:3;display:flex;align-items:center;justify-content:space-between;pointer-events:none;">
+          <span style="background:rgba(255,255,255,0.92);color:#0f172a;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.18);">👁️ اضغط للمعاينة</span>
+          <span style="display:inline-flex;gap:3px;background:rgba(255,255,255,0.92);padding:3px 6px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+            <i style="width:9px;height:9px;border-radius:50%;background:${p};display:block;"></i>
+            <i style="width:9px;height:9px;border-radius:50%;background:${s};display:block;"></i>
+            <i style="width:9px;height:9px;border-radius:50%;background:${a};display:block;"></i>
+          </span>
         </div>
-        <span style="position:relative;z-index:2;align-self:flex-start;background:${p};color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:800;">${escCanvaHtml(t.category || "Canva")}</span>
       </div>`;
     }
 
@@ -2564,87 +2640,101 @@
       const s = c.secondary || "#09323d";
       const a = c.accent || "#c89b3c";
       const bg = c.bg || "#f8fafc";
+      const snap = getActivitiesSnapshotForPreview();
+      const realImgUrl = getSafeCanvaThumbUrl(tpl);
+      const fbImgUrl = tpl.fallback_preview_data_url || buildLocalCanvaFallbackSvg(tpl);
 
       if (meta) {
-        meta.innerHTML = `<strong>${escCanvaHtml(tpl.name)}</strong> — <span style="color:#5b21b6;font-weight:800;">${escCanvaHtml(tpl.category || "Canva")}</span>`;
+        const externalLink = tpl.canva_url
+          ? ` <a href="${escCanvaHtml(tpl.canva_url)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;background:#00c4cc;color:#0f172a;text-decoration:none;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:800;margin-right:6px;">🔗 فتح القالب في كانفا</a>`
+          : "";
+        meta.innerHTML = `<strong>${escCanvaHtml(tpl.name)}</strong> — <span style="color:#5b21b6;font-weight:800;">${escCanvaHtml(tpl.category || "Canva")}</span> | الألوان: <span style="display:inline-flex;gap:4px;vertical-align:middle;"><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${p};border:1px solid #fff;"></i><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${s};border:1px solid #fff;"></i><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${a};border:1px solid #fff;"></i></span>${externalLink}`;
       }
+      const rowsHtml = (snap.firstRows.length ? snap.firstRows : ["خطة النشاط الطلابي", "بطاقات تنفيذ النشاط"]).map(r => `
+        <tr><td style="border:1px solid ${p}55;padding:5px;font-size:10.5px;font-weight:700;color:#1e293b;">${escCanvaHtml(r)}</td></tr>
+      `).join("");
 
       body.innerHTML = `
-        <div class="canva-mini-a4" style="border:2px solid ${p};background:linear-gradient(160deg,${bg} 0%,#ffffff 65%,${p}14 100%);">
-          <div style="background:linear-gradient(135deg,${p},${s});color:#fff;padding:10px;border-radius:8px;border-bottom:3px solid ${a};text-align:center;font-weight:800;">
-            ملف خطة النشاط الطلابي والتكامل المنهجي — مدرسة آمنة بنت عفان
+        <div class="canva-mini-a4" style="border:2px solid #cbd5e1;background:#f8fafc;padding:10px;gap:8px;align-items:center;justify-content:center;">
+          <div style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:900;color:#0f172a;">
+            <span>🖼️ التصميم الفعلي للقالب من كانفا</span>
+            <span style="color:${p};">${escCanvaHtml(tpl.canva_id || "A4")}</span>
           </div>
-          <div style="font-size:12px;color:#1b262c;padding:10px 4px;line-height:1.8;">
-            • <strong>المادة:</strong> الدراسات الاجتماعية (رابع / خامس / سادس)<br>
-            • <strong>المعلمة:</strong> أ. أسماء ياسين الخيري | <strong>المديرة:</strong> أ. البتول آل دويس
-          </div>
+          ${realImgUrl ? `<img src="${escCanvaHtml(realImgUrl)}" decoding="async" data-fb="${escCanvaHtml(fbImgUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}" alt="${escCanvaHtml(tpl.name)}" style="width:100%;max-height:360px;object-fit:contain;border-radius:8px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.12);">` : ""}
+          <div style="width:100%;font-size:10.5px;color:#475569;text-align:center;font-weight:700;">${escCanvaHtml(tpl.description || "")}</div>
         </div>
-        <div class="canva-mini-a4" style="border:2px solid ${p};background:#ffffff;">
-          <div style="background:${a}22;border:2px solid ${p};padding:7px;border-radius:6px;text-align:center;font-weight:800;color:${s};">
-            بطاقة تنفيذ برنامج نشاط طلابي
+        <div class="canva-mini-a4" style="border:2px solid ${p};background:linear-gradient(160deg,${bg} 0%,#ffffff 65%);">
+          <div style="background:linear-gradient(135deg,${p},${s});color:#fff;padding:10px;border-radius:8px;border-bottom:3px solid ${a};text-align:center;">
+            <div style="font-size:14px;font-weight:900;">${escCanvaHtml(snap.firstTitle)}</div>
+            <div style="font-size:10px;color:#fef3c7;margin-top:3px;">${escCanvaHtml(snap.subMeta)}</div>
           </div>
-          <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;">
-            <tr>
-              <th style="background:${p}18;color:${s};border:1px solid ${p}66;padding:4px;text-align:right;width:32%;">اسم البرنامج</th>
-              <td style="border:1px solid ${p}66;padding:4px;">بطاقات إثرائية لصفات الخليفة أبي بكر الصديق</td>
-            </tr>
-            <tr>
-              <th style="background:${p}18;color:${s};border:1px solid ${p}66;padding:4px;text-align:right;">أيقونة المنصة</th>
-              <td style="border:1px solid ${p}66;padding:4px;">قيمنا الغالية ✓ | بنك الإثراءات</td>
-            </tr>
+          <div style="margin:10px 0;font-size:11px;color:#334155;font-weight:700;text-align:center;">مدرسة آمنة بنت عفان — إدارة تعليم نجران</div>
+        </div>
+        <div class="canva-mini-a4" style="border:2px solid ${p};border-top:6px solid ${p};border-bottom:5px solid ${a};">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr><th style="background:linear-gradient(135deg,${p},${s});color:#fff;padding:6px;font-size:11px;">البرنامج والأنشطة</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
           </table>
+          <div style="font-size:10px;font-weight:800;color:${p};display:flex;justify-content:space-between;">
+            <span>🎨 معاينة تطبيق ألوان كانفا على ملف الأنشطة والبطاقات</span><span>A4</span>
+          </div>
         </div>
       `;
 
-      if (btnCollect) {
-        btnCollect.onclick = () => {
-          canvaCheckedIds.add(tpl.id);
-          collectSelectedCanvaTemplates();
-        };
-      }
+      if (btnCollect) btnCollect.onclick = () => {
+        if (!canvaCollectedTemplates.some(x => x.id === tpl.id)) {
+          canvaCollectedTemplates.unshift(tpl);
+          try { localStorage.setItem(CANVA_SELECTED_STORAGE_KEY, JSON.stringify(canvaCollectedTemplates)); } catch (e) {}
+          renderCollectedCanvaTemplates();
+        }
+        setStatus(`✅ تم حفظ قالب "${tpl.name}" في القوالب المحددة`);
+      };
       if (btnApply) btnApply.onclick = () => applyCollectedCanvaById(tpl.id, true, false);
       if (btnPrint) btnPrint.onclick = () => applyCollectedCanvaById(tpl.id, true, true);
 
       stage.style.display = "flex";
-      if (scrollIntoView) stage.scrollIntoView({ behavior: "smooth", block: "nearest" });
       renderFetchedCanvaTemplates();
+      if (scrollIntoView) {
+        const hubBody = stage.closest(".canva-hub-body");
+        if (hubBody) hubBody.scrollTo({ top: 0, behavior: "smooth" });
+        stage.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     }
 
     function closeCanvaLivePreview() {
+      livePreviewCanvaId = null;
       const stage = document.getElementById("canvaLivePreviewStage");
       if (stage) stage.style.display = "none";
-      livePreviewCanvaId = null;
       renderFetchedCanvaTemplates();
     }
 
     function renderFetchedCanvaTemplates() {
       const grid = document.getElementById("canvaFetchedGrid");
       const countEl = document.getElementById("canvaCheckedCount");
-      if (countEl) countEl.textContent = canvaCheckedIds.size;
+      if (countEl) countEl.textContent = String(canvaCheckedIds.size);
       if (!grid) return;
       const list = getFilteredFetchedCanva();
       if (!list.length) {
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:24px;">لا توجد قوالب مطابقة — اضغط "فتح كانفا وجلب القوالب" أعلاه.</div>`;
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:24px;">لا توجد قوالب مطابقة لهذا التصنيف أو البحث — <button type="button" onclick="document.getElementById('canvaSearchInput').value='';filterCanvaCategory('all', document.querySelector('#canvaCategoryChips .canva-cat-chip'));" style="background:#5b21b6;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;">عرض جميع القوالب</button></div>`;
         return;
       }
       grid.innerHTML = list.map(t => {
         const isChecked = canvaCheckedIds.has(t.id);
         const isPreviewing = livePreviewCanvaId === t.id;
-        return `<div class="canva-tpl-card ${isChecked ? "checked" : ""} ${isPreviewing ? "previewing" : ""}">
+        return `<div class="canva-tpl-card ${isChecked ? "checked" : ""} ${isPreviewing ? "previewing" : ""}" onclick="toggleCheckCanvaCard('${escCanvaHtml(t.id)}')">
           <label class="canva-tpl-check" onclick="event.stopPropagation()">
-            <input type="checkbox" ${isChecked ? "checked" : ""} onchange="toggleCheckCanvaCard('${escCanvaHtml(t.id)}')"> تحديد
+            <input type="checkbox" ${isChecked ? "checked" : ""} onchange="toggleCheckCanvaCard('${escCanvaHtml(t.id)}')">
+            <span>${isChecked ? "محدد ✓" : "تحديد"}</span>
           </label>
-          <div onclick="previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)">
-            ${buildCanvaCardThumbHTML(t)}
-          </div>
+          ${buildCanvaCardThumbHTML(t)}
           <div class="canva-tpl-body">
             <div>
               <div style="font-size:13px;font-weight:800;color:#0f172a;">${escCanvaHtml(t.name)}</div>
-              <div style="font-size:11px;color:#64748b;margin-top:2px;">${escCanvaHtml(t.description || t.source || "Canva")}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.45;">${escCanvaHtml(t.description || t.source || "")}</div>
             </div>
-            <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
-              <button type="button" onclick="previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)" style="flex:1;background:#5b21b6;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;">👁️ معاينة حية</button>
-              <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, false)" style="flex:1;background:#0f766e;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;">✨ تطبيق</button>
+            <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">
+              <button type="button" onclick="event.stopPropagation(); previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)" style="background:#0f766e;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">👁️ معاينة حية</button>
+              <button type="button" onclick="event.stopPropagation(); applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, false)" style="flex:1;background:#5b21b6;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">✨ جلب وتطبيق</button>
             </div>
           </div>
         </div>`;
@@ -2687,8 +2777,12 @@
           <button type="button" onclick="removeCollectedCanvaTemplate('${escCanvaHtml(t.id)}')" title="إزالة" style="position:absolute;top:8px;left:8px;z-index:4;background:#ef4444;color:#fff;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;font-weight:800;">✕</button>
           ${buildCanvaCardThumbHTML(t)}
           <div class="canva-tpl-body">
-            <div style="font-size:13px;font-weight:800;color:#0f172a;">${escCanvaHtml(t.name)} ${isApplied ? '<span style="color:#d97706;">(مطبق)</span>' : ""}</div>
+            <div>
+              <div style="font-size:13px;font-weight:800;color:#0f172a;">${escCanvaHtml(t.name)} ${isApplied ? '<span style="color:#d97706;">(مطبق حالياً)</span>' : ""}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px;">${escCanvaHtml(t.description || "")}</div>
+            </div>
             <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">
+              <button type="button" onclick="previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)" style="background:#5b21b6;color:#fff;border:none;padding:7px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">👁️ حية</button>
               <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, false)" style="flex:1;background:#0f766e;color:#fff;border:none;padding:7px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">✨ تطبيق ومعاينة</button>
               <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, true)" style="background:#1e3a8a;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">🖨️ طباعة</button>
             </div>

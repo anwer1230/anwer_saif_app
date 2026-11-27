@@ -15592,34 +15592,29 @@ def api_edu_canva_fetched_delete(tid):
     return jsonify({'success': True, 'fetched': rem})
 
 
+def _build_edu_canva_proxy_response(tid: str = '', img_url: str = ''):
+    from pptx_app.modules.design_importer import resolve_edu_canva_thumb
+    raw_bytes, ctype, is_raster = resolve_edu_canva_thumb(tid=tid, img_url=img_url)
+    resp = make_response(raw_bytes)
+    resp.headers['Content-Type'] = ctype or ('image/jpeg' if is_raster else 'image/svg+xml; charset=utf-8')
+    resp.headers['Cache-Control'] = 'public, max-age=86400' if is_raster else 'public, max-age=300'
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Cross-Origin-Resource-Policy'] = 'cross-origin'
+    return resp
+
+
 @app.route('/api/edu/canva/proxy_img', methods=['GET'])
 def api_edu_canva_proxy_img():
     """بروكسي آمن ومخزن مؤقتاً لصور قوالب كانفا لتفادي أخطاء CORS وسرعة المعاينة والـ PDF."""
-    import urllib.parse
     img_url = (request.args.get('url') or '').strip()
-    if not img_url.startswith(('https://', 'http://')):
-        return '', 400
-    parsed = urllib.parse.urlparse(img_url)
-    host = (parsed.hostname or '').lower()
-    allowed = (
-        host.endswith('canva.com')
-        or host.endswith('canva-static.com')
-        or host.endswith('googleusercontent.com')
-        or (host.endswith('web.archive.org') and 'im_' in (parsed.path or ''))
-    )
-    if not allowed:
-        return '', 403
-    try:
-        from pptx_app.modules.design_importer import fetch_canva_image_bytes_cached
-        raw_bytes, ctype = fetch_canva_image_bytes_cached(img_url, timeout=(2.0, 4.5))
-        if not raw_bytes:
-            return '', 404
-        resp = make_response(raw_bytes)
-        resp.headers['Content-Type'] = (ctype or 'image/jpeg').split(';')[0]
-        resp.headers['Cache-Control'] = 'public, max-age=604800'
-        return resp
-    except Exception:
-        return '', 404
+    tid = (request.args.get('tid') or '').strip()
+    return _build_edu_canva_proxy_response(tid=tid, img_url=img_url)
+
+
+@app.route('/api/edu/canva/thumb/<tid>', methods=['GET'])
+def api_edu_canva_thumb(tid):
+    """نقطة نهاية ثابتة لصورة معاينة القالب (تُرجع الصورة الحقيقية أو SVG احتياطي عالي الجودة دائماً)."""
+    return _build_edu_canva_proxy_response(tid=(tid or '').strip(), img_url='')
 
 
 @app.route('/api/edu/canva/import_file', methods=['POST'])

@@ -99,6 +99,11 @@
     }
     body.print-preview-mode .preview-bar { display: flex; }
     body.print-preview-mode .toolbar { display: none !important; }
+    body.embedded-modal .toolbar { display: none !important; }
+    body.embedded-modal .pages-wrap { margin-top: 14px !important; }
+    body.embedded-modal:not(.print-preview-mode) { padding-bottom: 30px; }
+    body.embedded-modal .preview-bar .pdf-btn,
+    body.embedded-modal .preview-bar .print-direct-btn { display: none !important; }
     body.print-preview-mode { background: #475569; padding-bottom: 40px; }
     body.print-preview-mode .pages-wrap { margin-top: 68px; padding: 12px 0; }
     body.print-preview-mode .page {
@@ -440,7 +445,7 @@
     <button type="button" onclick="openCanvaHubModal()" style="background:linear-gradient(135deg,#00c4cc,#7d2ae8);">🎨 تبديل قالب كانفا</button>
     <button type="button" id="btnResetCanvaPreview" onclick="resetCanvaTemplate()" style="background:#64748b;display:none;">↩️ التصميم الأصلي</button>
     <button type="button" class="pdf-btn" onclick="exportPDF()">📄 تنزيل PDF</button>
-    <button type="button" onclick="printDocument()">🖨️ طباعة مباشرة</button>
+    <button type="button" class="print-direct-btn" onclick="printDocument()">🖨️ طباعة مباشرة</button>
     <button type="button" id="btnZoomFit" class="zoom-btn active" onclick="setPreviewZoom('fit')">🔍 ملائمة للشاشة</button>
     <button type="button" id="btnZoomFull" class="zoom-btn" onclick="setPreviewZoom('full')">🔍 100% A4</button>
     <span class="page-counter" id="previewPageCounter">إجمالي الصفحات: 0</span>
@@ -1985,6 +1990,11 @@ function togglePrintPreview(forceState) {
         applyPreviewZoom();
         setStatus('تمت العودة لوضع التعديل');
     }
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'eduPreviewState', target: 'portfolio', active: isPrintPreview }, '*');
+        }
+    } catch (e) {}
 }
 
 window.addEventListener('resize', () => {
@@ -2854,11 +2864,21 @@ function goBackToDashboard() {
 }
 
 /* ============ حالة الشريط ============ */
+function notifyParentStatus(msg) {
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'eduFrameStatus', target: 'portfolio', msg: String(msg || '') }, '*');
+        }
+    } catch (e) {}
+}
 function setStatus(msg) {
     const el = document.getElementById('statusMsg');
-    if (!el) return;
-    el.textContent = msg;
-    setTimeout(() => { el.textContent = 'جاهز للتعديل'; }, 5000);
+    if (el) el.textContent = msg;
+    notifyParentStatus(msg);
+    setTimeout(() => {
+        if (el) el.textContent = 'جاهز للتعديل';
+        notifyParentStatus('جاهز للتعديل');
+    }, 5000);
 }
 
 /* ============ حفظ تلقائي عند وجود تعديل فعلي كل 30 ثانية ============ */
@@ -2875,6 +2895,7 @@ window.addEventListener('load', () => {
     const isStandalone = window.self === window.top || new URLSearchParams(window.location.search).get('standalone') === '1';
     const backBtn = document.getElementById('btnBackHome');
     if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
+    if (!isStandalone) document.body.classList.add('embedded-modal');
 
     const pagesWrapEl = document.getElementById('pagesWrap');
     if (pagesWrapEl) {

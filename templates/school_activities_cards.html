@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style id="canvaDynamicThemeCss"></style>
   <style>
     :root {
       --primary: #0f4c5c;
@@ -155,6 +156,343 @@
     .print-action-btn.pdf-action-btn {
       background: #10b981;
       color: #ffffff;
+    }
+
+    /* ================= شريط الأدوات الموحد والميزات التفاعلية ================= */
+    .topbar-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.16);
+      width: 100%;
+    }
+    .tb-btn {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      padding: 6px 11px;
+      border-radius: 7px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: 0.18s;
+    }
+    .tb-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+    .tb-btn.tb-back { background: #475569; display: none; }
+    .tb-btn.tb-save { background: #16a34a; border-color: #15803d; }
+    .tb-btn.tb-preview { background: #7c3aed; border-color: #6d28d9; }
+    .tb-btn.tb-pdf { background: #d97706; border-color: #b45309; }
+    .tb-btn.tb-canva { background: linear-gradient(135deg, #00c4cc, #7d2ae8); border: none; }
+    .tb-btn.tb-print { background: #0284c7; border-color: #0369a1; }
+    .tb-btn.tb-danger { background: #dc2626; border-color: #b91c1c; }
+    .tb-status {
+      margin-right: auto;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    body.embedded-modal .app-topbar { display: none !important; }
+    body.embedded-modal .workspace { padding-top: 14px !important; }
+    body.embedded-modal .preview-bar .pdf-btn,
+    body.embedded-modal .preview-bar .print-direct-btn { display: none !important; }
+
+    /* ================= شريط وضع المعاينة قبل الطباعة ================= */
+    .preview-bar {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10001;
+      background: linear-gradient(135deg, #1e293b, #334155);
+      color: #ffffff;
+      padding: 8px 14px;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      font-size: 12.5px;
+    }
+    body.print-preview-mode .preview-bar { display: flex; }
+    body.print-preview-mode .app-topbar,
+    body.print-preview-mode .sub-filter-bar,
+    body.print-preview-mode .edit-only,
+    body.print-preview-mode .sheet-ctrl-bar,
+    body.print-preview-mode .fmt-bar { display: none !important; }
+    body.print-preview-mode { background: #475569; padding-bottom: 40px; }
+    body.print-preview-mode .workspace { padding-top: 64px !important; }
+    body.print-preview-mode .a4-sheet {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      transform-origin: top center;
+    }
+    body.print-preview-mode .editable-area,
+    body.print-preview-mode [contenteditable="true"] {
+      background: transparent !important;
+      box-shadow: none !important;
+      outline: none !important;
+      pointer-events: none;
+    }
+    body.print-preview-mode .icon-choice { pointer-events: none; }
+    .preview-bar .preview-title { font-weight: 800; color: #ffd166; margin-left: 6px; }
+    .preview-bar button {
+      background: #0d9488;
+      color: #ffffff;
+      border: none;
+      padding: 6px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .preview-bar button.exit-btn { background: #e11d48; }
+    .preview-bar button.pdf-btn { background: #d97706; }
+    .preview-bar button.zoom-btn { background: #475569; }
+    .preview-bar button.zoom-btn.active { background: #3b82f6; }
+    .preview-bar .page-counter { margin-right: auto; font-size: 12px; color: #cbd5e1; font-weight: 700; }
+    .preview-page-badge {
+      width: fit-content;
+      margin: 4px auto;
+      padding: 4px 14px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #f8fafc;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* ================= التحرير المباشر وشريط التنسيق ================= */
+    [contenteditable="true"]:hover { background: rgba(200, 155, 60, 0.09); border-radius: 4px; }
+    [contenteditable="true"]:focus {
+      outline: 2px solid var(--accent);
+      background: rgba(253, 247, 234, 0.75);
+      border-radius: 4px;
+    }
+    .icon-choice { cursor: pointer; }
+    .fmt-bar {
+      display: none;
+      position: fixed;
+      z-index: 10002;
+      background: #1e293b;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 5px 8px;
+      gap: 6px;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      font-size: 13px;
+    }
+    .fmt-bar.show { display: flex; }
+    .fmt-bar button {
+      background: #334155;
+      color: #ffffff;
+      border: none;
+      width: 29px;
+      height: 29px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .fmt-bar button:hover { background: var(--primary); }
+    .fmt-bar input[type="color"] {
+      width: 30px;
+      height: 29px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #334155;
+      padding: 2px;
+    }
+
+    .sheet-ctrl-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .sheet-ctrl-btn {
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-family: inherit;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #ffffff;
+      background: #0f766e;
+      cursor: pointer;
+    }
+    .sheet-ctrl-btn.del { background: #dc2626; }
+
+    /* ================= مركز قوالب كانفا ونافذة التأكيد ================= */
+    .canva-hub-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 240000;
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .canva-hub-modal.show { display: flex; }
+    .canva-hub-dialog {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 1120px;
+      max-height: 94vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+    .canva-hub-header {
+      background: linear-gradient(135deg, #00c4cc 0%, #5b21b6 55%, #1e1b4b 100%);
+      color: #ffffff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .canva-hub-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .canva-panel {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .canva-cat-chip {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .canva-cat-chip.active { background: #5b21b6; color: #ffffff; border-color: #5b21b6; }
+    .canva-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .canva-tpl-card {
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: 0.18s;
+      position: relative;
+      cursor: pointer;
+    }
+    .canva-tpl-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); }
+    .canva-tpl-card.checked { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18); }
+    .canva-tpl-card.applied { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.22); }
+    .canva-tpl-card.previewing { border-color: #5b21b6; box-shadow: 0 0 0 3px rgba(91, 33, 182, 0.24); }
+    .canva-tpl-thumb { height: 112px; padding: 10px; position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+    .canva-tpl-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 4;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    .canva-tpl-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: space-between; }
+    .canva-active-banner {
+      display: none;
+      background: rgba(15, 23, 42, 0.72);
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      align-items: center;
+      gap: 6px;
+    }
+    .canva-active-banner.show { display: inline-flex; }
+    .canva-live-preview-stage {
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .canva-live-sheets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+    .canva-mini-a4 {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 14px;
+      min-height: 220px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .app-confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 260000;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .app-confirm-overlay.show { display: flex; }
+    .app-confirm-box {
+      background: #ffffff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 420px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
     }
 
     /* ================= شاشة تقدم وإشعار جاهزية PDF ================= */
@@ -610,6 +948,13 @@
       }
 
       .app-topbar,
+      .preview-bar,
+      .preview-page-badge,
+      .fmt-bar,
+      .canva-hub-modal,
+      .app-confirm-overlay,
+      .edit-only,
+      .sheet-ctrl-bar,
       .sub-filter-bar,
       .pdf-overlay,
       .pdf-ready-banner {
@@ -634,6 +979,7 @@
         border-radius: 0 !important;
         margin: 0 !important;
         padding: 4mm 5mm !important;
+        transform: none !important;
       }
 
       .view-panel:not(.hidden) .a4-sheet:not(.hidden-card) ~ .a4-sheet:not(.hidden-card) {
@@ -649,7 +995,7 @@
 </head>
 <body>
 
-  <!-- ================= شريط الأيقونتين الوظيفيتين العلوي ================= -->
+  <!-- ================= شريط الأيقونات والأدوات الموحد العلوي ================= -->
   <header class="app-topbar">
     <div class="topbar-inner">
       <div class="brand-info">
@@ -668,19 +1014,38 @@
           <span class="icon-circle">📋</span>
           <span>بطاقة تنفيذ نشاط</span>
         </button>
-
-        <button type="button" class="print-action-btn" onclick="printActivities()">
-          <span>🖨️</span>
-          <span>طباعة</span>
-        </button>
-
-        <button type="button" class="print-action-btn pdf-action-btn" onclick="exportActivitiesPDF()">
-          <span>📄</span>
-          <span>تصدير PDF</span>
-        </button>
       </nav>
+
+      <!-- شريط أدوات التحرير والمعاينة والطباعة والتصدير الكامل -->
+      <div class="topbar-actions-row">
+        <button type="button" id="btnBackHome" class="tb-btn tb-back" onclick="goBackToDashboard()">⬅️ الرئيسية</button>
+        <button type="button" class="tb-btn tb-save" onclick="saveData()">💾 حفظ</button>
+        <button type="button" id="btnPreviewToggle" class="tb-btn tb-preview" onclick="togglePrintPreview(true)">👁️ معاينة قبل الطباعة</button>
+        <button type="button" class="tb-btn tb-pdf" onclick="exportActivitiesPDF()">📄 تصدير PDF</button>
+        <button type="button" class="tb-btn" onclick="loadData()">🔄 استرجاع</button>
+        <button type="button" class="tb-btn" onclick="addNewPage()">➕ صفحة جديدة</button>
+        <button type="button" class="tb-btn tb-canva" onclick="openCanvaHubModal()">🎨 قوالب كانفا</button>
+        <button type="button" class="tb-btn tb-print" onclick="printActivities()">🖨️ طباعة</button>
+        <button type="button" class="tb-btn tb-danger" onclick="resetAll()">🗑️ إعادة تعيين</button>
+        <span class="canva-active-banner" id="toolbarCanvaBadge">🎨 قالب: <span id="toolbarCanvaName"></span></span>
+        <span class="tb-status" id="statusMsg">جاهز للتعديل المباشر</span>
+      </div>
     </div>
   </header>
+
+  <!-- شريط وضع المعاينة قبل الطباعة -->
+  <div class="preview-bar" id="previewBar">
+    <span class="preview-title">👁️ وضع المعاينة قبل الطباعة</span>
+    <span class="canva-active-banner" id="previewCanvaBadge">🎨 القالب: <span id="previewCanvaName"></span></span>
+    <button type="button" class="exit-btn" onclick="togglePrintPreview(false)">⬅️ العودة للتعديل</button>
+    <button type="button" onclick="openCanvaHubModal()" style="background:linear-gradient(135deg,#00c4cc,#7d2ae8);">🎨 تبديل قالب كانفا</button>
+    <button type="button" id="btnResetCanvaPreview" onclick="resetCanvaTemplate()" style="background:#64748b;display:none;">↩️ التصميم الأصلي</button>
+    <button type="button" class="pdf-btn" onclick="exportActivitiesPDF()">📄 تنزيل PDF</button>
+    <button type="button" class="print-direct-btn" onclick="printActivities()">🖨️ طباعة مباشرة</button>
+    <button type="button" id="btnZoomFit" class="zoom-btn active" onclick="setPreviewZoom('fit')">🔍 ملائمة للشاشة</button>
+    <button type="button" id="btnZoomFull" class="zoom-btn" onclick="setPreviewZoom('full')">🔍 100% A4</button>
+    <span class="page-counter" id="previewPageCounter">إجمالي الصفحات: 0</span>
+  </div>
 
   <!-- شاشة تقدم تصدير PDF -->
   <div class="pdf-overlay" id="pdfProgressOverlay">
@@ -699,6 +1064,115 @@
     <a id="pdfDirectDownloadLink" href="#" download="ملف_الأنشطة_المدرسية.pdf">📥 حفظ PDF</a>
     <button type="button" class="open-btn" onclick="openLastPdfBlob()">👁️ فتح الملف</button>
     <button type="button" class="close-btn" onclick="closePdfReadyBanner()">✕</button>
+  </div>
+
+  <!-- نافذة تأكيد داخل التطبيق -->
+  <div class="app-confirm-overlay" id="appConfirmModal">
+    <div class="app-confirm-box">
+      <h3 id="appConfirmTitle" style="color:#0f4c5c;margin:0 0 10px;font-size:18px;font-weight:800;">تأكيد الإجراء</h3>
+      <p id="appConfirmMessage" style="color:#374151;font-size:14.5px;margin:0 0 22px;line-height:1.7;"></p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button type="button" id="appConfirmOkBtn" style="background:#dc2626;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;">نعم، تأكيد</button>
+        <button type="button" onclick="closeAppConfirm(false)" style="background:#64748b;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- شريط التنسيق العائم -->
+  <div class="fmt-bar" id="fmtBar">
+    <button type="button" onclick="execCmd('bold')" title="عريض"><b>B</b></button>
+    <button type="button" onclick="execCmd('italic')" title="مائل"><i>I</i></button>
+    <button type="button" onclick="execCmd('underline')" title="تحته خط"><u>U</u></button>
+    <button type="button" onclick="changeSize(2)" title="تكبير">A+</button>
+    <button type="button" onclick="changeSize(-2)" title="تصغير">A−</button>
+    <input type="color" onchange="execCmd('foreColor', this.value)" title="لون النص" value="#1b262c">
+    <button type="button" onclick="execCmd('removeFormat')" title="مسح التنسيق">✕</button>
+  </div>
+
+  <!-- مركز قوالب كانفا المدمج -->
+  <div class="canva-hub-modal" id="canvaTemplatesModal" onclick="if(event.target===this) closeCanvaHubModal()">
+    <div class="canva-hub-dialog">
+      <div class="canva-hub-header">
+        <div>
+          <h3 style="margin:0;font-size:17px;font-weight:800;">🎨 مركز قوالب كانفا — ملف الأنشطة المدرسية وبطاقات التنفيذ</h3>
+          <div style="font-size:12px;opacity:0.9;">استعرض القوالب، عاينها حياً بمحتواك الفعلي، وطبّقها أو اطبعها مباشرة</div>
+        </div>
+        <button type="button" onclick="closeCanvaHubModal()" style="background:#ef4444;color:#fff;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-weight:800;font-size:16px;">✕</button>
+      </div>
+      <div class="canva-hub-body">
+        <div class="canva-panel">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:14px;font-weight:800;color:#1e1b4b;">1️⃣ فتح كانفا وجلب القوالب داخل الواجهة</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <span id="canvaGoogleActiveBadge" style="font-size:11px;background:#eef2ff;color:#3730a3;padding:4px 10px;border-radius:999px;font-weight:800;">حساب Google: جاري التحميل...</span>
+              <button type="button" onclick="resetCanvaTemplate()" style="background:#64748b;color:#fff;border:none;padding:5px 11px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">↩️ استعادة التصميم الأصلي</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+            <input type="text" id="canvaSearchInput" placeholder="ابحث داخل كانفا (مثال: أنشطة، بطاقات، تعليمي، رسمي...)" style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px;" onkeydown="if(event.key==='Enter') fetchCanvaInsideUI()">
+            <button type="button" id="btnFetchCanvaInside" onclick="fetchCanvaInsideUI()" style="background:linear-gradient(135deg,#00c4cc,#7d2ae8);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;">🌐 فتح كانفا وجلب القوالب</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="canvaCategoryChips">
+            <button type="button" class="canva-cat-chip active" onclick="filterCanvaCategory('all', this)">الكل</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('شواهد وتقارير', this)">أنشطة وشواهد</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تعليمي', this)">تعليمي</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('فاخر', this)">فاخر وملكي</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('أعمال', this)">أعمال وتنفيذي</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('إبداعي', this)">إبداعي</button>
+            <button type="button" class="canva-cat-chip" onclick="filterCanvaCategory('تصاميمي', this)">تصاميمي من كانفا</button>
+          </div>
+          <details style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;padding:8px 12px;font-size:12px;">
+            <summary style="cursor:pointer;font-weight:800;color:#475569;">🔗 خيار إضافي: جلب قالب من رابط كانفا أو API Token</summary>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+              <input type="url" id="canvaImportUrlInput" dir="ltr" placeholder="https://www.canva.com/design/... أو رابط قالب كانفا" style="flex:2;min-width:200px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit;">
+              <input type="text" id="canvaImportNameInput" placeholder="اسم مخصص للقالب (اختياري)" style="flex:1;min-width:140px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit;">
+              <button type="button" onclick="importCanvaLinkInsideUI()" style="background:#0f766e;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-family:inherit;font-weight:700;cursor:pointer;">📥 جلب الرابط</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+              <input type="password" id="canvaTokenInput" dir="ltr" placeholder="Canva Connect API Token (اختياري)" style="flex:1;min-width:220px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit;">
+              <button type="button" onclick="syncCanvaTokenInsideUI()" style="background:#5b21b6;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-family:inherit;font-weight:700;cursor:pointer;">🔄 جلب تصاميمي</button>
+            </div>
+          </details>
+          <div id="canvaHubStatus" style="margin-top:8px;font-size:12px;font-weight:700;color:#0f766e;"></div>
+        </div>
+
+        <div class="canva-live-preview-stage" id="canvaLivePreviewStage" style="display:none;">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:14px;font-weight:800;color:#1e1b4b;">👁️ المعاينة الحية المباشرة للقالب</div>
+              <div id="canvaLivePreviewMeta" style="font-size:12px;color:#475569;margin-top:2px;"></div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+              <button type="button" id="btnLiveCollectTpl" style="background:#0f766e;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">📥 حفظ في القوالب المحددة</button>
+              <button type="button" id="btnLiveApplyTpl" style="background:#5b21b6;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">✨ تطبيق على الملف ومعاينة A4</button>
+              <button type="button" id="btnLivePrintTpl" style="background:#1e3a8a;color:#fff;border:none;padding:7px 12px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">🖨️ تطبيق وطباعة</button>
+              <button type="button" onclick="closeCanvaLivePreview()" style="background:#e2e8f0;color:#0f172a;border:none;padding:7px 10px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">إغلاق المعاينة</button>
+            </div>
+          </div>
+          <div class="canva-live-sheets" id="canvaLivePreviewBody"></div>
+        </div>
+
+        <div class="canva-panel">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+            <div style="font-size:14px;font-weight:800;color:#0f172a;">2️⃣ القوالب المستعرضة من كانفا</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+              <button type="button" onclick="selectAllFetchedCanva(true)" style="background:#e2e8f0;color:#0f172a;border:none;padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">☑️ تحديد الكل</button>
+              <button type="button" onclick="selectAllFetchedCanva(false)" style="background:#e2e8f0;color:#0f172a;border:none;padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">⬜ إلغاء التحديد</button>
+              <button type="button" id="btnCollectSelectedCanva" onclick="collectSelectedCanvaTemplates()" style="background:#16a34a;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">📥 جلب القوالب المحددة (<span id="canvaCheckedCount">0</span>)</button>
+            </div>
+          </div>
+          <div class="canva-grid" id="canvaFetchedGrid"></div>
+        </div>
+
+        <div class="canva-panel" id="canvaSelectedSection">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+            <div style="font-size:14px;font-weight:800;color:#0f766e;">3️⃣ القوالب المحددة والمجلوبة</div>
+            <span style="font-size:12px;color:#475569;font-weight:700;" id="canvaSelectedCounter">0 قالب جاهز للتطبيق</span>
+          </div>
+          <div class="canva-grid" id="canvaSelectedGrid"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <main class="workspace">
@@ -1404,10 +1878,909 @@
       `).join("");
     }
 
+    const ACTIVITIES_STORAGE_KEY = "school_activities_portfolio_v1";
+    const ACTIVITIES_CONTENT_VERSION = "2026-11-25-v3";
+    const CANVA_SELECTED_STORAGE_KEY = "edu_canva_selected_activities_v1";
+    const CANVA_ACTIVE_STORAGE_KEY = "edu_canva_active_activities_v1";
+
     let currentActiveView = "plan";
     let currentWeekFilter = "all";
     let isExportingPdf = false;
     let lastPdfBlobUrl = null;
+    let hasUserEdited = false;
+    let pendingConfirmCb = null;
+    let isPrintPreview = false;
+    let previewZoomMode = "fit";
+
+    function markUserEdited() {
+      hasUserEdited = true;
+    }
+
+    function notifyParentStatus(msg) {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "eduFrameStatus", target: "activities", msg: String(msg || "") }, "*");
+        }
+      } catch (e) {}
+    }
+
+    function setStatus(msg) {
+      const el = document.getElementById("statusMsg");
+      if (el) el.textContent = msg;
+      notifyParentStatus(msg);
+      setTimeout(() => {
+        if (el) el.textContent = "جاهز للتعديل المباشر";
+        notifyParentStatus("جاهز للتعديل المباشر");
+      }, 5000);
+    }
+
+    function showAppConfirm(title, message, onConfirm) {
+      const modal = document.getElementById("appConfirmModal");
+      const titleEl = document.getElementById("appConfirmTitle");
+      const msgEl = document.getElementById("appConfirmMessage");
+      const okBtn = document.getElementById("appConfirmOkBtn");
+      if (!modal || !okBtn) {
+        if (onConfirm) onConfirm();
+        return;
+      }
+      if (titleEl) titleEl.textContent = title || "تأكيد";
+      if (msgEl) msgEl.textContent = message || "";
+      pendingConfirmCb = onConfirm;
+      okBtn.onclick = function () {
+        closeAppConfirm(true);
+      };
+      modal.classList.add("show");
+    }
+
+    function closeAppConfirm(confirmed) {
+      const modal = document.getElementById("appConfirmModal");
+      if (modal) modal.classList.remove("show");
+      const cb = pendingConfirmCb;
+      pendingConfirmCb = null;
+      if (confirmed && typeof cb === "function") cb();
+    }
+
+    /* ================= تفعيل التحرير المباشر وأدوات التنسيق ================= */
+    const fmtBar = document.getElementById("fmtBar");
+    let activeEditable = null;
+
+    function makeSheetsEditable() {
+      const selectors = [
+        ".official-title-box",
+        ".official-meta-strip span",
+        ".cover-hero h1",
+        ".cover-hero p",
+        "table.official-table td.val",
+        ".highlight-note",
+        "table.sign-grid td",
+        ".official-footer span:first-child"
+      ];
+      document.querySelectorAll(selectors.join(",")).forEach(el => {
+        if (!el.hasAttribute("contenteditable")) {
+          el.setAttribute("contenteditable", "true");
+        }
+        el.classList.add("editable-area");
+      });
+    }
+
+    document.addEventListener("click", function (e) {
+      const choice = e.target.closest(".icon-choice");
+      if (!choice || document.body.classList.contains("print-preview-mode")) return;
+      const grid = choice.closest(".icons-grid");
+      if (!grid) return;
+      grid.querySelectorAll(".icon-choice").forEach(item => {
+        item.classList.remove("checked");
+        const box = item.querySelector(".chk-box");
+        if (box) box.textContent = "";
+      });
+      choice.classList.add("checked");
+      const box = choice.querySelector(".chk-box");
+      if (box) box.textContent = "✓";
+      markUserEdited();
+    });
+
+    document.addEventListener("focusin", function (e) {
+      if (e.target && e.target.isContentEditable && fmtBar) {
+        activeEditable = e.target;
+        const rect = e.target.getBoundingClientRect();
+        fmtBar.classList.add("show");
+        let top = rect.top - 48;
+        if (top < 64) top = rect.bottom + 8;
+        fmtBar.style.top = Math.max(8, top) + "px";
+        fmtBar.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 310)) + "px";
+      }
+    });
+
+    document.addEventListener("focusout", function () {
+      setTimeout(() => {
+        if (fmtBar && document.activeElement && !fmtBar.contains(document.activeElement) && !document.activeElement.isContentEditable) {
+          fmtBar.classList.remove("show");
+        }
+      }, 150);
+    });
+
+    function execCmd(cmd, val) {
+      document.execCommand(cmd, false, val || null);
+      markUserEdited();
+      if (activeEditable) activeEditable.focus();
+    }
+
+    function changeSize(delta) {
+      if (!activeEditable) return;
+      const current = parseFloat(window.getComputedStyle(activeEditable).fontSize) || 13;
+      activeEditable.style.fontSize = Math.max(10, Math.min(34, current + delta)) + "px";
+      markUserEdited();
+    }
+
+    /* ================= إضافة صفحة جديدة أو بطاقة تنفيذ جديدة ================= */
+    function addCustomPlanRow(btn) {
+      const tbody = btn.closest(".a4-sheet")?.querySelector("table.official-table tbody");
+      if (!tbody) return;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="val striped" contenteditable="true" style="text-align:center;font-weight:800;color:var(--primary-dark);">أسبوع جديد</td>
+        <td class="val striped" contenteditable="true" style="font-weight:700;color:var(--primary);">اسم البرنامج / النشاط</td>
+        <td class="val striped" contenteditable="true">الدروس والصفوف المرتبطة</td>
+        <td class="val striped" contenteditable="true">آلية تنفيذ النشاط ونوعه عبر المنصة والكتاب</td>
+      `;
+      tbody.appendChild(tr);
+      markUserEdited();
+    }
+
+    function removeCustomSheet(btn) {
+      const sheet = btn.closest(".a4-sheet");
+      if (!sheet) return;
+      showAppConfirm("حذف الصفحة", "هل تريد حذف هذه الصفحة المضافة؟", () => {
+        sheet.remove();
+        markUserEdited();
+        if (isPrintPreview) renderPreviewBadges();
+        setStatus("🗑️ تم حذف الصفحة المضافة");
+      });
+    }
+
+    function addNewPage() {
+      if (currentActiveView === "cards") {
+        const container = document.getElementById("cardsListContainer");
+        if (!container) return;
+        const wkVal = (currentWeekFilter && currentWeekFilter !== "all") ? currentWeekFilter : "custom";
+        const newCard = document.createElement("article");
+        newCard.className = "a4-sheet exec-card custom-added-sheet";
+        newCard.dataset.wk = wkVal;
+        newCard.innerHTML = `
+          <div>
+            <div class="sheet-ctrl-bar edit-only">
+              <button type="button" class="sheet-ctrl-btn del" onclick="removeCustomSheet(this)">🗑️ حذف هذه البطاقة</button>
+            </div>
+            <div class="official-header">
+              <div class="official-top-bar">
+                <span>المملكة العربية السعودية — وزارة التعليم</span>
+                <span class="gold-tag">إدارة تعليم نجران | مدرسة آمنة بنت عفان</span>
+              </div>
+              <div class="official-title-box">بطاقة تنفيذ برنامج نشاط طلابي (جديدة)</div>
+              <div class="official-meta-strip">
+                <span>بطاقة نشاط مضافة — الأسبوع ${wkVal === "custom" ? "الجديد" : wkVal}</span>
+                <span>المادة: الدراسات الاجتماعية</span>
+                <span>التنفيذ: عن بُعد / مدمج</span>
+              </div>
+            </div>
+            <table class="official-table">
+              <tbody>
+                <tr>
+                  <th class="lbl">اسم البرنامج</th>
+                  <td class="val" colspan="3">اكتب اسم البرنامج أو النشاط هنا...</td>
+                </tr>
+                <tr>
+                  <th class="lbl">المجال</th>
+                  <td class="val">المجال التربوي / المنهجي</td>
+                  <th class="lbl">الفصل الدراسي</th>
+                  <td class="val">الفصل الدراسي الأول 1448هـ</td>
+                </tr>
+                <tr>
+                  <th class="lbl">عدد حصص البرنامج</th>
+                  <td class="val" colspan="3">حصة نشاط مدمجة</td>
+                </tr>
+                <tr>
+                  <th class="lbl">بداية التنفيذ</th>
+                  <td class="val">اليوم: ..... | الأسبوع: ..... | التاريخ: ..... / ..... / 1448هـ</td>
+                  <th class="lbl">نهاية التنفيذ</th>
+                  <td class="val">اليوم: ..... | الأسبوع: ..... | التاريخ: ..... / ..... / 1448هـ</td>
+                </tr>
+                <tr>
+                  <th class="lbl">الصف</th>
+                  <td class="val">طالبات الصفوف العليا (رابع – خامس – سادس)</td>
+                  <th class="lbl">المعلم/ة المنفذ/ة</th>
+                  <td class="val">أسماء ياسين الخيري</td>
+                </tr>
+                <tr>
+                  <th class="lbl">آلية تنفيذ النشاط ونوعه (مدمج ومنصة)</th>
+                  <td class="val" colspan="3">اكتب آلية التنفيذ عبر منصة مدرستي والكتاب المدرسي...</td>
+                </tr>
+                <tr class="banner-row"><td colspan="4">بيانات المشاركة والتنفيذ عبر منصة مدرستي</td></tr>
+                <tr>
+                  <th class="lbl">عدد الطلبة المشاركين</th>
+                  <td class="val">...... طالبة</td>
+                  <th class="lbl">عدد الطلبة المشاركين من ذوي الإعاقة</th>
+                  <td class="val">...... طالبة</td>
+                </tr>
+                <tr>
+                  <th class="lbl">عدد أولياء الأمور المشاركين في البرنامج</th>
+                  <td class="val">...... ولي أمر</td>
+                  <th class="lbl">عند تنفيذ المشاركة عبر منصة مدرستي ما هي أيقونة التنفيذ</th>
+                  <td class="val">${renderPlatformIcons("بنك الإثراءات")}</td>
+                </tr>
+                <tr>
+                  <th class="lbl">عدد الشراكات المجتمعية</th>
+                  <td class="val">0</td>
+                  <th class="lbl">أسماء الشراكات المجتمعية</th>
+                  <td class="val">لا يوجد</td>
+                </tr>
+                <tr>
+                  <th class="lbl">وصف التنفيذ والأثر</th>
+                  <td class="val" colspan="3"><div class="highlight-note">اكتب أهداف النشاط وخطوات التنفيذ والأثر هنا...</div></td>
+                </tr>
+                <tr>
+                  <th class="lbl">ملاحظات</th>
+                  <td class="val" colspan="3">اكتب الملاحظات والشواهد المرفقة...</td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="sign-grid">
+              <thead>
+                <tr><th>المعلم/ة المنفذ/ة</th><th>رائد/ة النشاط</th><th>مديرة المدرسة</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div><strong>الاسم:</strong> أسماء ياسين الخيري</div><div><strong>التاريخ:</strong> ..... / ..... / 1448هـ</div><div><strong>التوقيع:</strong> ....................................</div></td>
+                  <td><div><strong>الاسم:</strong> ....................................</div><div><strong>التاريخ:</strong> ..... / ..... / 1448هـ</div><div><strong>التوقيع:</strong> ....................................</div></td>
+                  <td><div><strong>الاسم:</strong> أ. البتول آل دويس</div><div><strong>التاريخ:</strong> ..... / ..... / 1448هـ</div><div><strong>التوقيع:</strong> ....................................</div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <footer class="official-footer">
+            <span>• يتم تعبئة هذه البطاقة عند استكمال الحصص المخصصة للبرنامج وفق دليل الخطط الدراسية.</span>
+            <span class="moe-badge">www.MOE.GOV.SA</span>
+          </footer>
+        `;
+        container.appendChild(newCard);
+        makeSheetsEditable();
+        markUserEdited();
+        if (isPrintPreview) renderPreviewBadges();
+        newCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        setStatus("✅ تمت إضافة بطاقة تنفيذ نشاط جديدة قابلة للتعديل");
+        return;
+      }
+
+      const planView = document.getElementById("planView");
+      if (!planView) return;
+      const sheetNum = planView.querySelectorAll(".a4-sheet").length + 1;
+      const newSheet = document.createElement("article");
+      newSheet.className = "a4-sheet custom-added-sheet";
+      newSheet.innerHTML = `
+        <div>
+          <div class="sheet-ctrl-bar edit-only">
+            <button type="button" class="sheet-ctrl-btn" onclick="addCustomPlanRow(this)">➕ إضافة صف للجدول</button>
+            <button type="button" class="sheet-ctrl-btn del" onclick="removeCustomSheet(this)">🗑️ حذف هذه الصفحة</button>
+          </div>
+          <div class="official-header">
+            <div class="official-top-bar">
+              <span>المملكة العربية السعودية — وزارة التعليم</span>
+              <span class="gold-tag">إدارة تعليم نجران — مدرسة آمنة بنت عفان</span>
+            </div>
+            <div class="official-title-box">صفحة إضافية — متابعة وتنفيذ الأنشطة المدرسية</div>
+            <div class="official-meta-strip">
+              <span>المادة: الدراسات الاجتماعية</span>
+              <span>الصفوف: الرابع – الخامس – السادس الابتدائي</span>
+              <span>الفصل الدراسي الأول 1448هـ</span>
+            </div>
+          </div>
+          <table class="official-table">
+            <thead>
+              <tr>
+                <th style="width:16%;">الأسبوع / التاريخ</th>
+                <th style="width:24%;">البرنامج والمجال</th>
+                <th style="width:26%;">الدروس المرتبطة</th>
+                <th style="width:34%;">آلية تنفيذ النشاط ونوعه</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="val striped" style="text-align:center;font-weight:800;color:var(--primary-dark);">أسبوع إضافي</td>
+                <td class="val striped" style="font-weight:700;color:var(--primary);">اسم النشاط أو البرنامج</td>
+                <td class="val striped">توضيح الدروس والصفوف المستهدفة</td>
+                <td class="val striped">تفاصيل التنفيذ عبر منصة مدرستي والكتاب المدرسي</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="highlight-note">اكتب التوصيات أو الملاحظات الختامية لهذه الصفحة هنا...</div>
+        </div>
+        <footer class="official-footer">
+          <span>تُعتمد وتُحفظ في ملف النشاط الطلابي بالمدرسة</span>
+          <span class="moe-badge">صفحة ${sheetNum}</span>
+        </footer>
+      `;
+      planView.appendChild(newSheet);
+      makeSheetsEditable();
+      markUserEdited();
+      if (isPrintPreview) renderPreviewBadges();
+      newSheet.scrollIntoView({ behavior: "smooth", block: "start" });
+      setStatus("✅ تمت إضافة صفحة جديدة إلى ملف الأنشطة");
+    }
+
+    /* ================= الحفظ والاسترجاع وإعادة التعيين ================= */
+    function getState() {
+      return {
+        version: ACTIVITIES_CONTENT_VERSION,
+        planHTML: document.getElementById("planView")?.innerHTML || "",
+        cardsHTML: document.getElementById("cardsListContainer")?.innerHTML || "",
+        activeView: currentActiveView,
+        activeCanvaTemplate: activeCanvaTemplate || null,
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(ACTIVITIES_STORAGE_KEY, JSON.stringify(getState()));
+        hasUserEdited = false;
+        setStatus("✅ تم الحفظ بنجاح - " + new Date().toLocaleTimeString("ar-SA"));
+      } catch (e) {
+        setStatus("❌ تعذر الحفظ: " + (e.message || e));
+      }
+    }
+
+    function loadData() {
+      const raw = localStorage.getItem(ACTIVITIES_STORAGE_KEY);
+      if (!raw) {
+        setStatus("ℹ️ لا توجد تعديلات محفوظة مسبقاً");
+        return;
+      }
+      try {
+        const state = JSON.parse(raw);
+        if (state.planHTML && document.getElementById("planView")) {
+          document.getElementById("planView").innerHTML = state.planHTML;
+        }
+        if (state.cardsHTML && document.getElementById("cardsListContainer")) {
+          document.getElementById("cardsListContainer").innerHTML = state.cardsHTML;
+        }
+        makeSheetsEditable();
+        if (state.activeCanvaTemplate) {
+          applyCanvaTemplateToContent(state.activeCanvaTemplate, false);
+        } else {
+          const savedActive = JSON.parse(localStorage.getItem(CANVA_ACTIVE_STORAGE_KEY) || "null");
+          if (savedActive) applyCanvaTemplateToContent(savedActive, false);
+        }
+        hasUserEdited = false;
+        setStatus("✅ تم استرجاع البيانات المحفوظة بنجاح");
+      } catch (e) {
+        setStatus("❌ تعذر استرجاع البيانات: " + (e.message || e));
+      }
+    }
+
+    function resetAll() {
+      showAppConfirm("إعادة تعيين النموذج", "هل أنت متأكد من حذف التعديلات والعودة للنسخة الأصلية الثابتة لملف الأنشطة وبطاقات التنفيذ؟", () => {
+        localStorage.removeItem(ACTIVITIES_STORAGE_KEY);
+        localStorage.removeItem(CANVA_ACTIVE_STORAGE_KEY);
+        location.reload();
+      });
+    }
+
+    /* ================= معاينة قبل الطباعة ================= */
+    function removePreviewBadges() {
+      document.querySelectorAll(".preview-page-badge").forEach(b => b.remove());
+    }
+
+    function getActivePrintableSheets() {
+      if (currentActiveView === "cards") {
+        return Array.from(document.querySelectorAll("#cardsView .exec-card:not(.hidden-card)"));
+      }
+      return Array.from(document.querySelectorAll("#planView .a4-sheet"));
+    }
+
+    function renderPreviewBadges() {
+      removePreviewBadges();
+      const pages = getActivePrintableSheets();
+      const total = pages.length;
+      pages.forEach((p, idx) => {
+        const badge = document.createElement("div");
+        badge.className = "preview-page-badge";
+        badge.textContent = `صفحة ${idx + 1} من ${total}`;
+        p.parentNode.insertBefore(badge, p);
+      });
+      const counter = document.getElementById("previewPageCounter");
+      if (counter) counter.textContent = `إجمالي الصفحات: ${total} صفحة A4`;
+    }
+
+    function applyPreviewZoom() {
+      const sheets = document.querySelectorAll(".a4-sheet");
+      sheets.forEach(p => {
+        p.style.transform = "";
+        p.style.marginBottom = "";
+      });
+      if (!isPrintPreview || previewZoomMode !== "fit") return;
+      const availW = Math.max(280, window.innerWidth - 28);
+      getActivePrintableSheets().forEach(p => {
+        const w = p.offsetWidth || 794;
+        const h = p.offsetHeight || 1123;
+        const scale = Math.min(1, availW / w);
+        if (scale < 0.99) {
+          p.style.transform = `scale(${scale.toFixed(4)})`;
+          p.style.marginBottom = `${Math.round(-(h * (1 - scale)) + 16)}px`;
+        }
+      });
+    }
+
+    function setPreviewZoom(mode) {
+      previewZoomMode = mode;
+      document.getElementById("btnZoomFit")?.classList.toggle("active", mode === "fit");
+      document.getElementById("btnZoomFull")?.classList.toggle("active", mode === "full");
+      applyPreviewZoom();
+    }
+
+    function togglePrintPreview(forceState) {
+      const next = typeof forceState === "boolean" ? forceState : !isPrintPreview;
+      isPrintPreview = next;
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
+      if (fmtBar) fmtBar.classList.remove("show");
+      if (next) {
+        document.body.classList.add("print-preview-mode");
+        renderPreviewBadges();
+        applyPreviewZoom();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setStatus("👁️ وضع المعاينة قبل الطباعة");
+      } else {
+        document.body.classList.remove("print-preview-mode");
+        removePreviewBadges();
+        applyPreviewZoom();
+        setStatus("تمت العودة لوضع التعديل");
+      }
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "eduPreviewState", target: "activities", active: isPrintPreview }, "*");
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener("resize", () => {
+      if (isPrintPreview) applyPreviewZoom();
+    });
+
+    /* ================= مركز قوالب كانفا المدمج ================= */
+    let canvaFetchedTemplates = [];
+    let canvaSelectedCategory = "all";
+    let canvaCheckedIds = new Set();
+    let canvaCollectedTemplates = [];
+    let activeCanvaTemplate = null;
+    let livePreviewCanvaId = null;
+
+    try {
+      const savedCol = JSON.parse(localStorage.getItem(CANVA_SELECTED_STORAGE_KEY) || "[]");
+      if (Array.isArray(savedCol)) canvaCollectedTemplates = savedCol;
+    } catch (e) {}
+
+    function escCanvaHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+    }
+
+    async function fetchCanvaJson(url, options = {}, timeoutMs = 15000) {
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+      try {
+        const res = await fetch(url, { ...options, signal: ctrl ? ctrl.signal : options.signal });
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (e) { throw new Error("استجابة غير متوقعة من الخادم"); }
+        return { res, data };
+      } catch (err) {
+        if (err && err.name === "AbortError") throw new Error("انتهت مهلة الاتصال بكانفا — يرجى المحاولة مرة أخرى");
+        throw err;
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+
+    function openCanvaHubModal() {
+      document.getElementById("canvaTemplatesModal")?.classList.add("show");
+      renderCollectedCanvaTemplates();
+      if (!canvaFetchedTemplates.length) {
+        fetchCanvaInsideUI(false);
+      } else {
+        renderFetchedCanvaTemplates();
+      }
+    }
+
+    function closeCanvaHubModal() {
+      document.getElementById("canvaTemplatesModal")?.classList.remove("show");
+    }
+
+    function filterCanvaCategory(cat, btnEl) {
+      canvaSelectedCategory = cat || "all";
+      document.querySelectorAll("#canvaCategoryChips .canva-cat-chip").forEach(b => b.classList.toggle("active", b === btnEl));
+      renderFetchedCanvaTemplates();
+    }
+
+    async function fetchCanvaInsideUI(forceLive = true) {
+      const btn = document.getElementById("btnFetchCanvaInside");
+      const statusEl = document.getElementById("canvaHubStatus");
+      const q = (document.getElementById("canvaSearchInput")?.value || "").trim();
+      const isLive = Boolean(forceLive);
+      const orig = btn ? btn.innerHTML : "";
+      if (btn) { btn.disabled = true; btn.innerHTML = isLive ? "⏳ جاري جلب قوالب كانفا..." : "⏳ جاري تحميل القوالب..."; }
+      if (statusEl) statusEl.textContent = "⏳ جاري تحميل قوالب كانفا داخل الواجهة...";
+      try {
+        const { res, data: d } = await fetchCanvaJson("/api/edu/canva/browse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: isLive ? "live" : "cached" })
+        }, isLive ? 15000 : 10000);
+        if (!res.ok || d.error) throw new Error(d.error || "تعذر جلب القوالب");
+        canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
+        const badge = document.getElementById("canvaGoogleActiveBadge");
+        if (badge && d.accounts) {
+          badge.textContent = d.accounts.active_email ? `حساب Google: ${d.accounts.active_email}` : "حساب Google: متصل تلقائياً";
+        }
+        renderFetchedCanvaTemplates();
+        if (canvaFetchedTemplates.length && !livePreviewCanvaId) {
+          previewCanvaTemplateInsideModal(canvaFetchedTemplates[0].id, false);
+        }
+        if (statusEl) statusEl.textContent = `✅ تم عرض ${canvaFetchedTemplates.length} قالب جاهز للمعاينة والتطبيق`;
+      } catch (e) {
+        if (isLive) {
+          try {
+            const fb = await fetchCanvaJson("/api/edu/canva/browse", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ q, query: q, category: canvaSelectedCategory, source: "cached" })
+            }, 8000);
+            if (fb.res.ok && fb.data && !fb.data.error) {
+              canvaFetchedTemplates = Array.isArray(fb.data.templates) ? fb.data.templates : [];
+              renderFetchedCanvaTemplates();
+              if (statusEl) statusEl.textContent = `✅ تم عرض ${canvaFetchedTemplates.length} قالب محفوظ`;
+              return;
+            }
+          } catch (_) {}
+        }
+        if (statusEl) statusEl.textContent = "⚠️ " + e.message;
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+      }
+    }
+
+    async function importCanvaLinkInsideUI() {
+      const url = (document.getElementById("canvaImportUrlInput")?.value || "").trim();
+      const name = (document.getElementById("canvaImportNameInput")?.value || "").trim();
+      const statusEl = document.getElementById("canvaHubStatus");
+      if (!url) { if (statusEl) statusEl.textContent = "⚠️ الصق رابط قالب أو تصميم من كانفا أولاً."; return; }
+      if (statusEl) statusEl.textContent = "⏳ جاري جلب القالب من الرابط...";
+      try {
+        const { res, data: d } = await fetchCanvaJson("/api/edu/canva/browse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ canva_url: url, name, category: "شواهد وتقارير", source: "cached" })
+        }, 18000);
+        if (!res.ok || d.error) throw new Error(d.error || "فشل جلب الرابط");
+        canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
+        if (d.imported_template && d.imported_template.id) {
+          canvaCheckedIds.add(d.imported_template.id);
+          previewCanvaTemplateInsideModal(d.imported_template.id, true);
+        }
+        document.getElementById("canvaImportUrlInput").value = "";
+        document.getElementById("canvaImportNameInput").value = "";
+        renderFetchedCanvaTemplates();
+        if (statusEl) statusEl.textContent = "✅ تم جلب قالب كانفا وتحديده.";
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "❌ " + e.message;
+      }
+    }
+
+    async function syncCanvaTokenInsideUI() {
+      const token = (document.getElementById("canvaTokenInput")?.value || "").trim();
+      const statusEl = document.getElementById("canvaHubStatus");
+      if (!token) { if (statusEl) statusEl.textContent = "⚠️ أدخل Canva API Token أولاً."; return; }
+      if (statusEl) statusEl.textContent = "⏳ جاري جلب تصاميمك الشخصية من كانفا...";
+      try {
+        const { res, data: d } = await fetchCanvaJson("/api/edu/canva/browse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_token: token, source: "cached" })
+        }, 18000);
+        if (!res.ok || d.error) throw new Error(d.error || "تعذر المزامنة");
+        canvaFetchedTemplates = Array.isArray(d.templates) ? d.templates : [];
+        renderFetchedCanvaTemplates();
+        if (statusEl) statusEl.textContent = "✅ تمت مزامنة تصاميم كانفا الخاصة بك.";
+      } catch (e) {
+        if (statusEl) statusEl.textContent = "❌ " + e.message;
+      }
+    }
+
+    function getFilteredFetchedCanva() {
+      const q = (document.getElementById("canvaSearchInput")?.value || "").trim().toLowerCase();
+      return canvaFetchedTemplates.filter(t => {
+        if (canvaSelectedCategory !== "all" && t.category !== canvaSelectedCategory) return false;
+        if (q) {
+          const hay = `${t.name || ""} ${t.category || ""} ${t.description || ""} ${t.source || ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function toggleCheckCanvaCard(tid) {
+      if (canvaCheckedIds.has(tid)) canvaCheckedIds.delete(tid);
+      else canvaCheckedIds.add(tid);
+      renderFetchedCanvaTemplates();
+    }
+
+    function selectAllFetchedCanva(flag) {
+      getFilteredFetchedCanva().forEach(t => {
+        if (flag) canvaCheckedIds.add(t.id);
+        else canvaCheckedIds.delete(t.id);
+      });
+      renderFetchedCanvaTemplates();
+    }
+
+    function getSafeCanvaThumbUrl(t) {
+      if (!t) return "";
+      if (t.safe_preview_data_url && /^data:image\/(jpeg|jpg|png|webp|gif)/i.test(t.safe_preview_data_url)) return t.safe_preview_data_url;
+      if (t.preview_image && /^https?:\/\//i.test(t.preview_image)) return "/api/edu/canva/proxy_img?url=" + encodeURIComponent(t.preview_image);
+      return t.fallback_preview_data_url || "";
+    }
+
+    function buildCanvaCardThumbHTML(t) {
+      const c = t.colors || {};
+      const p = c.primary || "#0f4c5c";
+      const s = c.secondary || "#09323d";
+      const a = c.accent || "#c89b3c";
+      const bg = c.bg || "#f8fafc";
+      const srcUrl = getSafeCanvaThumbUrl(t);
+      const fbUrl = t.fallback_preview_data_url || "";
+      const previewImg = srcUrl ? `<img src="${escCanvaHtml(srcUrl)}" data-fb="${escCanvaHtml(fbUrl)}" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb;}else{this.style.display='none';}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.25;">` : "";
+      return `<div class="canva-tpl-thumb" style="background:${bg};border-bottom:2px solid ${p};">
+        ${previewImg}
+        <div style="position:relative;z-index:2;height:26px;background:linear-gradient(135deg,${p},${s});border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="width:48%;height:6px;background:#fff;border-radius:4px;opacity:0.9;"></span>
+          <span style="width:14px;height:14px;background:${a};border-radius:50%;"></span>
+        </div>
+        <span style="position:relative;z-index:2;align-self:flex-start;background:${p};color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:800;">${escCanvaHtml(t.category || "Canva")}</span>
+      </div>`;
+    }
+
+    function previewCanvaTemplateInsideModal(tid, scrollIntoView = true) {
+      const tpl = canvaFetchedTemplates.find(x => x.id === tid) || canvaCollectedTemplates.find(x => x.id === tid);
+      if (!tpl) return;
+      livePreviewCanvaId = tpl.id;
+      const stage = document.getElementById("canvaLivePreviewStage");
+      const body = document.getElementById("canvaLivePreviewBody");
+      const meta = document.getElementById("canvaLivePreviewMeta");
+      const btnCollect = document.getElementById("btnLiveCollectTpl");
+      const btnApply = document.getElementById("btnLiveApplyTpl");
+      const btnPrint = document.getElementById("btnLivePrintTpl");
+      if (!stage || !body) return;
+
+      const c = tpl.colors || {};
+      const p = c.primary || "#0f4c5c";
+      const s = c.secondary || "#09323d";
+      const a = c.accent || "#c89b3c";
+      const bg = c.bg || "#f8fafc";
+
+      if (meta) {
+        meta.innerHTML = `<strong>${escCanvaHtml(tpl.name)}</strong> — <span style="color:#5b21b6;font-weight:800;">${escCanvaHtml(tpl.category || "Canva")}</span>`;
+      }
+
+      body.innerHTML = `
+        <div class="canva-mini-a4" style="border:2px solid ${p};background:linear-gradient(160deg,${bg} 0%,#ffffff 65%,${p}14 100%);">
+          <div style="background:linear-gradient(135deg,${p},${s});color:#fff;padding:10px;border-radius:8px;border-bottom:3px solid ${a};text-align:center;font-weight:800;">
+            ملف خطة النشاط الطلابي والتكامل المنهجي — مدرسة آمنة بنت عفان
+          </div>
+          <div style="font-size:12px;color:#1b262c;padding:10px 4px;line-height:1.8;">
+            • <strong>المادة:</strong> الدراسات الاجتماعية (رابع / خامس / سادس)<br>
+            • <strong>المعلمة:</strong> أ. أسماء ياسين الخيري | <strong>المديرة:</strong> أ. البتول آل دويس
+          </div>
+        </div>
+        <div class="canva-mini-a4" style="border:2px solid ${p};background:#ffffff;">
+          <div style="background:${a}22;border:2px solid ${p};padding:7px;border-radius:6px;text-align:center;font-weight:800;color:${s};">
+            بطاقة تنفيذ برنامج نشاط طلابي
+          </div>
+          <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;">
+            <tr>
+              <th style="background:${p}18;color:${s};border:1px solid ${p}66;padding:4px;text-align:right;width:32%;">اسم البرنامج</th>
+              <td style="border:1px solid ${p}66;padding:4px;">بطاقات إثرائية لصفات الخليفة أبي بكر الصديق</td>
+            </tr>
+            <tr>
+              <th style="background:${p}18;color:${s};border:1px solid ${p}66;padding:4px;text-align:right;">أيقونة المنصة</th>
+              <td style="border:1px solid ${p}66;padding:4px;">قيمنا الغالية ✓ | بنك الإثراءات</td>
+            </tr>
+          </table>
+        </div>
+      `;
+
+      if (btnCollect) {
+        btnCollect.onclick = () => {
+          canvaCheckedIds.add(tpl.id);
+          collectSelectedCanvaTemplates();
+        };
+      }
+      if (btnApply) btnApply.onclick = () => applyCollectedCanvaById(tpl.id, true, false);
+      if (btnPrint) btnPrint.onclick = () => applyCollectedCanvaById(tpl.id, true, true);
+
+      stage.style.display = "flex";
+      if (scrollIntoView) stage.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      renderFetchedCanvaTemplates();
+    }
+
+    function closeCanvaLivePreview() {
+      const stage = document.getElementById("canvaLivePreviewStage");
+      if (stage) stage.style.display = "none";
+      livePreviewCanvaId = null;
+      renderFetchedCanvaTemplates();
+    }
+
+    function renderFetchedCanvaTemplates() {
+      const grid = document.getElementById("canvaFetchedGrid");
+      const countEl = document.getElementById("canvaCheckedCount");
+      if (countEl) countEl.textContent = canvaCheckedIds.size;
+      if (!grid) return;
+      const list = getFilteredFetchedCanva();
+      if (!list.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:24px;">لا توجد قوالب مطابقة — اضغط "فتح كانفا وجلب القوالب" أعلاه.</div>`;
+        return;
+      }
+      grid.innerHTML = list.map(t => {
+        const isChecked = canvaCheckedIds.has(t.id);
+        const isPreviewing = livePreviewCanvaId === t.id;
+        return `<div class="canva-tpl-card ${isChecked ? "checked" : ""} ${isPreviewing ? "previewing" : ""}">
+          <label class="canva-tpl-check" onclick="event.stopPropagation()">
+            <input type="checkbox" ${isChecked ? "checked" : ""} onchange="toggleCheckCanvaCard('${escCanvaHtml(t.id)}')"> تحديد
+          </label>
+          <div onclick="previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)">
+            ${buildCanvaCardThumbHTML(t)}
+          </div>
+          <div class="canva-tpl-body">
+            <div>
+              <div style="font-size:13px;font-weight:800;color:#0f172a;">${escCanvaHtml(t.name)}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px;">${escCanvaHtml(t.description || t.source || "Canva")}</div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+              <button type="button" onclick="previewCanvaTemplateInsideModal('${escCanvaHtml(t.id)}', true)" style="flex:1;background:#5b21b6;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;">👁️ معاينة حية</button>
+              <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, false)" style="flex:1;background:#0f766e;color:#fff;border:none;padding:6px 8px;border-radius:7px;font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;">✨ تطبيق</button>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function collectSelectedCanvaTemplates() {
+      const selected = canvaFetchedTemplates.filter(t => canvaCheckedIds.has(t.id));
+      const statusEl = document.getElementById("canvaHubStatus");
+      if (!selected.length) {
+        if (statusEl) statusEl.textContent = "⚠️ حدد قالباً واحداً على الأقل أولاً.";
+        return;
+      }
+      selected.forEach(t => {
+        if (!canvaCollectedTemplates.some(x => x.id === t.id)) canvaCollectedTemplates.unshift(t);
+      });
+      try { localStorage.setItem(CANVA_SELECTED_STORAGE_KEY, JSON.stringify(canvaCollectedTemplates)); } catch (e) {}
+      renderCollectedCanvaTemplates();
+      if (statusEl) statusEl.textContent = `✅ تم جلب ${selected.length} قالب إلى قائمة القوالب المحددة.`;
+    }
+
+    function removeCollectedCanvaTemplate(tid) {
+      canvaCollectedTemplates = canvaCollectedTemplates.filter(t => t.id !== tid);
+      try { localStorage.setItem(CANVA_SELECTED_STORAGE_KEY, JSON.stringify(canvaCollectedTemplates)); } catch (e) {}
+      renderCollectedCanvaTemplates();
+    }
+
+    function renderCollectedCanvaTemplates() {
+      const grid = document.getElementById("canvaSelectedGrid");
+      const counter = document.getElementById("canvaSelectedCounter");
+      if (counter) counter.textContent = `${canvaCollectedTemplates.length} قالب جاهز للتطبيق`;
+      if (!grid) return;
+      if (!canvaCollectedTemplates.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#64748b;padding:18px;">لم يتم جلب قوالب محددة بعد.</div>`;
+        return;
+      }
+      grid.innerHTML = canvaCollectedTemplates.map(t => {
+        const isApplied = activeCanvaTemplate && activeCanvaTemplate.id === t.id;
+        return `<div class="canva-tpl-card ${isApplied ? "applied" : ""}">
+          <button type="button" onclick="removeCollectedCanvaTemplate('${escCanvaHtml(t.id)}')" title="إزالة" style="position:absolute;top:8px;left:8px;z-index:4;background:#ef4444;color:#fff;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;font-weight:800;">✕</button>
+          ${buildCanvaCardThumbHTML(t)}
+          <div class="canva-tpl-body">
+            <div style="font-size:13px;font-weight:800;color:#0f172a;">${escCanvaHtml(t.name)} ${isApplied ? '<span style="color:#d97706;">(مطبق)</span>' : ""}</div>
+            <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">
+              <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, false)" style="flex:1;background:#0f766e;color:#fff;border:none;padding:7px 8px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">✨ تطبيق ومعاينة</button>
+              <button type="button" onclick="applyCollectedCanvaById('${escCanvaHtml(t.id)}', true, true)" style="background:#1e3a8a;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;">🖨️ طباعة</button>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function applyCollectedCanvaById(tid, openPreview, triggerPrint) {
+      const tpl = canvaCollectedTemplates.find(x => x.id === tid) || canvaFetchedTemplates.find(x => x.id === tid);
+      if (!tpl) return;
+      if (!canvaCollectedTemplates.some(x => x.id === tpl.id)) {
+        canvaCollectedTemplates.unshift(tpl);
+        try { localStorage.setItem(CANVA_SELECTED_STORAGE_KEY, JSON.stringify(canvaCollectedTemplates)); } catch (e) {}
+      }
+      applyCanvaTemplateToContent(tpl, openPreview);
+      if (triggerPrint) {
+        setTimeout(() => printActivities(), 380);
+      }
+    }
+
+    function applyCanvaTemplateToContent(tpl, openPreview = true) {
+      if (!tpl || !tpl.colors) return;
+      activeCanvaTemplate = tpl;
+      try { localStorage.setItem(CANVA_ACTIVE_STORAGE_KEY, JSON.stringify(tpl)); } catch (e) {}
+
+      const c = tpl.colors;
+      const p = c.primary || "#0f4c5c";
+      const s = c.secondary || "#09323d";
+      const a = c.accent || "#c89b3c";
+      const bg = c.bg || "#eef6f8";
+
+      const styleEl = document.getElementById("canvaDynamicThemeCss");
+      if (styleEl) {
+        styleEl.textContent = `
+          :root {
+            --primary: ${p};
+            --primary-dark: ${s};
+            --primary-light: ${p};
+            --accent: ${a};
+            --accent-soft: ${a}1a;
+            --teal-soft: ${p}14;
+            --border: ${p}88;
+            --border-strong: ${p};
+          }
+          .a4-sheet {
+            border-top-color: ${p} !important;
+            border-bottom-color: ${a} !important;
+            background: linear-gradient(180deg, ${bg}55 0%, #ffffff 12%, #ffffff 90%, ${bg}44 100%) !important;
+          }
+        `;
+      }
+
+      const tbBadge = document.getElementById("toolbarCanvaBadge");
+      const tbName = document.getElementById("toolbarCanvaName");
+      const pvBadge = document.getElementById("previewCanvaBadge");
+      const pvName = document.getElementById("previewCanvaName");
+      const resetPvBtn = document.getElementById("btnResetCanvaPreview");
+      if (tbBadge && tbName) { tbName.textContent = tpl.name; tbBadge.classList.add("show"); }
+      if (pvBadge && pvName) { pvName.textContent = tpl.name; pvBadge.classList.add("show"); }
+      if (resetPvBtn) resetPvBtn.style.display = "inline-block";
+
+      renderCollectedCanvaTemplates();
+      if (openPreview) {
+        closeCanvaHubModal();
+        togglePrintPreview(true);
+      }
+      setStatus(`🎨 تم تطبيق قالب كانفا: ${tpl.name}`);
+    }
+
+    function resetCanvaTemplate() {
+      activeCanvaTemplate = null;
+      try { localStorage.removeItem(CANVA_ACTIVE_STORAGE_KEY); } catch (e) {}
+      const styleEl = document.getElementById("canvaDynamicThemeCss");
+      if (styleEl) styleEl.textContent = "";
+      document.getElementById("toolbarCanvaBadge")?.classList.remove("show");
+      document.getElementById("previewCanvaBadge")?.classList.remove("show");
+      const resetPvBtn = document.getElementById("btnResetCanvaPreview");
+      if (resetPvBtn) resetPvBtn.style.display = "none";
+      renderCollectedCanvaTemplates();
+      setStatus("↩️ تم استعادة التصميم الأصلي للملف");
+    }
+
+    function goBackToDashboard() {
+      try {
+        if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) {
+          history.back();
+          return;
+        }
+      } catch (e) {}
+      window.location.href = "/";
+    }
 
     /* ================= وظيفة التبديل بين الأيقونتين ================= */
     function switchView(viewName, skipScroll) {
@@ -1430,6 +2803,10 @@
         tabCardBtn.classList.add("active");
       }
 
+      if (isPrintPreview) {
+        renderPreviewBadges();
+        applyPreviewZoom();
+      }
       closePdfReadyBanner();
       try {
         if (window.parent && window.parent !== window) {
@@ -1455,16 +2832,13 @@
           card.classList.add("hidden-card");
         }
       });
+      if (isPrintPreview) {
+        renderPreviewBadges();
+        applyPreviewZoom();
+      }
     }
 
     /* ================= الطباعة وتصدير PDF الموثوق ================= */
-    function getActivePrintableSheets() {
-      if (currentActiveView === "cards") {
-        return Array.from(document.querySelectorAll("#cardsView .exec-card:not(.hidden-card)"));
-      }
-      return Array.from(document.querySelectorAll("#planView .a4-sheet"));
-    }
-
     function openLastPdfBlob() {
       if (!lastPdfBlobUrl) return;
       let w = null;
@@ -1570,6 +2944,7 @@
     async function exportActivitiesPDF(fromPrintFallback) {
       if (isExportingPdf) return;
       isExportingPdf = true;
+      const wasPreview = isPrintPreview;
 
       const overlay = document.getElementById("pdfProgressOverlay");
       const titleEl = document.getElementById("pdfProgressTitle");
@@ -1580,7 +2955,13 @@
       if (document.activeElement && typeof document.activeElement.blur === "function") {
         document.activeElement.blur();
       }
+      if (fmtBar) fmtBar.classList.remove("show");
       closePdfReadyBanner();
+      removePreviewBadges();
+      document.querySelectorAll(".a4-sheet").forEach(p => {
+        p.style.transform = "";
+        p.style.marginBottom = "";
+      });
 
       if (overlay) overlay.classList.add("show");
       if (titleEl) {
@@ -1596,7 +2977,7 @@
       document.body.classList.add("pdf-exporting");
 
       const pruneClone = (clonedDoc) => {
-        clonedDoc.querySelectorAll(".app-topbar, .sub-filter-bar, .pdf-overlay, .pdf-ready-banner").forEach(n => n.remove());
+        clonedDoc.querySelectorAll(".app-topbar, .preview-bar, .preview-page-badge, .fmt-bar, .canva-hub-modal, .app-confirm-overlay, .sheet-ctrl-bar, .edit-only, .sub-filter-bar, .pdf-overlay, .pdf-ready-banner").forEach(n => n.remove());
         const target = clonedDoc.querySelector('[data-h2c-target="1"]');
         if (target) {
           target.style.width = "794px";
@@ -1605,6 +2986,7 @@
           target.style.margin = "0";
           target.style.boxShadow = "none";
           target.style.borderRadius = "0";
+          target.style.transform = "none";
         }
       };
 
@@ -1692,6 +3074,7 @@
           readyLabel.textContent = `✅ جاهز للطباعة والحفظ (${sheets.length} صفحة):`;
         }
         document.getElementById("pdfReadyBanner")?.classList.add("show");
+        setStatus(`✅ تم تصدير ملف PDF بنجاح (${sheets.length} صفحة)`);
 
         try {
           pdf.save(filename);
@@ -1702,10 +3085,15 @@
         const readyLabel = document.getElementById("pdfReadyLabel");
         if (readyLabel) readyLabel.textContent = "❌ تعذر التصدير التلقائي، يرجى فتح الصفحة في تبويب مستقل للطباعة";
         document.getElementById("pdfReadyBanner")?.classList.add("show");
+        setStatus("❌ تعذر إنشاء PDF: " + (err.message || err));
       } finally {
         document.documentElement.classList.remove("pdf-exporting");
         document.body.classList.remove("pdf-exporting");
         if (overlay) overlay.classList.remove("show");
+        if (wasPreview) {
+          renderPreviewBadges();
+          applyPreviewZoom();
+        }
         isExportingPdf = false;
       }
     }
@@ -1727,7 +3115,12 @@
       if (document.activeElement && typeof document.activeElement.blur === "function") {
         document.activeElement.blur();
       }
+      if (fmtBar) fmtBar.classList.remove("show");
       closePdfReadyBanner();
+      document.querySelectorAll(".a4-sheet").forEach(p => {
+        p.style.transform = "";
+        p.style.marginBottom = "";
+      });
 
       let nativePrintTriggered = false;
       const markTriggered = () => { nativePrintTriggered = true; };
@@ -1750,6 +3143,7 @@
       } catch (e) {}
 
       setTimeout(() => {
+        if (isPrintPreview) applyPreviewZoom();
         try {
           window.removeEventListener("beforeprint", markTriggered);
           if (mql && typeof mql.removeEventListener === "function") {
@@ -1775,8 +3169,46 @@
 
     renderPlanTables();
     renderExecutionCards();
+    makeSheetsEditable();
 
-    (function initViewFromUrl() {
+    /* حفظ تلقائي عند وجود تعديل فعلي كل 30 ثانية */
+    setInterval(() => {
+      if (!hasUserEdited) return;
+      try {
+        localStorage.setItem(ACTIVITIES_STORAGE_KEY, JSON.stringify(getState()));
+        hasUserEdited = false;
+      } catch (e) {}
+    }, 30000);
+
+    window.addEventListener("load", () => {
+      const isStandalone = window.self === window.top || new URLSearchParams(window.location.search).get("standalone") === "1";
+      const backBtn = document.getElementById("btnBackHome");
+      if (backBtn && isStandalone) backBtn.style.display = "inline-flex";
+      if (!isStandalone) document.body.classList.add("embedded-modal");
+
+      const workspaceEl = document.querySelector(".workspace");
+      if (workspaceEl) {
+        workspaceEl.addEventListener("input", markUserEdited);
+        workspaceEl.addEventListener("change", markUserEdited);
+      }
+
+      try {
+        const activeSaved = JSON.parse(localStorage.getItem(CANVA_ACTIVE_STORAGE_KEY) || "null");
+        if (activeSaved) applyCanvaTemplateToContent(activeSaved, false);
+      } catch (e) {}
+
+      const raw = localStorage.getItem(ACTIVITIES_STORAGE_KEY);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.version === ACTIVITIES_CONTENT_VERSION) {
+            showAppConfirm("يوجد حفظ سابق", "يوجد تعديلات محفوظة مسبقاً لملف الأنشطة والبطاقات. هل تريد استرجاعها؟", () => {
+              loadData();
+            });
+          }
+        } catch (e) {}
+      }
+
       try {
         const params = new URLSearchParams(window.location.search);
         const viewParam = params.get("view");
@@ -1787,7 +3219,7 @@
           setTimeout(() => printActivities(), 500);
         }
       } catch (e) {}
-    })();
+    });
   </script>
 </body>
 </html>

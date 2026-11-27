@@ -5334,25 +5334,148 @@
       </div>
     </div>
 
-    <!-- ===== مودال ملف الأداء الوظيفي (الواجهة الكاملة) ===== -->
+    <!-- ===== أنماط الشريط العلوي الموحد لنوافذ الخدمات التعليمية ===== -->
+    <style>
+      .edu-unified-header {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding: 7px 12px 8px;
+        color: #fff;
+        flex-shrink: 0;
+        border-bottom: 2px solid rgba(255,255,255,0.16);
+      }
+      .edu-uh-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: nowrap;
+        min-height: 30px;
+      }
+      .edu-uh-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      .edu-uh-title {
+        font-size: 0.96rem;
+        font-weight: 800;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #fff;
+      }
+      .edu-uh-status {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.16);
+        color: #f8fafc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 210px;
+      }
+      .edu-uh-win-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .edu-uh-standalone {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255,255,255,0.92);
+        color: #0f172a;
+        border: none;
+        border-radius: 7px;
+        padding: 4px 9px;
+        font-size: 0.73rem;
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .edu-uh-standalone:hover { background: #fff; color: #0f172a; }
+      .edu-uh-actions {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+        padding-top: 6px;
+        border-top: 1px solid rgba(255,255,255,0.15);
+      }
+      .edu-tb-btn {
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.16);
+        color: #fff;
+        padding: 4px 9px;
+        border-radius: 7px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        line-height: 1.35;
+      }
+      .edu-tb-btn:hover { opacity: 0.93; transform: translateY(-1px); color: #fff; }
+      .edu-tb-btn.tb-save { background: #16a34a; border-color: #15803d; }
+      .edu-tb-btn.tb-preview { background: #7c3aed; border-color: #6d28d9; }
+      .edu-tb-btn.tb-preview.is-active { background: #e11d48; border-color: #be123c; }
+      .edu-tb-btn.tb-pdf { background: #d97706; border-color: #b45309; }
+      .edu-tb-btn.tb-restore { background: #475569; border-color: #334155; }
+      .edu-tb-btn.tb-add { background: #0d9488; border-color: #0f766e; }
+      .edu-tb-btn.tb-section { background: #0369a1; border-color: #075985; }
+      .edu-tb-btn.tb-canva { background: linear-gradient(135deg, #00c4cc, #7d2ae8); border: none; }
+      .edu-tb-btn.tb-print { background: #0284c7; border-color: #0369a1; }
+      .edu-tb-btn.tb-danger { background: #dc2626; border-color: #b91c1c; }
+      @media (max-width: 576px) {
+        .edu-unified-header { padding: 6px 8px 7px; gap: 5px; }
+        .edu-uh-status { display: none; }
+        .edu-uh-title { font-size: 0.86rem; }
+        .edu-uh-standalone { padding: 3px 7px; font-size: 0.69rem; }
+        .edu-uh-actions { gap: 4px; padding-top: 5px; }
+        .edu-tb-btn { padding: 4px 7px; font-size: 0.71rem; }
+      }
+    </style>
+
+    <!-- ===== مودال ملف الأداء الوظيفي (شريط علوي موحد بدون تكرار) ===== -->
     <div class="modal fade" id="performancePortfolioModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#3b6978,#62929e);">
-            <h5 class="modal-title mb-0"><i class="fas fa-clipboard-list me-2"></i>ملف الأداء الوظيفي</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
-                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
-              </button>
-              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
-                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
-              </button>
-              <a href="/performance_portfolio?standalone=1" target="_blank" rel="noopener noreferrer"
-                 onclick="return openEduStandalone('/performance_portfolio', event)"
-                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
-                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          <div class="edu-unified-header" style="background:linear-gradient(135deg,#1e293b,#3b6978);">
+            <div class="edu-uh-top">
+              <div class="edu-uh-title-wrap">
+                <h5 class="edu-uh-title"><i class="fas fa-clipboard-list me-1"></i> ملف الأداء الوظيفي</h5>
+                <span class="edu-uh-status" id="eduStatus_portfolio">جاهز للتعديل</span>
+              </div>
+              <div class="edu-uh-win-controls">
+                <a href="/performance_portfolio?standalone=1" target="_blank" rel="noopener noreferrer"
+                   onclick="return openEduStandalone('/performance_portfolio', event)"
+                   class="edu-uh-standalone" title="فتح في تبويب مستقل">
+                  <i class="fas fa-external-link-alt"></i> تبويب مستقل
+                </a>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+              </div>
+            </div>
+            <div class="edu-uh-actions">
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','saveData')" class="edu-tb-btn tb-save">💾 حفظ</button>
+              <button type="button" id="eduPreviewBtn_portfolio" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="edu-tb-btn tb-preview">👁️ معاينة قبل الطباعة</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','exportPDF')" class="edu-tb-btn tb-pdf">📄 تصدير PDF</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','loadData')" class="edu-tb-btn tb-restore">🔄 استرجاع</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','addNewPage')" class="edu-tb-btn tb-add">➕ صفحة جديدة</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','openCanvaHubModal')" class="edu-tb-btn tb-canva">🎨 قوالب كانفا</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','printDocument')" class="edu-tb-btn tb-print">🖨️ طباعة</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','resetAll')" class="edu-tb-btn tb-danger">🗑️ إعادة تعيين</button>
             </div>
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
@@ -5365,25 +5488,34 @@
       </div>
     </div>
 
-    <!-- ===== مودال شواهد الأداء (الواجهة الكاملة) ===== -->
+    <!-- ===== مودال شواهد الأداء (شريط علوي موحد بدون تكرار) ===== -->
     <div class="modal fade" id="performanceWitnessesModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#6d5ca0,#8b7cb5);">
-            <h5 class="modal-title mb-0"><i class="fas fa-award me-2"></i>شواهد الأداء</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل السجل قبل الطباعة">
-                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
-              </button>
-              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
-                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
-              </button>
-              <a href="/performance_witnesses?standalone=1" target="_blank" rel="noopener noreferrer"
-                 onclick="return openEduStandalone('/performance_witnesses', event)"
-                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
-                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          <div class="edu-unified-header" style="background:linear-gradient(135deg,#2e1d52,#6d5ca0);">
+            <div class="edu-uh-top">
+              <div class="edu-uh-title-wrap">
+                <h5 class="edu-uh-title"><i class="fas fa-award me-1"></i> شواهد الأداء</h5>
+                <span class="edu-uh-status" id="eduStatus_witnesses">جاهز للتعديل</span>
+              </div>
+              <div class="edu-uh-win-controls">
+                <a href="/performance_witnesses?standalone=1" target="_blank" rel="noopener noreferrer"
+                   onclick="return openEduStandalone('/performance_witnesses', event)"
+                   class="edu-uh-standalone" title="فتح في تبويب مستقل">
+                  <i class="fas fa-external-link-alt"></i> تبويب مستقل
+                </a>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+              </div>
+            </div>
+            <div class="edu-uh-actions">
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','saveData')" class="edu-tb-btn tb-save">💾 حفظ</button>
+              <button type="button" id="eduPreviewBtn_witnesses" onclick="callEduFrameAction('performanceWitnessesFrame','togglePrintPreview')" class="edu-tb-btn tb-preview">👁️ معاينة قبل الطباعة</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','exportPDF')" class="edu-tb-btn tb-pdf">📄 تصدير PDF</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','loadData')" class="edu-tb-btn tb-restore">🔄 استرجاع</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','addNewPage')" class="edu-tb-btn tb-add">➕ صفحة جديدة</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','openCanvaHubModal')" class="edu-tb-btn tb-canva">🎨 قوالب كانفا</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','printDocument')" class="edu-tb-btn tb-print">🖨️ طباعة</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','resetAll')" class="edu-tb-btn tb-danger">🗑️ إعادة تعيين</button>
             </div>
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
@@ -5395,25 +5527,36 @@
         </div>
       </div>
     </div>
-    <!-- ===== مودال ملف التقارير والبرامج التربوية والأنشطة المدرسية (الواجهة الكاملة) ===== -->
+
+    <!-- ===== مودال ملف التقارير والبرامج التربوية (شريط علوي موحد بدون تكرار) ===== -->
     <div class="modal fade" id="schoolReportsModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);">
-            <h5 class="modal-title mb-0"><i class="fas fa-book-open me-2"></i>ملف التقارير والبرامج التربوية والأنشطة المدرسية</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
-                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
-              </button>
-              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
-                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
-              </button>
-              <a href="/school_reports?standalone=1" target="_blank" rel="noopener noreferrer"
-                 onclick="return openEduStandalone('/school_reports', event)"
-                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
-                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          <div class="edu-unified-header" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);">
+            <div class="edu-uh-top">
+              <div class="edu-uh-title-wrap">
+                <h5 class="edu-uh-title"><i class="fas fa-book-open me-1"></i> ملف التقارير والبرامج التربوية والأنشطة المدرسية</h5>
+                <span class="edu-uh-status" id="eduStatus_reports">جاهز للتعديل</span>
+              </div>
+              <div class="edu-uh-win-controls">
+                <a href="/school_reports?standalone=1" target="_blank" rel="noopener noreferrer"
+                   onclick="return openEduStandalone('/school_reports', event)"
+                   class="edu-uh-standalone" title="فتح في تبويب مستقل">
+                  <i class="fas fa-external-link-alt"></i> تبويب مستقل
+                </a>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+              </div>
+            </div>
+            <div class="edu-uh-actions">
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','saveData')" class="edu-tb-btn tb-save">💾 حفظ</button>
+              <button type="button" id="eduPreviewBtn_reports" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="edu-tb-btn tb-preview">👁️ معاينة قبل الطباعة</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','exportPDF')" class="edu-tb-btn tb-pdf">📄 تصدير PDF</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','loadData')" class="edu-tb-btn tb-restore">🔄 استرجاع</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','addNewPage')" class="edu-tb-btn tb-add">➕ إضافة صفحة</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','addNewSection')" class="edu-tb-btn tb-section">➕ إضافة قسم/تقرير</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','openEduCanvaStudio')" class="edu-tb-btn tb-canva">🎨 قوالب كانفا</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','printDocument')" class="edu-tb-btn tb-print">🖨️ طباعة</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','resetAll')" class="edu-tb-btn tb-danger">🗑️ إعادة تعيين</button>
             </div>
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
@@ -5425,6 +5568,7 @@
         </div>
       </div>
     </div>
+
     <!-- ===== مودال محرر الاختبارات أنور الصبري (النسخة الأصلية الكاملة) ===== -->
     <div class="modal fade" id="examEditorModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
@@ -5449,7 +5593,8 @@
         </div>
       </div>
     </div>
-    <!-- ===== مودال ملف الأنشطة المدرسية وبطاقة تنفيذ نشاط (مستقل ومنفصل) ===== -->
+
+    <!-- ===== مودال ملف الأنشطة المدرسية / بطاقة تنفيذ نشاط (مستقل ومنفصل بشريط علوي موحد) ===== -->
     <style>
       #eduDirectPrintHost { display: none; }
       @media print {
@@ -5481,21 +5626,30 @@
     <div class="modal fade" id="schoolActivitiesModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#09323d,#0f4c5c);">
-            <h5 class="modal-title mb-0" id="schoolActivitiesModalTitle"><i class="fas fa-folder-open me-2"></i>ملف الأنشطة المدرسية</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="printSchoolActivitiesFrame()" class="btn btn-sm btn-warning fw-bold" title="طباعة">
-                <i class="fas fa-print me-1"></i> طباعة
-              </button>
-              <button type="button" onclick="exportSchoolActivitiesPDF()" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
-                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
-              </button>
-              <a id="schoolActivitiesStandaloneLink" href="/school_activities_cards?standalone=1&view=plan" target="_blank" rel="noopener noreferrer"
-                 onclick="return openSchoolActivitiesStandalone(event)"
-                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
-                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          <div class="edu-unified-header" style="background:linear-gradient(135deg,#09323d,#0f4c5c);">
+            <div class="edu-uh-top">
+              <div class="edu-uh-title-wrap">
+                <h5 class="edu-uh-title" id="schoolActivitiesModalTitle"><i class="fas fa-folder-open me-1"></i> ملف الأنشطة المدرسية</h5>
+                <span class="edu-uh-status" id="eduStatus_activities">جاهز للتعديل</span>
+              </div>
+              <div class="edu-uh-win-controls">
+                <a id="schoolActivitiesStandaloneLink" href="/school_activities_cards?standalone=1&view=plan" target="_blank" rel="noopener noreferrer"
+                   onclick="return openSchoolActivitiesStandalone(event)"
+                   class="edu-uh-standalone" title="فتح في تبويب مستقل">
+                  <i class="fas fa-external-link-alt"></i> تبويب مستقل
+                </a>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+              </div>
+            </div>
+            <div class="edu-uh-actions">
+              <button type="button" onclick="callEduFrameAction('schoolActivitiesFrame','saveData')" class="edu-tb-btn tb-save">💾 حفظ</button>
+              <button type="button" id="eduPreviewBtn_activities" onclick="callEduFrameAction('schoolActivitiesFrame','togglePrintPreview')" class="edu-tb-btn tb-preview">👁️ معاينة قبل الطباعة</button>
+              <button type="button" onclick="exportSchoolActivitiesPDF()" class="edu-tb-btn tb-pdf">📄 تصدير PDF</button>
+              <button type="button" onclick="callEduFrameAction('schoolActivitiesFrame','loadData')" class="edu-tb-btn tb-restore">🔄 استرجاع</button>
+              <button type="button" onclick="callEduFrameAction('schoolActivitiesFrame','addNewPage')" class="edu-tb-btn tb-add">➕ صفحة جديدة</button>
+              <button type="button" onclick="callEduFrameAction('schoolActivitiesFrame','openCanvaHubModal')" class="edu-tb-btn tb-canva">🎨 قوالب كانفا</button>
+              <button type="button" onclick="printSchoolActivitiesFrame()" class="edu-tb-btn tb-print">🖨️ طباعة</button>
+              <button type="button" onclick="callEduFrameAction('schoolActivitiesFrame','resetAll')" class="edu-tb-btn tb-danger">🗑️ إعادة تعيين</button>
             </div>
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
@@ -5574,17 +5728,29 @@
         const titleEl = document.getElementById('schoolActivitiesModalTitle');
         if (titleEl) {
           titleEl.innerHTML = (_pendingSchoolActivitiesView === 'cards')
-            ? '<i class="fas fa-clipboard-check me-2"></i>بطاقة تنفيذ نشاط'
-            : '<i class="fas fa-folder-open me-2"></i>ملف الأنشطة المدرسية';
+            ? '<i class="fas fa-clipboard-check me-1"></i> بطاقة تنفيذ نشاط'
+            : '<i class="fas fa-folder-open me-1"></i> ملف الأنشطة المدرسية';
         }
         const standaloneLink = document.getElementById('schoolActivitiesStandaloneLink');
         if (standaloneLink) {
           standaloneLink.href = '/school_activities_cards?standalone=1&view=' + _pendingSchoolActivitiesView;
         }
       }
+      function updateEduPreviewButtonState(target, isActive) {
+        const btn = document.getElementById('eduPreviewBtn_' + target);
+        if (!btn) return;
+        btn.classList.toggle('is-active', Boolean(isActive));
+        btn.innerHTML = isActive ? '✏️ العودة للتعديل' : '👁️ معاينة قبل الطباعة';
+      }
       window.addEventListener('message', function (ev) {
-        if (ev && ev.data && ev.data.type === 'schoolActivitiesViewChanged') {
+        if (!ev || !ev.data || typeof ev.data !== 'object') return;
+        if (ev.data.type === 'schoolActivitiesViewChanged') {
           syncSchoolActivitiesModalHeader(ev.data.view);
+        } else if (ev.data.type === 'eduFrameStatus' && ev.data.target) {
+          const statusEl = document.getElementById('eduStatus_' + ev.data.target);
+          if (statusEl && ev.data.msg) statusEl.textContent = ev.data.msg;
+        } else if (ev.data.type === 'eduPreviewState' && ev.data.target) {
+          updateEduPreviewButtonState(ev.data.target, ev.data.active);
         }
       });
       function openSchoolActivitiesView(viewName, titleHtml) {
@@ -5623,10 +5789,10 @@
         }
       }
       function openSchoolActivitiesPlan() {
-        openSchoolActivitiesView('plan', '<i class="fas fa-folder-open me-2"></i>ملف الأنشطة المدرسية');
+        openSchoolActivitiesView('plan', '<i class="fas fa-folder-open me-1"></i> ملف الأنشطة المدرسية');
       }
       function openSchoolActivitiesCards() {
-        openSchoolActivitiesView('cards', '<i class="fas fa-clipboard-check me-2"></i>بطاقة تنفيذ نشاط');
+        openSchoolActivitiesView('cards', '<i class="fas fa-clipboard-check me-1"></i> بطاقة تنفيذ نشاط');
       }
       function openSchoolActivitiesStandalone(evt) {
         return openEduStandalone('/school_activities_cards?view=' + _pendingSchoolActivitiesView, evt);
@@ -5694,12 +5860,22 @@
       }
       function callEduFrameAction(frameId, fnName) {
         const frame = document.getElementById(frameId);
-        if (!frame || !frame.contentWindow) return;
-        try {
-          if (typeof frame.contentWindow[fnName] === 'function') {
-            frame.contentWindow[fnName]();
-          }
-        } catch (e) {}
+        if (!frame) return;
+        const args = Array.prototype.slice.call(arguments, 2);
+        const invoke = function () {
+          try {
+            if (frame.contentWindow && typeof frame.contentWindow[fnName] === 'function') {
+              frame.contentWindow[fnName].apply(frame.contentWindow, args);
+              return true;
+            }
+          } catch (e) {}
+          return false;
+        };
+        if (invoke()) return;
+        frame.addEventListener('load', function onOnceLoad() {
+          frame.removeEventListener('load', onOnceLoad);
+          setTimeout(invoke, 120);
+        });
       }
       function openEduStandalone(path, evt) {
         if (evt) evt.preventDefault();

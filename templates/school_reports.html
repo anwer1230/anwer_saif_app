@@ -92,6 +92,10 @@
     }
     body.print-preview-mode .preview-bar { display: flex; }
     body.print-preview-mode .toolbar { display: none !important; }
+    body.embedded-modal { padding-top: 12px !important; }
+    body.embedded-modal .toolbar { display: none !important; }
+    body.embedded-modal .preview-bar .pdf-btn,
+    body.embedded-modal .preview-bar .print-direct-btn { display: none !important; }
     body.print-preview-mode { background: #475569; padding: 70px 10px 40px 10px; }
     body.print-preview-mode .container {
         width: 210mm; max-width: 210mm; box-shadow: 0 12px 35px rgba(0,0,0,0.45);
@@ -706,7 +710,7 @@
     <span class="preview-title">👁️ وضع المعاينة قبل الطباعة</span>
     <button type="button" class="exit-btn" onclick="togglePrintPreview(false)">⬅️ العودة للتعديل</button>
     <button type="button" class="pdf-btn" onclick="exportPDF()">📄 تنزيل PDF</button>
-    <button type="button" onclick="printDocument()">🖨️ طباعة مباشرة</button>
+    <button type="button" class="print-direct-btn" onclick="printDocument()">🖨️ طباعة مباشرة</button>
     <button type="button" id="btnZoomFit" class="zoom-btn active" onclick="setPreviewZoom('fit')">🔍 ملائمة للشاشة</button>
     <button type="button" id="btnZoomFull" class="zoom-btn" onclick="setPreviewZoom('full')">🔍 100% A4</button>
     <span class="page-counter" id="previewPageCounter">الأقسام/الصفحات: 0</span>
@@ -4266,6 +4270,11 @@ function togglePrintPreview(forceState) {
         applyPreviewZoom();
         setStatus('تمت العودة لوضع التعديل');
     }
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'eduPreviewState', target: 'reports', active: isPrintPreview }, '*');
+        }
+    } catch (e) {}
 }
 
 window.addEventListener('resize', () => {
@@ -4791,11 +4800,21 @@ function goBackToDashboard() {
     window.location.href = '/';
 }
 
+function notifyParentStatus(msg) {
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'eduFrameStatus', target: 'reports', msg: String(msg || '') }, '*');
+        }
+    } catch (e) {}
+}
 function setStatus(msg) {
     const el = document.getElementById('statusMsg');
-    if (!el) return;
-    el.textContent = msg;
-    setTimeout(() => { el.textContent = 'جاهز للتعديل المباشر'; }, 5000);
+    if (el) el.textContent = msg;
+    notifyParentStatus(msg);
+    setTimeout(() => {
+        if (el) el.textContent = 'جاهز للتعديل المباشر';
+        notifyParentStatus('جاهز للتعديل المباشر');
+    }, 5000);
 }
 
 /* ============ حفظ تلقائي عند وجود تعديل فعلي كل 30 ثانية ============ */
@@ -4813,6 +4832,7 @@ window.addEventListener('load', () => {
     const isStandalone = window.self === window.top || new URLSearchParams(window.location.search).get('standalone') === '1';
     const backBtn = document.getElementById('btnBackHome');
     if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
+    if (!isStandalone) document.body.classList.add('embedded-modal');
 
     const mainContainerEl = document.getElementById('mainContainer');
     if (mainContainerEl) {
